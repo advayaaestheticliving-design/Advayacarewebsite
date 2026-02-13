@@ -31,7 +31,6 @@ export async function createOrder(totalAmountInr, items, customerDetails = {}) {
     amount: Number(totalAmountInr) || 0,
     currency: "INR",
     status: "pending",
-    payment_confirmed: false,
     items: orderItems,
   };
 
@@ -43,19 +42,6 @@ export async function createOrder(totalAmountInr, items, customerDetails = {}) {
     .insert(baseOrderPayload)
     .select("id")
     .single());
-
-  // Backward compatibility: if payment_confirmed is generated/missing,
-  // retry without explicitly setting it.
-  if (orderError?.code === "PGRST204" && /payment_confirmed/i.test(orderError?.message || "")) {
-    // eslint-disable-next-line no-console
-    console.warn("⚠️ orders.payment_confirmed is generated/missing. Retrying without explicit payment_confirmed.");
-    const { payment_confirmed: _ignored, ...payloadWithoutPaymentConfirmed } = baseOrderPayload;
-    ({ data: order, error: orderError } = await supabase
-      .from("orders")
-      .insert(payloadWithoutPaymentConfirmed)
-      .select("id")
-      .single());
-  }
 
   if (orderError) {
     // Provide detailed logging to help diagnose 400 errors from PostgREST

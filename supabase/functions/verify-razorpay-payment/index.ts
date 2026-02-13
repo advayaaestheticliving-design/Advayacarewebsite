@@ -159,7 +159,10 @@ serve(async (req) => {
 
     // Backward compatibility: if payment_confirmed is generated/missing,
     // retry without explicitly setting it.
-    if (dbError?.code === "PGRST204" && /payment_confirmed/i.test(dbError?.message || "")) {
+    if (
+      /payment_confirmed/i.test(dbError?.message || "") &&
+      (dbError?.code === "PGRST204" || dbError?.code === "428C9")
+    ) {
       const { payment_confirmed: _ignored, ...payloadWithoutPaymentConfirmed } = updatePayload;
       ({ data: updatedOrder, error: dbError } = await supabase
         .from("orders")
