@@ -14,7 +14,12 @@ if (!RAZORPAY_KEY_ID) {
  * Initialize Razorpay payment
  * Calls Supabase Edge Function to create order in Razorpay
  */
-export async function initializeRazorpayPayment(amount, orderId, customerDetails = {}) {
+export async function initializeRazorpayPayment(
+  amount,
+  orderId,
+  customerDetails = {},
+  items = []
+) {
   try {
     const functionUrl = `${SUPABASE_URL}/functions/v1/create-razorpay-order`;
     
@@ -22,6 +27,7 @@ export async function initializeRazorpayPayment(amount, orderId, customerDetails
       amount, // Amount in paise (smallest currency unit)
       orderId, // Your order ID from database
       customerDetails,
+      items,
     };
     
     // eslint-disable-next-line no-console

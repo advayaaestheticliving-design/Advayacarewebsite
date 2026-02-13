@@ -1,5 +1,6 @@
 import React from "react";
 import ProductCard from "../components/ProductCard";
+import productsData from "../data/products.json";
 
 function ShopPage() {
   const [selectedFilter, setSelectedFilter] = React.useState("All");
@@ -11,37 +12,16 @@ function ShopPage() {
   const categories = ["All", "Face", "Body", "Hair"];
 
   React.useEffect(() => {
-    let isMounted = true;
-    async function loadProducts() {
-      try {
-        setLoading(true);
-        setError(null);
-        const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        const res = await fetch(`${baseUrl}/functions/v1/products`, {
-          headers: {
-            apikey: anonKey,
-            Authorization: `Bearer ${anonKey}`,
-          },
-        });
-        if (!res.ok) {
-          throw new Error("Could not load products.");
-        }
-        const data = await res.json();
-        if (!isMounted) return;
-        setProducts(Array.isArray(data) ? data : []);
-      } catch (e) {
-        if (!isMounted) return;
-        setError("Something went wrong loading products.");
-        setProducts([]);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
+    try {
+      setLoading(true);
+      setError(null);
+      setProducts(Array.isArray(productsData) ? productsData : []);
+    } catch {
+      setError("Something went wrong loading products.");
+      setProducts([]);
+    } finally {
+      setLoading(false);
     }
-    loadProducts();
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
   const filteredProducts =

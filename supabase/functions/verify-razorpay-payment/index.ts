@@ -145,6 +145,7 @@ serve(async (req) => {
         razorpay_payment_id: razorpayPaymentId,
         razorpay_signature: razorpaySignature,
         status: "paid",
+        paid_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
       .eq("razorpay_order_id", razorpayOrderId)

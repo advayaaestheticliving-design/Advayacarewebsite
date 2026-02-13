@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
+import productsData from "../data/products.json";
 
 function HomePage() {
 	const [featured, setFeatured] = React.useState([]);
@@ -8,37 +9,17 @@ function HomePage() {
 	const [error, setError] = React.useState(null);
 
 	React.useEffect(() => {
-		let isMounted = true;
-		async function loadFeatured() {
-			try {
-				setLoading(true);
-				setError(null);
-				const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-				const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-				const res = await fetch(`${baseUrl}/functions/v1/products?limit=3`, {
-					headers: {
-						apikey: anonKey,
-						Authorization: `Bearer ${anonKey}`,
-					},
-				});
-				if (!res.ok) {
-					throw new Error("Could not load featured products.");
-				}
-				const data = await res.json();
-				if (!isMounted) return;
-				setFeatured(Array.isArray(data) ? data : []);
-			} catch (e) {
-				if (!isMounted) return;
-				setError("Something went wrong loading products.");
-				setFeatured([]);
-			} finally {
-				if (isMounted) setLoading(false);
-			}
+		try {
+			setLoading(true);
+			setError(null);
+			const allProducts = Array.isArray(productsData) ? productsData : [];
+			setFeatured(allProducts.slice(0, 3));
+		} catch {
+			setError("Something went wrong loading products.");
+			setFeatured([]);
+		} finally {
+			setLoading(false);
 		}
-		loadFeatured();
-		return () => {
-			isMounted = false;
-		};
 	}, []);
 
 

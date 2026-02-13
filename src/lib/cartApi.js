@@ -67,6 +67,15 @@ export async function clearCartRemote() {
 export async function createOrder(totalAmountInr, items, customerDetails = {}) {
   // eslint-disable-next-line no-console
   console.log("🛒 Creating order with customer details:", customerDetails);
+
+  const orderItems = Array.isArray(items)
+    ? items.map((item) => ({
+        productId: item.productId,
+        name: item.name || "",
+        quantity: Number(item.quantity) || 1,
+        price_inr: Number(item.price_inr) || 0,
+      }))
+    : [];
   
   const { data: order, error: orderError } = await supabase
     .from("orders")
@@ -79,6 +88,7 @@ export async function createOrder(totalAmountInr, items, customerDetails = {}) {
       amount: totalAmountInr,
       currency: "INR",
       status: "pending",
+      items: orderItems,
     })
     .select("id")
     .single();
@@ -97,19 +107,6 @@ export async function createOrder(totalAmountInr, items, customerDetails = {}) {
     });
     throw orderError;
   }
-
-  const orderItemsPayload = items.map((item) => ({
-    order_id: order.id,
-    product_id: item.productId,
-    quantity: item.quantity,
-    price_inr: item.price_inr,
-  }));
-
-  const { error: itemsError } = await supabase
-    .from("order_items")
-    .insert(orderItemsPayload);
-
-  if (itemsError) throw itemsError;
 
   return order;
 }

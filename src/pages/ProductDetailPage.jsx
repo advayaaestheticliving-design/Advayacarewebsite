@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import { supabase } from "../lib/supabaseClient";
+import productsData from "../data/products.json";
 
 function ProductDetailPage() {
   const { id } = useParams();
@@ -12,37 +12,19 @@ function ProductDetailPage() {
   const [error, setError] = React.useState(null);
 
   React.useEffect(() => {
-    let isMounted = true;
-    async function loadProduct() {
-      try {
-        setLoading(true);
-        setError(null);
-        const { data, error: dbError } = await supabase
-          .from("products")
-          .select("*")
-          .eq("id", id)
-          .maybeSingle();
-        if (!isMounted) return;
-        if (dbError) {
-          setError("Could not load product.");
-          setProduct(null);
-          return;
-        }
-        setProduct(data || null);
-      } catch (e) {
-        if (!isMounted) return;
-        setError("Something went wrong loading product.");
-        setProduct(null);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
+    try {
+      setLoading(true);
+      setError(null);
+      const found = Array.isArray(productsData)
+        ? productsData.find((p) => p.id === id)
+        : null;
+      setProduct(found || null);
+    } catch {
+      setError("Something went wrong loading product.");
+      setProduct(null);
+    } finally {
+      setLoading(false);
     }
-    if (id) {
-      loadProduct();
-    }
-    return () => {
-      isMounted = false;
-    };
   }, [id]);
 
   if (loading) {

@@ -376,6 +376,7 @@ function CartPage() {
         isOpen={showPaymentModal}
         orderId={currentOrder?.id}
         amount={discountedTotal}
+        items={items}
         customerName={customerDetails.name}
         customerEmail={customerDetails.email}
         customerPhone={customerDetails.phone}

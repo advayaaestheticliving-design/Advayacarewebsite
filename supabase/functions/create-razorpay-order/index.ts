@@ -25,17 +25,19 @@ serve(async (req) => {
     const { 
       amount, 
       orderId, 
-      customerDetails = {} 
+      customerDetails = {},
+      items = [],
     } = body;
 
     // Validate required fields
-    if (!amount || !customerDetails) {
+    if (!amount || !customerDetails || !Array.isArray(items)) {
       console.error("❌ Missing required fields");
       console.error("   - amount check: !amount =", !amount, "value =", amount);
       console.error("   - customerDetails check: !customerDetails =", !customerDetails, "value =", JSON.stringify(customerDetails));
+      console.error("   - items check: !Array.isArray(items) =", !Array.isArray(items));
       return new Response(
         JSON.stringify({
-          error: "Missing required fields: amount, customerDetails",
+          error: "Missing required fields: amount, customerDetails, items",
         }),
         {
           status: 400,
@@ -47,6 +49,7 @@ serve(async (req) => {
     console.log("✅ Validation passed");
     console.log("💰 Amount:", amount);
     console.log("👤 Customer:", customerDetails.name);
+    console.log("🧺 Items count:", items.length);
 
     // Get Razorpay credentials from environment
     const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID");
@@ -143,6 +146,7 @@ serve(async (req) => {
           amount: amount,
           currency: "INR",
           status: "pending",
+          items,
         },
       ])
       .select()

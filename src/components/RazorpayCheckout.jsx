@@ -8,6 +8,7 @@ import {
 export default function RazorpayCheckout({
   orderId,
   amount,
+  items = [],
   customerEmail,
   customerName,
   customerPhone,
@@ -40,7 +41,7 @@ export default function RazorpayCheckout({
 
       // Initialize payment with backend
       const razorpayOrderData = await initializeRazorpayPayment(
-        amount, // Amount in INR - Edge Function will convert to paise
+        amount,
         orderId,
         {
           name: customerName,
@@ -48,7 +49,8 @@ export default function RazorpayCheckout({
           phone: customerPhone,
           address: customerAddress,
           pinCode: customerPinCode,
-        }
+        },
+        items
       );
 
       // Open Razorpay checkout

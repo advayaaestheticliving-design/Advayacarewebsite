@@ -1,13 +1,39 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import {
-  addCartItem,
-  clearCartRemote,
-  createOrder,
-  fetchCartItems,
-  removeCartItem as removeCartItemRemote,
-  updateCartItem as updateCartItemRemote,
-} from "../lib/cartApi";
-import { ensureSupabaseGuestSession } from "../lib/authSession";
+import { createOrder } from "../lib/cartApi";
+
+const CART_COOKIE_NAME = "ac_cart";
+const CART_COOKIE_MAX_AGE_DAYS = 30;
+
+const readCartCookie = () => {
+  if (typeof document === "undefined") return [];
+  const match = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${CART_COOKIE_NAME}=`));
+  if (!match) return [];
+  try {
+    const raw = decodeURIComponent(match.split("=")[1] || "");
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item) => item && item.productId && Number(item.quantity) > 0)
+      .map((item) => ({
+        id: item.id,
+        productId: item.productId,
+        name: item.name || "",
+        price_inr: Number(item.price_inr) || 0,
+        quantity: Number(item.quantity) || 1,
+      }));
+  } catch {
+    return [];
+  }
+};
+
+const writeCartCookie = (items) => {
+  if (typeof document === "undefined") return;
+  const maxAge = 60 * 60 * 24 * CART_COOKIE_MAX_AGE_DAYS;
+  const payload = encodeURIComponent(JSON.stringify(items));
+  document.cookie = `${CART_COOKIE_NAME}=${payload}; path=/; max-age=${maxAge}; samesite=lax`;
+};
 
 const CartContext = createContext(undefined);
 
@@ -17,17 +43,12 @@ export function CartProvider({ children }) {
   const [giftCardCode, setGiftCardCode] = useState("");
 
   useEffect(() => {
-    (async () => {
-      try {
-        await ensureSupabaseGuestSession();
-        const remoteItems = await fetchCartItems();
-        setItems(remoteItems);
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error("Failed to initialise cart from Supabase", error);
-      }
-    })();
+    setItems(readCartCookie());
   }, []);
+
+  useEffect(() => {
+    writeCartCookie(items);
+  }, [items]);
 
   const addToCart = async (product, quantity = 1) => {
     if (!product || !product.id) return;
@@ -53,43 +74,10 @@ export function CartProvider({ children }) {
       ];
     });
 
-    try {
-      const created = await addCartItem(product.id, quantity);
-      setItems((prev) =>
-        prev.map((item) =>
-          item.productId === product.id && item.id === undefined
-            ? { ...item, id: created.id }
-            : item
-        )
-      );
-    } catch {
-      // rollback on error
-      setItems((prev) =>
-        prev
-          .map((item) => {
-            if (item.productId === product.id) {
-              const newQty = item.quantity - quantity;
-              if (newQty <= 0) return null;
-              return { ...item, quantity: newQty };
-            }
-            return item;
-          })
-          .filter(Boolean)
-      );
-    }
   };
 
   const removeFromCart = async (productId) => {
-    const current = items.find((i) => i.productId === productId);
     setItems((prev) => prev.filter((item) => item.productId !== productId));
-
-    try {
-      if (current?.id) {
-        await removeCartItemRemote(current.id);
-      }
-    } catch {
-      // ignore error and let UI stay optimistic
-    }
   };
 
   const updateQuantity = async (productId, quantity) => {
@@ -99,24 +87,10 @@ export function CartProvider({ children }) {
         item.productId === productId ? { ...item, quantity: safeQty } : item
       )
     );
-
-    const current = items.find((i) => i.productId === productId);
-    try {
-      if (current?.id) {
-        await updateCartItemRemote(current.id, safeQty);
-      }
-    } catch {
-      // ignore error for now
-    }
   };
 
   const clearCart = async () => {
     setItems([]);
-    try {
-      await clearCartRemote();
-    } catch {
-      // ignore
-    }
   };
 
   const subtotal = useMemo(
