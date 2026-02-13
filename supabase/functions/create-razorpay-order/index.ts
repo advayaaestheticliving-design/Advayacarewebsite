@@ -30,14 +30,15 @@ serve(async (req) => {
     } = body;
 
     // Validate required fields
-    if (!amount || !customerDetails || !Array.isArray(items)) {
+    if (!amount || !orderId || !customerDetails || !Array.isArray(items)) {
       console.error("❌ Missing required fields");
       console.error("   - amount check: !amount =", !amount, "value =", amount);
+      console.error("   - orderId check: !orderId =", !orderId, "value =", orderId);
       console.error("   - customerDetails check: !customerDetails =", !customerDetails, "value =", JSON.stringify(customerDetails));
       console.error("   - items check: !Array.isArray(items) =", !Array.isArray(items));
       return new Response(
         JSON.stringify({
-          error: "Missing required fields: amount, customerDetails, items",
+          error: "Missing required fields: amount, orderId, customerDetails, items",
         }),
         {
           status: 400,
@@ -113,7 +114,7 @@ serve(async (req) => {
 
     console.log("✅ Razorpay order created:", razorpayData.id);
 
-    // Save order to Supabase database
+    // Save Razorpay order ID to Supabase database
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -135,21 +136,13 @@ serve(async (req) => {
 
     const { data: orderData, error: dbError } = await supabase
       .from("orders")
-      .insert([
-        {
-          razorpay_order_id: razorpayData.id,
-          customer_name: customerDetails.name,
-          customer_email: customerDetails.email,
-          customer_phone: customerDetails.phone,
-          customer_address: customerDetails.address,
-          customer_pin_code: customerDetails.pinCode,
-          amount: amount,
-          currency: "INR",
-          status: "pending",
-          items,
-        },
-      ])
-      .select()
+      .update({
+        razorpay_order_id: razorpayData.id,
+        status: "pending",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", orderId)
+      .select("id")
       .single();
 
     if (dbError) {

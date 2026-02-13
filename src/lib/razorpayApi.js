@@ -1,13 +1,12 @@
 import { supabase } from "./supabaseClient";
 
-// Hardcoded values for GitHub Pages deployment (test keys are public, safe to hardcode)
-const RAZORPAY_KEY_ID = "rzp_test_S1pqPZYLELIsdF";
-const SUPABASE_URL = "https://uexezctcwupgaxqhgyeh.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVleGV6Y3Rjd3VwZ2F4cWhneWVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjAxNTIsImV4cCI6MjA3OTM5NjE1Mn0.kUMmVMZ8EOGXSJREYJLDc446tZmhxywV6MghBpVV7bM";
+const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!RAZORPAY_KEY_ID) {
+if (!RAZORPAY_KEY_ID || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
   // eslint-disable-next-line no-console
-  console.warn("Razorpay Key ID is missing");
+  console.warn("Missing Razorpay/Supabase env vars; payments may not work.");
 }
 
 /**

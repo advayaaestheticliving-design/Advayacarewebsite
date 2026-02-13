@@ -55,7 +55,7 @@ export default function RazorpayCheckout({
 
       // Open Razorpay checkout
       const options = {
-        key: "rzp_test_S1pqPZYLELIsdF",
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
         // Do not pass `amount` when using `order_id` to avoid unit/display mismatches.
         currency: razorpayOrderData.currency || "INR",
         name: "Advayacare",

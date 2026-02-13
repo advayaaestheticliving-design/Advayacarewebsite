@@ -143,7 +143,6 @@ serve(async (req) => {
       .from("orders")
       .update({
         razorpay_payment_id: razorpayPaymentId,
-        razorpay_signature: razorpaySignature,
         status: "paid",
         paid_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -182,16 +181,14 @@ serve(async (req) => {
     }
 
     console.log("✅ Order status updated to 'paid'");
-    console.log("📧 Customer email:", updatedOrder.customer_email);
 
     const response = {
       success: true,
       message: "Payment verified and order updated successfully",
       orderId: updatedOrder.id,
+      transactionId: razorpayPaymentId,
       paymentId: razorpayPaymentId,
-      amount: updatedOrder.amount,
-      customerEmail: updatedOrder.customer_email,
-      customerName: updatedOrder.customer_name,
+      amount: updatedOrder.total_amount_inr,
     };
 
     console.log("🎉 === PAYMENT VERIFICATION COMPLETED SUCCESSFULLY ===");

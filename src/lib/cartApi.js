@@ -68,10 +68,11 @@ export async function createOrder(totalAmountInr, items, customerDetails = {}) {
   // eslint-disable-next-line no-console
   console.log("🛒 Creating order with customer details:", customerDetails);
 
+  const sessionId = getOrCreateSessionId();
+
   const orderItems = Array.isArray(items)
     ? items.map((item) => ({
-        productId: item.productId,
-        name: item.name || "",
+        product_id: item.productId,
         quantity: Number(item.quantity) || 1,
         price_inr: Number(item.price_inr) || 0,
       }))
@@ -80,15 +81,9 @@ export async function createOrder(totalAmountInr, items, customerDetails = {}) {
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
-      customer_name: customerDetails.name || "",
-      customer_email: customerDetails.email || "",
-      customer_phone: customerDetails.phone || "",
-      customer_address: customerDetails.address || "",
-      customer_pin_code: customerDetails.pinCode || "",
-      amount: totalAmountInr,
-      currency: "INR",
+      session_id: sessionId,
+      total_amount_inr: totalAmountInr,
       status: "pending",
-      items: orderItems,
     })
     .select("id")
     .single();
@@ -106,6 +101,25 @@ export async function createOrder(totalAmountInr, items, customerDetails = {}) {
       fullError: orderError,
     });
     throw orderError;
+  }
+
+  if (orderItems.length) {
+    const itemsToInsert = orderItems.map((item) => ({
+      order_id: order.id,
+      product_id: item.product_id,
+      quantity: item.quantity,
+      price_inr: item.price_inr,
+    }));
+
+    const { error: itemsError } = await supabase
+      .from("order_items")
+      .insert(itemsToInsert);
+
+    if (itemsError) {
+      // eslint-disable-next-line no-console
+      console.error("❌ Failed to create order items:", itemsError);
+      throw itemsError;
+    }
   }
 
   return order;
