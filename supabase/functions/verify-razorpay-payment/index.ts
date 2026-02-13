@@ -139,17 +139,35 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     console.log("📝 Updating order status in database...");
 
-    const { data: updatedOrder, error: dbError } = await supabase
+    const updatePayload = {
+      razorpay_payment_id: razorpayPaymentId,
+      status: "paid",
+      payment_confirmed: true,
+      paid_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    let updatedOrder: any = null;
+    let dbError: any = null;
+
+    ({ data: updatedOrder, error: dbError } = await supabase
       .from("orders")
-      .update({
-        razorpay_payment_id: razorpayPaymentId,
-        status: "paid",
-        paid_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq("razorpay_order_id", razorpayOrderId)
       .select()
-      .single();
+      .single());
+
+    // Backward compatibility: if payment_confirmed is generated/missing,
+    // retry without explicitly setting it.
+    if (dbError?.code === "PGRST204" && /payment_confirmed/i.test(dbError?.message || "")) {
+      const { payment_confirmed: _ignored, ...payloadWithoutPaymentConfirmed } = updatePayload;
+      ({ data: updatedOrder, error: dbError } = await supabase
+        .from("orders")
+        .update(payloadWithoutPaymentConfirmed)
+        .eq("razorpay_order_id", razorpayOrderId)
+        .select()
+        .single());
+    }
 
     if (dbError) {
       console.error("❌ Database update error:", dbError);
@@ -188,7 +206,7 @@ serve(async (req) => {
       orderId: updatedOrder.id,
       transactionId: razorpayPaymentId,
       paymentId: razorpayPaymentId,
-      amount: updatedOrder.total_amount_inr,
+      amount: updatedOrder.amount ?? updatedOrder.total_amount_inr,
     };
 
     console.log("🎉 === PAYMENT VERIFICATION COMPLETED SUCCESSFULLY ===");

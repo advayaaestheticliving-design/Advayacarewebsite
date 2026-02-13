@@ -21,9 +21,10 @@ export async function initializeRazorpayPayment(
 ) {
   try {
     const functionUrl = `${SUPABASE_URL}/functions/v1/create-razorpay-order`;
+    const amountInPaise = Math.round((Number(amount) || 0) * 100);
     
     const payload = {
-      amount, // Amount in paise (smallest currency unit)
+      amount: amountInPaise, // Amount in paise (smallest currency unit)
       orderId, // Your order ID from database
       customerDetails,
       items,
@@ -32,7 +33,9 @@ export async function initializeRazorpayPayment(
     // eslint-disable-next-line no-console
     console.log("📤 Sending to Edge Function:");
     // eslint-disable-next-line no-console
-    console.log("   Amount:", amount, "Type:", typeof amount);
+    console.log("   Amount INR:", amount, "Type:", typeof amount);
+    // eslint-disable-next-line no-console
+    console.log("   Amount Paise:", amountInPaise, "Type:", typeof amountInPaise);
     // eslint-disable-next-line no-console
     console.log("   OrderId:", orderId, "Type:", typeof orderId);
     // eslint-disable-next-line no-console

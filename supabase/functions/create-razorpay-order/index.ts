@@ -22,23 +22,18 @@ serve(async (req) => {
     console.log("   - orderId:", body.orderId, "type:", typeof body.orderId);
     console.log("   - customerDetails:", JSON.stringify(body.customerDetails));
     
-    const { 
-      amount, 
-      orderId, 
+    const {
+      orderId,
       customerDetails = {},
-      items = [],
     } = body;
 
     // Validate required fields
-    if (!amount || !orderId || !customerDetails || !Array.isArray(items)) {
+    if (!orderId) {
       console.error("❌ Missing required fields");
-      console.error("   - amount check: !amount =", !amount, "value =", amount);
       console.error("   - orderId check: !orderId =", !orderId, "value =", orderId);
-      console.error("   - customerDetails check: !customerDetails =", !customerDetails, "value =", JSON.stringify(customerDetails));
-      console.error("   - items check: !Array.isArray(items) =", !Array.isArray(items));
       return new Response(
         JSON.stringify({
-          error: "Missing required fields: amount, orderId, customerDetails, items",
+          error: "Missing required field: orderId",
         }),
         {
           status: 400,
@@ -48,9 +43,72 @@ serve(async (req) => {
     }
 
     console.log("✅ Validation passed");
-    console.log("💰 Amount:", amount);
-    console.log("👤 Customer:", customerDetails.name);
-    console.log("🧺 Items count:", items.length);
+    // Get Supabase credentials
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("❌ Supabase credentials not found");
+      return new Response(
+        JSON.stringify({
+          error: "Server configuration error: Supabase credentials missing",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Fetch order from DB and use authoritative values for amount/customer
+    const { data: order, error: orderFetchError } = await supabase
+      .from("orders")
+      .select("id, amount, total_amount_inr, currency, customer_name, customer_email, customer_phone, customer_address, customer_pin_code")
+      .eq("id", orderId)
+      .single();
+
+    if (orderFetchError || !order) {
+      console.error("❌ Failed to fetch order:", orderFetchError);
+      return new Response(
+        JSON.stringify({
+          error: "Order not found",
+          details: orderFetchError?.message,
+        }),
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const amountInInr = Number(order.amount ?? order.total_amount_inr ?? 0);
+    if (!Number.isFinite(amountInInr) || amountInInr <= 0) {
+      console.error("❌ Invalid order amount:", order.amount, order.total_amount_inr);
+      return new Response(
+        JSON.stringify({
+          error: "Invalid order amount",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const amountInPaise = Math.round(amountInInr * 100);
+    const resolvedCustomer = {
+      name: order.customer_name || customerDetails.name || "",
+      email: order.customer_email || customerDetails.email || "",
+      phone: order.customer_phone || customerDetails.phone || "",
+      address: order.customer_address || customerDetails.address || "",
+      pinCode: order.customer_pin_code || customerDetails.pinCode || "",
+    };
+
+    console.log("💰 Amount INR (DB):", amountInInr);
+    console.log("💰 Amount Paise (Razorpay):", amountInPaise);
+    console.log("👤 Customer (DB preferred):", resolvedCustomer.name);
 
     // Get Razorpay credentials from environment
     const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID");
@@ -82,16 +140,15 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        // `amount` is expected in paise from the frontend. Do NOT multiply again.
-        amount: amount,
-        currency: "INR",
+        amount: amountInPaise,
+        currency: order.currency || "INR",
         receipt: `order_${Date.now()}`,
         notes: {
-          customer_name: customerDetails.name || "",
-          customer_email: customerDetails.email || "",
-          customer_phone: customerDetails.phone || "",
-          customer_address: customerDetails.address || "",
-          customer_pin_code: customerDetails.pinCode || "",
+          customer_name: resolvedCustomer.name,
+          customer_email: resolvedCustomer.email,
+          customer_phone: resolvedCustomer.phone,
+          customer_address: resolvedCustomer.address,
+          customer_pin_code: resolvedCustomer.pinCode,
         },
       }),
     });
@@ -115,23 +172,6 @@ serve(async (req) => {
     console.log("✅ Razorpay order created:", razorpayData.id);
 
     // Save Razorpay order ID to Supabase database
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error("❌ Supabase credentials not found");
-      return new Response(
-        JSON.stringify({
-          error: "Server configuration error: Supabase credentials missing",
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     console.log("📝 Saving order to database...");
 
     const { data: orderData, error: dbError } = await supabase
@@ -165,8 +205,8 @@ serve(async (req) => {
       success: true,
       razorpayOrderId: razorpayData.id,
       orderId: orderData.id,
-      amount: amount,
-      currency: "INR",
+      amount: amountInPaise,
+      currency: order.currency || "INR",
     };
 
     console.log("🎉 === FUNCTION COMPLETED SUCCESSFULLY ===");
