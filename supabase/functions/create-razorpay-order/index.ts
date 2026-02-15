@@ -65,7 +65,7 @@ serve(async (req) => {
     // Fetch order from DB and use authoritative values for amount/customer
     const { data: order, error: orderFetchError } = await supabase
       .from("orders")
-      .select("id, amount, total_amount_inr, currency, customer_name, customer_email, customer_phone, customer_address, customer_pin_code")
+      .select("id, amount, currency, customer_name, customer_email, customer_phone, customer_address, customer_pin_code")
       .eq("id", orderId)
       .single();
 
@@ -83,9 +83,9 @@ serve(async (req) => {
       );
     }
 
-    const amountInInr = Number(order.amount ?? order.total_amount_inr ?? 0);
+    const amountInInr = Number(order.amount ?? 0);
     if (!Number.isFinite(amountInInr) || amountInInr <= 0) {
-      console.error("❌ Invalid order amount:", order.amount, order.total_amount_inr);
+      console.error("❌ Invalid order amount:", order.amount);
       return new Response(
         JSON.stringify({
           error: "Invalid order amount",

@@ -43,6 +43,8 @@ cd d:\GitHub\repo\advayacarewebsite
 npm run dev
 ```
 
+> Important: do not open `index.html` directly from the file system. This Vite app must run through the dev server or preview server.
+
 ### Step 2: Navigate to Cart
 - [ ] Open http://localhost:5173 in browser
 - [ ] Go to Shop page

@@ -38,6 +38,12 @@ const Header = () => {
             <NavLink to="/gift-card" className={getNavLinkClass}>
               Gift Card
             </NavLink>
+            <NavLink to="/membership" className={getNavLinkClass}>
+              Membership
+            </NavLink>
+            <NavLink to="/privacy" className={getNavLinkClass}>
+              Privacy Policy
+            </NavLink>
             <NavLink to="/cart" className={getNavLinkClass}>
               Cart
             </NavLink>
@@ -111,6 +117,12 @@ const Header = () => {
             </NavLink>
             <NavLink to="/gift-card" className={getMobileNavLinkClass}>
               Gift Card
+            </NavLink>
+            <NavLink to="/membership" className={getMobileNavLinkClass}>
+              Membership
+            </NavLink>
+            <NavLink to="/privacy" className={getMobileNavLinkClass}>
+              Privacy Policy
             </NavLink>
             <NavLink to="/cart" className={getMobileNavLinkClass}>
               Cart

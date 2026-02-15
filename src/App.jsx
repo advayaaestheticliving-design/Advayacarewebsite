@@ -14,8 +14,18 @@ import BlogPage from "./pages/BlogPage";
 import ContactPage from "./pages/ContactPage";
 import TermsPage from "./pages/TermsPage";
 import GiftCardPage from "./pages/GiftCardPage";
+import MembershipPage from "./pages/MembershipPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import { ensureSupabaseGuestSession } from "./lib/authSession";
 
 function App() {
+  React.useEffect(() => {
+    ensureSupabaseGuestSession().catch((error) => {
+      // eslint-disable-next-line no-console
+      console.warn("Guest session bootstrap failed", error);
+    });
+  }, []);
+
   return (
     <CartProvider>
       <div className="min-h-screen flex flex-col text-black relative">
@@ -32,7 +42,9 @@ function App() {
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/gift-card" element={<GiftCardPage />} />
+              <Route path="/membership" element={<MembershipPage />} />
             </Routes>
             </div>
           </main>

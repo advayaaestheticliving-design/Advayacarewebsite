@@ -7,7 +7,9 @@ const navItems = [
   { label: "Blog", to: "/blog" },
   { label: "Contact Us", to: "/contact" },
   { label: "Terms and Conditions", to: "/terms" },
+  { label: "Privacy Policy", to: "/privacy" },
   { label: "Gift Card", to: "/gift-card" },
+  { label: "Membership", to: "/membership" },
   { label: "Cart", to: "/cart" },
 ];
 

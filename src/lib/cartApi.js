@@ -1,4 +1,4 @@
-import { supabase } from "./supabaseClient";
+import { supabase, isSupabaseConfigured } from "./supabaseClient";
 
 export function getOrCreateSessionId() {
   let sessionId = localStorage.getItem("ac_session_id");
@@ -10,6 +10,10 @@ export function getOrCreateSessionId() {
 }
 
 export async function createOrder(totalAmountInr, items, customerDetails = {}) {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error("Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.local and restart the dev server.");
+  }
+
   // eslint-disable-next-line no-console
   console.log("🛒 Creating order with customer details:", customerDetails);
 

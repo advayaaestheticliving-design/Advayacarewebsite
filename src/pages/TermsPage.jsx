@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 function TermsPage() {
   return (
@@ -70,7 +71,13 @@ function TermsPage() {
       </section>
       <section className="space-y-4 text-sm sm:text-base leading-relaxed">
         <h2 className="text-xl font-semibold">Personal Information</h2>
-        <p>Your submission of personal information through the store is governed by our Privacy Policy.</p>
+        <p>
+          Your submission of personal information through the store is governed by our{" "}
+          <Link to="/privacy" className="underline">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </section>
       <section className="space-y-4 text-sm sm:text-base leading-relaxed">
         <h2 className="text-xl font-semibold">Errors, Inaccuracies and Omissions</h2>

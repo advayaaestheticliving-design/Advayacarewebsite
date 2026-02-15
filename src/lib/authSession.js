@@ -1,9 +1,13 @@
-import { supabase } from "./supabaseClient";
+import { supabase, isSupabaseConfigured } from "./supabaseClient";
 import { getOrCreateSessionId } from "./cartApi";
 
 const TOKEN_KEY = "ac_guest_access_token";
 
 export async function ensureSupabaseGuestSession() {
+  if (!isSupabaseConfigured || !supabase) {
+    return;
+  }
+
   const existingToken = localStorage.getItem(TOKEN_KEY);
   if (existingToken) {
     await supabase.auth.setSession({

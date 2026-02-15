@@ -1,9 +1,10 @@
 // Supabase Edge Function: mint-guest-token
 // Issues a short-lived JWT that carries a session_id claim
 
-
-
-// Removed jsonwebtoken import to use Deno's built-in crypto
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 const JWT_SECRET = Deno.env.get("JWT_SECRET") ?? "";
 
@@ -11,8 +12,15 @@ if (!JWT_SECRET) {
   console.error("JWT_SECRET is not set for mint-guest-token function");
 }
 Deno.serve(async (req) => { 
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return new Response("Method not allowed", {
+      status: 405,
+      headers: corsHeaders,
+    });
   }
 
   try {
@@ -29,25 +37,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!SUPABASE_JWT_SECRET) {
+    if (!JWT_SECRET) {
       return new Response(
         JSON.stringify({ error: "Function misconfigured: missing JWT secret" }),
         {
           status: 500,
-          headers: { "Content-Type": "application/json" },
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
-
-      if (!JWT_SECRET) {
-        return new Response(
-          JSON.stringify({ error: "Function misconfigured: missing JWT secret" }),
-          {
-            status: 500,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
-      }
 
     const payload = {
       sub: `anon-${sessionId}`,
@@ -59,7 +57,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({ access_token: accessToken }), {
       status: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("mint-guest-token error", error);
@@ -67,7 +65,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ error: "Failed to mint guest token" }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   }
