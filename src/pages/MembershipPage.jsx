@@ -5,10 +5,14 @@ import {
   getMembershipProfile,
   getMembershipRecommendations,
   saveMembershipProfile,
-  sendMagicLink,
+  signUpWithEmailPassword,
+  signInWithEmailPassword,
+  signInWithGoogle,
   signOutMembership,
   getMembershipIdentity,
 } from "../lib/membershipApi";
+import { supabase } from "../lib/supabaseClient";
+import { ensureSignupCouponIssued } from "../lib/walletApi";
 
 const initialForm = {
   skin_type: "",
@@ -30,42 +34,50 @@ function MembershipPage() {
   const [profileId, setProfileId] = React.useState(null);
   const [recommendations, setRecommendations] = React.useState([]);
   const [authEmail, setAuthEmail] = React.useState("");
+  const [authPassword, setAuthPassword] = React.useState("");
+  const [authMode, setAuthMode] = React.useState("sign-in");
   const [memberEmail, setMemberEmail] = React.useState("");
   const [status, setStatus] = React.useState("");
   const [error, setError] = React.useState("");
   const [loading, setLoading] = React.useState(false);
+
+  const loadProfileAndRecommendations = React.useCallback(async () => {
+    const identity = await getMembershipIdentity();
+    setMemberEmail(identity.user?.email || "");
+
+    const profile = await getMembershipProfile();
+    if (!profile) {
+      setProfileId(null);
+      setRecommendations([]);
+      return;
+    }
+
+    setProfileId(profile.id);
+    setForm({
+      skin_type: profile.skin_type || "",
+      concerns: (profile.concerns || []).join(", "),
+      allergies: (profile.allergies || []).join(", "),
+      avoid_ingredients: (profile.avoid_ingredients || []).join(", "),
+      sun_exposure: profile.sun_exposure || "",
+      sleep_hours: profile.sleep_hours || "",
+      stress_level: profile.stress_level || "",
+      water_intake: profile.water_intake || "",
+      routine_steps: profile.routine_steps || "",
+      current_products: profile.current_products || "",
+      consent_to_process: Boolean(profile.consent_to_process),
+      consent_to_ai: Boolean(profile.consent_to_ai),
+    });
+
+    const recs = await getMembershipRecommendations(profile.id, productsData);
+    setRecommendations(recs);
+  }, []);
 
   React.useEffect(() => {
     let mounted = true;
 
     const boot = async () => {
       try {
-        const identity = await getMembershipIdentity();
-        if (!mounted) return;
-        setMemberEmail(identity.user?.email || "");
-
-        const profile = await getMembershipProfile();
-        if (!mounted || !profile) return;
-
-        setProfileId(profile.id);
-        setForm({
-          skin_type: profile.skin_type || "",
-          concerns: (profile.concerns || []).join(", "),
-          allergies: (profile.allergies || []).join(", "),
-          avoid_ingredients: (profile.avoid_ingredients || []).join(", "),
-          sun_exposure: profile.sun_exposure || "",
-          sleep_hours: profile.sleep_hours || "",
-          stress_level: profile.stress_level || "",
-          water_intake: profile.water_intake || "",
-          routine_steps: profile.routine_steps || "",
-          current_products: profile.current_products || "",
-          consent_to_process: Boolean(profile.consent_to_process),
-          consent_to_ai: Boolean(profile.consent_to_ai),
-        });
-
-        const recs = await getMembershipRecommendations(profile.id, productsData);
-        if (!mounted) return;
-        setRecommendations(recs);
+        await loadProfileAndRecommendations();
       } catch (bootError) {
         if (!mounted) return;
         setError(bootError.message || "Failed to load membership profile.");
@@ -74,10 +86,42 @@ function MembershipPage() {
 
     boot();
 
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+
+      setMemberEmail(session?.user?.email || "");
+      setError("");
+
+      const createdAtMs = new Date(session?.user?.created_at || 0).getTime();
+      const isRecentlyCreated =
+        Number.isFinite(createdAtMs) && Date.now() - createdAtMs < 10 * 60 * 1000;
+
+      if (session?.user?.id && event === "SIGNED_IN" && isRecentlyCreated) {
+        try {
+          const couponResult = await ensureSignupCouponIssued();
+          if (couponResult?.issued) {
+            setStatus("Welcome! Your ₹100 member coupon is now active.");
+          }
+        } catch {
+          // silent: coupon issuance should not block auth refresh
+        }
+      }
+
+      try {
+        await loadProfileAndRecommendations();
+      } catch (reloadError) {
+        if (!mounted) return;
+        setError(reloadError.message || "Failed to refresh member profile.");
+      }
+    });
+
     return () => {
       mounted = false;
+      subscription?.unsubscribe();
     };
-  }, []);
+  }, [loadProfileAndRecommendations]);
 
   const handleChange = (event) => {
     const { name, type, value, checked } = event.target;
@@ -87,16 +131,41 @@ function MembershipPage() {
     }));
   };
 
-  const handleMagicLink = async (event) => {
+  const handleEmailAuth = async (event) => {
     event.preventDefault();
     setError("");
     setStatus("");
 
     try {
-      await sendMagicLink(authEmail);
-      setStatus("Magic link sent. Check your email to complete sign-in.");
+      if (authMode === "sign-up") {
+        const data = await signUpWithEmailPassword(authEmail, authPassword);
+        try {
+          await ensureSignupCouponIssued();
+        } catch {
+          // silent: auth listener will retry if session propagation is delayed
+        }
+        const signedUpEmail = data?.user?.email || authEmail;
+        setMemberEmail(signedUpEmail);
+        setStatus("Account created. Your ₹100 member coupon is being activated.");
+      } else {
+        const data = await signInWithEmailPassword(authEmail, authPassword);
+        setMemberEmail(data?.user?.email || authEmail);
+        setStatus("Signed in successfully.");
+      }
     } catch (authError) {
-      setError(authError.message || "Could not send magic link.");
+      setError(authError.message || "Authentication failed.");
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError("");
+    setStatus("");
+
+    try {
+      await signInWithGoogle();
+      setStatus("Redirecting to Google sign-in...");
+    } catch (authError) {
+      setError(authError.message || "Could not start Google sign-in.");
     }
   };
 
@@ -107,6 +176,8 @@ function MembershipPage() {
     try {
       await signOutMembership();
       setMemberEmail("");
+      setProfileId(null);
+      setRecommendations([]);
       setStatus("Signed out. Your guest profile is still available on this device.");
     } catch (authError) {
       setError(authError.message || "Could not sign out.");
@@ -170,22 +241,66 @@ function MembershipPage() {
             </button>
           </div>
         ) : (
-          <form onSubmit={handleMagicLink} className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="email"
-              value={authEmail}
-              onChange={(e) => setAuthEmail(e.target.value)}
-              placeholder="Enter your email for a magic link"
-              className="w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white placeholder:text-white/40"
-              required
-            />
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setAuthMode("sign-in")}
+                className={`rounded-full px-4 py-1.5 text-xs font-medium ${
+                  authMode === "sign-in"
+                    ? "bg-[#D4AF37] text-black"
+                    : "border border-neutral-600 text-white"
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => setAuthMode("sign-up")}
+                className={`rounded-full px-4 py-1.5 text-xs font-medium ${
+                  authMode === "sign-up"
+                    ? "bg-[#D4AF37] text-black"
+                    : "border border-neutral-600 text-white"
+                }`}
+              >
+                Sign Up
+              </button>
+            </div>
+
+            <form onSubmit={handleEmailAuth} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <input
+                type="email"
+                value={authEmail}
+                onChange={(e) => setAuthEmail(e.target.value)}
+                placeholder="Email"
+                className="sm:col-span-1 w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white placeholder:text-white/40"
+                required
+              />
+              <input
+                type="password"
+                value={authPassword}
+                onChange={(e) => setAuthPassword(e.target.value)}
+                placeholder="Password"
+                className="sm:col-span-1 w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white placeholder:text-white/40"
+                required
+                minLength={6}
+              />
+              <button
+                type="submit"
+                className="sm:col-span-1 rounded-full bg-[#D4AF37] px-4 py-2 text-sm font-medium text-black hover:bg-[#e3c458]"
+              >
+                {authMode === "sign-up" ? "Create Account" : "Sign In"}
+              </button>
+            </form>
+
             <button
-              type="submit"
-              className="rounded-full bg-[#D4AF37] px-4 py-2 text-sm font-medium text-black hover:bg-[#e3c458]"
+              type="button"
+              onClick={handleGoogleSignIn}
+              className="rounded-full border border-neutral-500 px-4 py-2 text-sm font-medium text-white hover:border-neutral-300"
             >
-              Send Magic Link
+              Continue with Google
             </button>
-          </form>
+          </div>
         )}
       </section>
 

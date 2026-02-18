@@ -21,6 +21,10 @@ export async function initializeRazorpayPayment(
 ) {
   try {
     const functionUrl = `${SUPABASE_URL}/functions/v1/create-razorpay-order`;
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const authToken = session?.access_token || SUPABASE_ANON_KEY;
     const amountInPaise = Math.round((Number(amount) || 0) * 100);
     
     const payload = {
@@ -47,7 +51,7 @@ export async function initializeRazorpayPayment(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        Authorization: `Bearer ${authToken}`,
       },
       body: JSON.stringify(payload),
     });
@@ -77,11 +81,15 @@ export async function initializeRazorpayPayment(
 export async function handlePaymentSuccess(paymentData) {
   try {
     const functionUrl = `${SUPABASE_URL}/functions/v1/verify-razorpay-payment`;
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const authToken = session?.access_token || SUPABASE_ANON_KEY;
     const response = await fetch(functionUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        Authorization: `Bearer ${authToken}`,
       },
       body: JSON.stringify({
         razorpayPaymentId: paymentData.razorpay_payment_id,

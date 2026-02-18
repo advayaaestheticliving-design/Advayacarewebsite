@@ -10,6 +10,8 @@ function CartPage() {
     subtotal,
     discountedTotal,
     discount,
+    discountSnapshot,
+    discountError,
     couponCode,
     giftCardCode,
     setCouponCode,
@@ -270,12 +272,20 @@ function CartPage() {
                   />
                   <button
                     type="button"
-                    onClick={() => setCouponCode(localCoupon)}
+                    onClick={() => setCouponCode(localCoupon.trim())}
                     className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 hover:border-[#b58b2f] hover:text-[#b58b2f] transition-colors"
                   >
                     Apply
                   </button>
                 </div>
+                {couponCode && (
+                  <p className="text-[11px] text-slate-700">
+                    Coupon status: {discountSnapshot?.coupon?.status || "checking"}
+                    {discountSnapshot?.coupon?.amountInr > 0
+                      ? ` (−₹${Number(discountSnapshot.coupon.amountInr).toLocaleString("en-IN")})`
+                      : ""}
+                  </p>
+                )}
               </div>
 
               {/* Gift Card Code */}
@@ -302,7 +312,7 @@ function CartPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          setGiftCardCode(localGiftCard);
+                          setGiftCardCode(localGiftCard.trim());
                         }}
                         className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 hover:border-[#b58b2f] hover:text-[#b58b2f] transition-colors"
                       >
@@ -322,13 +332,21 @@ function CartPage() {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => setGiftCardCode(localGiftCard)}
+                      onClick={() => setGiftCardCode(localGiftCard.trim())}
                       className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 hover:border-[#b58b2f] hover:text-[#b58b2f] transition-colors"
                     >
                       Apply
                     </button>
                   )}
                 </div>
+                {giftCardCode && (
+                  <p className="text-[11px] text-slate-700">
+                    Gift card status: {discountSnapshot?.giftCard?.status || "checking"}
+                    {discountSnapshot?.giftCard?.amountInr > 0
+                      ? ` (−₹${Number(discountSnapshot.giftCard.amountInr).toLocaleString("en-IN")})`
+                      : ""}
+                  </p>
+                )}
                 {giftCardCode && (
                   <p className="text-[11px] text-slate-700 flex items-center gap-2">
                     <span className="inline-flex items-center rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-slate-700 border border-slate-200">
@@ -346,6 +364,9 @@ function CartPage() {
             )}
             {paymentError && (
               <p className="text-xs text-red-600 pt-1">{paymentError}</p>
+            )}
+            {discountError && (
+              <p className="text-xs text-red-600 pt-1">{discountError}</p>
             )}
             
             {/* Success Messages */}

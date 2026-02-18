@@ -6,6 +6,58 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function toNumber(value: unknown) {
+  const num = Number(value ?? 0);
+  return Number.isFinite(num) ? num : 0;
+}
+
+function randomToken(length = 10) {
+  return crypto.randomUUID().replace(/-/g, "").slice(0, length).toUpperCase();
+}
+
+function parseGiftCardAmount(item: any) {
+  const productId = String(item?.product_id || item?.productId || "");
+  const match = productId.match(/^gift-card-(\d+)$/i);
+  if (match) {
+    return toNumber(match[1]);
+  }
+
+  const price = toNumber(item?.price_inr ?? item?.price ?? 0);
+  const name = String(item?.name || "").toLowerCase();
+  if (name.includes("gift card") && price > 0) {
+    return price;
+  }
+
+  return 0;
+}
+
+async function createGiftCardWithRetry(
+  supabase: ReturnType<typeof createClient>,
+  payload: Record<string, unknown>
+) {
+  let lastError: any = null;
+
+  for (let i = 0; i < 5; i += 1) {
+    const code = `GIFT-${randomToken(10)}`;
+    const { data, error } = await supabase
+      .from("gift_cards")
+      .insert({ ...payload, code })
+      .select("id, code, initial_amount_inr, balance_amount_inr, status")
+      .single();
+
+    if (!error && data) {
+      return { data, error: null };
+    }
+
+    lastError = error;
+    if (error?.code !== "23505") {
+      break;
+    }
+  }
+
+  return { data: null, error: lastError };
+}
+
 async function verifySignature(
   message: string,
   signature: string,
@@ -201,6 +253,132 @@ serve(async (req) => {
       );
     }
 
+    const couponCode = String(updatedOrder.coupon_code || "").trim().toUpperCase();
+    const couponAmountInr = toNumber(updatedOrder.coupon_amount_inr);
+    const giftCardCode = String(updatedOrder.gift_card_code || "").trim().toUpperCase();
+    const giftCardAmountInr = toNumber(updatedOrder.gift_card_amount_inr);
+
+    if (couponCode && couponAmountInr > 0) {
+      const { data: couponRow, error: couponFetchError } = await supabase
+        .from("member_coupons")
+        .select("id, auth_user_id, status")
+        .eq("code", couponCode)
+        .maybeSingle();
+
+      if (couponFetchError) {
+        console.error("❌ Failed to fetch coupon for redemption:", couponFetchError);
+      } else if (couponRow?.status === "active") {
+        const { error: couponUpdateError } = await supabase
+          .from("member_coupons")
+          .update({ status: "consumed", consumed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+          .eq("id", couponRow.id)
+          .eq("status", "active");
+
+        if (couponUpdateError) {
+          console.error("❌ Failed to mark coupon consumed:", couponUpdateError);
+        } else {
+          const { error: redemptionError } = await supabase.from("coupon_redemptions").insert({
+            coupon_id: couponRow.id,
+            auth_user_id: couponRow.auth_user_id,
+            code: couponCode,
+            order_id: updatedOrder.id,
+            amount_inr: couponAmountInr,
+          });
+
+          if (redemptionError) {
+            console.error("❌ Failed to insert coupon redemption:", redemptionError);
+          }
+        }
+      }
+    }
+
+    if (giftCardCode && giftCardAmountInr > 0) {
+      const { data: giftCardRow, error: giftCardFetchError } = await supabase
+        .from("gift_cards")
+        .select("id, balance_amount_inr, status")
+        .eq("code", giftCardCode)
+        .maybeSingle();
+
+      if (giftCardFetchError) {
+        console.error("❌ Failed to fetch gift card for debit:", giftCardFetchError);
+      } else if (giftCardRow?.status === "active") {
+        const currentBalance = toNumber(giftCardRow.balance_amount_inr);
+        const debitAmount = Math.min(currentBalance, giftCardAmountInr);
+        const nextBalance = Math.max(0, currentBalance - debitAmount);
+        const nextStatus = nextBalance <= 0 ? "depleted" : "active";
+
+        const { error: giftCardUpdateError } = await supabase
+          .from("gift_cards")
+          .update({
+            balance_amount_inr: nextBalance,
+            status: nextStatus,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", giftCardRow.id)
+          .eq("status", "active");
+
+        if (giftCardUpdateError) {
+          console.error("❌ Failed to update gift card balance:", giftCardUpdateError);
+        } else {
+          const { error: txError } = await supabase.from("gift_card_transactions").insert({
+            gift_card_id: giftCardRow.id,
+            tx_type: "debit",
+            amount_inr: debitAmount,
+            balance_after_inr: nextBalance,
+            order_id: updatedOrder.id,
+            notes: "Applied during checkout",
+          });
+
+          if (txError) {
+            console.error("❌ Failed to insert gift card debit transaction:", txError);
+          }
+        }
+      }
+    }
+
+    const rawItems = Array.isArray(updatedOrder.items) ? updatedOrder.items : [];
+    const purchasedGiftCards: any[] = [];
+
+    for (const item of rawItems) {
+      const amount = parseGiftCardAmount(item);
+      const qty = Math.max(1, Math.floor(toNumber(item?.quantity || 1)));
+      if (amount <= 0) {
+        continue;
+      }
+
+      for (let i = 0; i < qty; i += 1) {
+        const { data: createdGiftCard, error: createGiftCardError } = await createGiftCardWithRetry(supabase, {
+          initial_amount_inr: amount,
+          balance_amount_inr: amount,
+          status: "active",
+          owner_auth_user_id: updatedOrder.auth_user_id || null,
+          owner_email: updatedOrder.customer_email || null,
+          purchased_order_id: updatedOrder.id,
+          issued_to_name: updatedOrder.customer_name || null,
+        });
+
+        if (createGiftCardError || !createdGiftCard) {
+          console.error("❌ Failed to create purchased gift card:", createGiftCardError);
+          continue;
+        }
+
+        purchasedGiftCards.push(createdGiftCard);
+
+        const { error: creditTxError } = await supabase.from("gift_card_transactions").insert({
+          gift_card_id: createdGiftCard.id,
+          tx_type: "credit",
+          amount_inr: amount,
+          balance_after_inr: amount,
+          order_id: updatedOrder.id,
+          notes: "Gift card issued after successful purchase",
+        });
+
+        if (creditTxError) {
+          console.error("❌ Failed to insert gift card credit transaction:", creditTxError);
+        }
+      }
+    }
+
     console.log("✅ Order status updated to 'paid'");
 
     const response = {
@@ -210,6 +388,12 @@ serve(async (req) => {
       transactionId: razorpayPaymentId,
       paymentId: razorpayPaymentId,
       amount: updatedOrder.amount ?? updatedOrder.total_amount_inr,
+      issuedGiftCards: purchasedGiftCards.map((gc) => ({
+        id: gc.id,
+        code: gc.code,
+        amountInr: gc.initial_amount_inr,
+        status: gc.status,
+      })),
     };
 
     console.log("🎉 === PAYMENT VERIFICATION COMPLETED SUCCESSFULLY ===");

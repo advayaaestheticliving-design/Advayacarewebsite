@@ -1,8 +1,13 @@
 import React, { useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
+
+  const isMoreActive = ["/contact", "/terms", "/gift-card", "/privacy"].includes(
+    location.pathname
+  );
 
   // Update nav link base styles for dark header
   const navLinkBase = "block px-1 text-white hover:text-[#b58b2f] transition";
@@ -29,20 +34,48 @@ const Header = () => {
             <NavLink to="/blog" className={getNavLinkClass}>
               Blog
             </NavLink>
-            <NavLink to="/contact" className={getNavLinkClass}>
-              Contact Us
-            </NavLink>
-            <NavLink to="/terms" className={getNavLinkClass}>
-              Terms and Conditions
-            </NavLink>
-            <NavLink to="/gift-card" className={getNavLinkClass}>
-              Gift Card
-            </NavLink>
+            <div className="relative group">
+              <button
+                type="button"
+                className={`${navLinkDesktop} inline-flex items-center gap-1 ${
+                  isMoreActive ? "border-b border-amber-700 pb-1" : ""
+                }`}
+                aria-haspopup="menu"
+              >
+                More
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="h-3 w-3"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+              <div className="invisible absolute left-0 top-full mt-2 min-w-[13rem] rounded border border-neutral-700 bg-black/95 py-2 opacity-0 transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+                <NavLink to="/contact" className="block px-3 py-1 text-white hover:text-[#b58b2f] transition">
+                  Contact Us
+                </NavLink>
+                <NavLink to="/terms" className="block px-3 py-1 text-white hover:text-[#b58b2f] transition">
+                  Terms and Conditions
+                </NavLink>
+                <NavLink to="/gift-card" className="block px-3 py-1 text-white hover:text-[#b58b2f] transition">
+                  Gift Card
+                </NavLink>
+                <NavLink to="/privacy" className="block px-3 py-1 text-white hover:text-[#b58b2f] transition">
+                  Privacy Policy
+                </NavLink>
+              </div>
+            </div>
             <NavLink to="/membership" className={getNavLinkClass}>
               Membership
             </NavLink>
-            <NavLink to="/privacy" className={getNavLinkClass}>
-              Privacy Policy
+            <NavLink to="/account" className={getNavLinkClass}>
+              Account
             </NavLink>
             <NavLink to="/cart" className={getNavLinkClass}>
               Cart
@@ -109,20 +142,46 @@ const Header = () => {
             <NavLink to="/blog" className={getMobileNavLinkClass}>
               Blog
             </NavLink>
-            <NavLink to="/contact" className={getMobileNavLinkClass}>
-              Contact Us
-            </NavLink>
-            <NavLink to="/terms" className={getMobileNavLinkClass}>
-              Terms and Conditions
-            </NavLink>
-            <NavLink to="/gift-card" className={getMobileNavLinkClass}>
-              Gift Card
-            </NavLink>
+            <details className="group">
+              <summary
+                className={`cursor-pointer list-none ${navLinkBase} inline-flex items-center gap-1 ${
+                  isMoreActive ? "border-l-2 border-amber-700 pl-2" : ""
+                }`}
+              >
+                More
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="h-3 w-3"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </summary>
+              <div className="mt-1 space-y-1 border-l border-neutral-700 pl-3">
+                <NavLink to="/contact" className={getMobileNavLinkClass}>
+                  Contact Us
+                </NavLink>
+                <NavLink to="/terms" className={getMobileNavLinkClass}>
+                  Terms and Conditions
+                </NavLink>
+                <NavLink to="/gift-card" className={getMobileNavLinkClass}>
+                  Gift Card
+                </NavLink>
+                <NavLink to="/privacy" className={getMobileNavLinkClass}>
+                  Privacy Policy
+                </NavLink>
+              </div>
+            </details>
             <NavLink to="/membership" className={getMobileNavLinkClass}>
               Membership
             </NavLink>
-            <NavLink to="/privacy" className={getMobileNavLinkClass}>
-              Privacy Policy
+            <NavLink to="/account" className={getMobileNavLinkClass}>
+              Account
             </NavLink>
             <NavLink to="/cart" className={getMobileNavLinkClass}>
               Cart

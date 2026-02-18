@@ -10,12 +10,38 @@
 
 ## Immediate Actions (Do This First)
 
+### 0. Deploy Wallet + Coupon System (NEW)
+```bash
+# Link project once (if not already linked)
+supabase login
+supabase link --project-ref <your-project-ref>
+
+# Apply latest DB migrations (includes wallet tables + order discount metadata)
+supabase db push
+
+# Deploy wallet-related functions
+supabase functions deploy issue-signup-coupon
+supabase functions deploy validate-discounts
+
+# Redeploy payment functions (verify now settles coupons/gift cards and mints purchased gift cards)
+supabase functions deploy create-razorpay-order
+supabase functions deploy verify-razorpay-payment
+```
+- [ ] Wallet migration deployed
+- [ ] `issue-signup-coupon` deployed
+- [ ] `validate-discounts` deployed
+- [ ] Payment functions redeployed
+- [ ] Wallet smoke tests completed (`WALLET_COUPON_ROLLOUT.md`)
+
 ### 1. Add Razorpay Secrets to Supabase (5 min)
 - [ ] Go to https://supabase.com/dashboard
 - [ ] Select your project
 - [ ] Navigate to **Settings > Secrets**
 - [ ] Create secret: `RAZORPAY_KEY_ID` = your_key_id
 - [ ] Create secret: `RAZORPAY_KEY_SECRET` = your_key_secret
+- [ ] Ensure secret: `SUPABASE_URL`
+- [ ] Ensure secret: `SUPABASE_ANON_KEY`
+- [ ] Ensure secret: `SUPABASE_SERVICE_ROLE_KEY`
 - [ ] Click Save
 
 ### 2. Deploy Supabase Edge Functions (5 min)

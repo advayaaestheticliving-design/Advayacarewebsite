@@ -25,22 +25,59 @@ export async function getMembershipIdentity() {
   };
 }
 
-export async function sendMagicLink(email) {
+export async function signUpWithEmailPassword(email, password) {
   const normalized = String(email || "").trim();
-  if (!normalized) {
-    throw new Error("Email is required");
+  const normalizedPassword = String(password || "");
+
+  if (!normalized || !normalizedPassword) {
+    throw new Error("Email and password are required");
   }
 
-  const { error } = await supabase.auth.signInWithOtp({
+  const { data, error } = await supabase.auth.signUp({
     email: normalized,
+    password: normalizedPassword,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function signInWithEmailPassword(email, password) {
+  const normalized = String(email || "").trim();
+  const normalizedPassword = String(password || "");
+
+  if (!normalized || !normalizedPassword) {
+    throw new Error("Email and password are required");
+  }
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: normalized,
+    password: normalizedPassword,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function signInWithGoogle() {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
     options: {
-      emailRedirectTo: window.location.href,
+      redirectTo: window.location.href,
     },
   });
 
   if (error) {
     throw error;
   }
+
+  return data;
 }
 
 export async function signOutMembership() {

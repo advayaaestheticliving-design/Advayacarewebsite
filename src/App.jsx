@@ -16,6 +16,7 @@ import TermsPage from "./pages/TermsPage";
 import GiftCardPage from "./pages/GiftCardPage";
 import MembershipPage from "./pages/MembershipPage";
 import PrivacyPage from "./pages/PrivacyPage";
+import AccountPage from "./pages/AccountPage";
 import { ensureSupabaseGuestSession } from "./lib/authSession";
 
 function App() {
@@ -45,6 +46,7 @@ function App() {
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/gift-card" element={<GiftCardPage />} />
               <Route path="/membership" element={<MembershipPage />} />
+              <Route path="/account" element={<AccountPage />} />
             </Routes>
             </div>
           </main>

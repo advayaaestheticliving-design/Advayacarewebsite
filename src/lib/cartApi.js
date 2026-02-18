@@ -9,10 +9,17 @@ export function getOrCreateSessionId() {
   return sessionId;
 }
 
-export async function createOrder(totalAmountInr, items, customerDetails = {}) {
+export async function createOrder(totalAmountInr, items, customerDetails = {}, discountDetails = {}) {
   if (!isSupabaseConfigured || !supabase) {
     throw new Error("Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.local and restart the dev server.");
   }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const normalizedCouponCode = String(discountDetails?.couponCode || "").trim().toUpperCase();
+  const normalizedGiftCardCode = String(discountDetails?.giftCardCode || "").trim().toUpperCase();
 
   // eslint-disable-next-line no-console
   console.log("🛒 Creating order with customer details:", customerDetails);
@@ -36,6 +43,14 @@ export async function createOrder(totalAmountInr, items, customerDetails = {}) {
     currency: "INR",
     status: "pending",
     items: orderItems,
+    auth_user_id: user?.id ?? null,
+    guest_session_id: user?.id ? null : getOrCreateSessionId(),
+    coupon_code: normalizedCouponCode || null,
+    gift_card_code: normalizedGiftCardCode || null,
+    coupon_amount_inr: Number(discountDetails?.couponAmountInr || 0),
+    gift_card_amount_inr: Number(discountDetails?.giftCardAmountInr || 0),
+    discount_total_inr: Number(discountDetails?.totalDiscountInr || 0),
+    discount_snapshot: discountDetails?.snapshot || {},
   };
 
   let order = null;

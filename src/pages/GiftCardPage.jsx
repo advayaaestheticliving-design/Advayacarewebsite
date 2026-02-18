@@ -7,7 +7,7 @@ const GIFT_AMOUNTS = [500, 1000, 2000];
 function GiftCardPage() {
   const [selected, setSelected] = useState(GIFT_AMOUNTS[1]);
   const [customAmount, setCustomAmount] = useState("");
-  const { addToCart, setGiftCardCode } = useCart();
+  const { addToCart } = useCart();
 
   const handleAddGiftCard = () => {
     const amount = Number(selected);
@@ -23,7 +23,6 @@ function GiftCardPage() {
       price_inr: amount,
     };
     addToCart(product, 1);
-    setGiftCardCode(id.toUpperCase());
   };
 
   const handleCustomBlur = () => {
@@ -96,8 +95,8 @@ function GiftCardPage() {
           Add Gift Card to Cart
         </button>
         <p className="text-[11px] text-slate-500 pt-1">
-          Gift cards will be redeemable at checkout once payment integration is
-          live. For now this flow demonstrates how the cart will behave.
+          Gift card codes are generated only after successful payment and then
+          appear in your Account page.
         </p>
       </section>
     </div>
