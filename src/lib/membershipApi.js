@@ -90,27 +90,6 @@ export async function signInWithEmailPassword(email, password) {
   return data;
 }
 
-export async function signInWithMagicLink(email) {
-  const normalized = String(email || "").trim();
-
-  if (!normalized) {
-    throw new Error("Email is required");
-  }
-
-  const { data, error } = await supabase.auth.signInWithOtp({
-    email: normalized,
-    options: {
-      emailRedirectTo: window.location.href,
-    },
-  });
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
-}
-
 export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",

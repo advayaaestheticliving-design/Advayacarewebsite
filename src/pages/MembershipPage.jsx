@@ -6,7 +6,7 @@ import {
   getMembershipRecommendations,
   saveMembershipProfile,
   signUpWithEmailPassword,
-  signInWithMagicLink,
+  signInWithEmailPassword,
   signInWithGoogle,
   signOutMembership,
   getMembershipIdentity,
@@ -169,8 +169,9 @@ function MembershipPage() {
           setStatus("Account created. Please confirm your email first, then sign in to fill your skin profile.");
         }
       } else {
-        await signInWithMagicLink(authEmail);
-        setStatus("Magic link sent. Check your email and open the link to sign in.");
+        const data = await signInWithEmailPassword(authEmail, authPassword);
+        setMemberEmail(data?.user?.email || authEmail);
+        setStatus("Signed in successfully. You can now fill your skin profile.");
       }
     } catch (authError) {
       setError(authError.message || "Authentication failed.");
@@ -328,15 +329,21 @@ function MembershipPage() {
                   minLength={6}
                 />
               ) : (
-                <div className="w-full rounded-xl border border-neutral-700 bg-black/40 px-4 py-2 text-xs text-white/70 sm:col-span-1">
-                  We will email a secure magic link to this address.
-                </div>
+                <input
+                  type="password"
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  placeholder="Password"
+                  className="w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white placeholder:text-white/40 sm:col-span-1"
+                  required
+                  minLength={6}
+                />
               )}
               <button
                 type="submit"
                 className="sm:col-span-1 rounded-full bg-[#D4AF37] px-4 py-2 text-sm font-medium text-black hover:bg-[#e3c458]"
               >
-                {authMode === "sign-up" ? "Create Account" : "Send Magic Link"}
+                {authMode === "sign-up" ? "Create Account" : "Sign In"}
               </button>
             </form>
 

@@ -48,6 +48,7 @@ function App() {
               <Route path="/gift-card" element={<GiftCardPage />} />
               <Route path="/membership" element={<MembershipPage />} />
               <Route path="/account" element={<AccountPage />} />
+              <Route path="/admin" element={<AdminOrdersPage />} />
               <Route path="/admin/orders" element={<AdminOrdersPage />} />
             </Routes>
             </div>

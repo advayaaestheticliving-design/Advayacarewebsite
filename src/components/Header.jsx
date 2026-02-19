@@ -120,7 +120,7 @@ const Header = () => {
               {authLabel}
             </NavLink>
             {isAdmin ? (
-              <NavLink to="/admin/orders" className={getNavLinkClass}>
+              <NavLink to="/admin" className={getNavLinkClass}>
                 Admin
               </NavLink>
             ) : null}
@@ -228,7 +228,7 @@ const Header = () => {
               {authLabel}
             </NavLink>
             {isAdmin ? (
-              <NavLink to="/admin/orders" className={getMobileNavLinkClass}>
+              <NavLink to="/admin" className={getMobileNavLinkClass}>
                 Admin
               </NavLink>
             ) : null}
