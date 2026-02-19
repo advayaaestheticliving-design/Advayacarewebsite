@@ -1,6 +1,13 @@
 import React from "react";
-import { Link } from "react-router-dom";
-import { getAdminOrders, isCurrentUserAdmin, updateAdminOrderStatus } from "../lib/adminOrdersApi";
+import {
+  getAdminEmail,
+  getAdminOrders,
+  isCurrentUserAdmin,
+  signInAdminWithPassword,
+  signOutAdmin,
+  updateAdminOrderStatus,
+} from "../lib/adminOrdersApi";
+import { supabase } from "../lib/supabaseClient";
 
 const FULFILLMENT_OPTIONS = [
   "processing",
@@ -46,6 +53,10 @@ function AdminOrdersPage() {
   const [pendingStatusByOrder, setPendingStatusByOrder] = React.useState({});
   const [pendingNotesByOrder, setPendingNotesByOrder] = React.useState({});
   const [updatingOrderId, setUpdatingOrderId] = React.useState("");
+  const [authEmail, setAuthEmail] = React.useState(getAdminEmail());
+  const [authPassword, setAuthPassword] = React.useState("");
+  const [authLoading, setAuthLoading] = React.useState(false);
+  const [signedInEmail, setSignedInEmail] = React.useState("");
 
   const loadOrders = React.useCallback(async () => {
     setLoading(true);
@@ -54,6 +65,11 @@ function AdminOrdersPage() {
     try {
       const isAdmin = await isCurrentUserAdmin();
       setAuthorized(isAdmin);
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setSignedInEmail(String(user?.email || ""));
 
       if (!isAdmin) {
         setOrders([]);
@@ -74,6 +90,52 @@ function AdminOrdersPage() {
   React.useEffect(() => {
     loadOrders();
   }, [loadOrders]);
+
+  React.useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      loadOrders().catch(() => undefined);
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, [loadOrders]);
+
+  async function handleAdminLogin(event) {
+    event.preventDefault();
+    setError("");
+    setAuthLoading(true);
+
+    try {
+      await signInAdminWithPassword(authEmail, authPassword);
+      setAuthPassword("");
+      await loadOrders();
+    } catch (authError) {
+      setError(authError?.message || "Admin login failed.");
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  async function handleAdminSignOut() {
+    setError("");
+    setAuthLoading(true);
+
+    try {
+      await signOutAdmin();
+      setOrders([]);
+      setAuthorized(false);
+      setSignedInEmail("");
+      setPendingNotesByOrder({});
+      setPendingStatusByOrder({});
+    } catch (authError) {
+      setError(authError?.message || "Could not sign out admin session.");
+    } finally {
+      setAuthLoading(false);
+    }
+  }
 
   async function handleStatusUpdate(order) {
     const nextStatus = String(
@@ -117,17 +179,65 @@ function AdminOrdersPage() {
       {loading ? (
         <p className="text-sm text-white/80">Loading admin orders...</p>
       ) : !authorized ? (
-        <div className="rounded-2xl border border-neutral-700 bg-black/50 p-5 text-sm text-white/90 space-y-3">
-          <p>Only the configured admin account can access this page.</p>
-          <Link
-            to="/membership"
-            className="inline-flex rounded-full bg-[#D4AF37] px-4 py-2 text-xs font-semibold text-black hover:bg-[#e3c458]"
-          >
-            Go to Sign In
-          </Link>
-        </div>
+        <section className="rounded-2xl border border-neutral-700 bg-black/50 p-5 sm:p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-white">Admin Login</h2>
+          <p className="text-sm text-white/80">
+            This is an independent admin workflow. Sign in only with {getAdminEmail()}.
+          </p>
+          {signedInEmail && signedInEmail !== getAdminEmail() ? (
+            <div className="rounded-xl border border-amber-700 bg-amber-950/40 px-4 py-3 text-xs text-amber-200 space-y-2">
+              <p>Signed in as {signedInEmail}. This account is not authorized for admin access.</p>
+              <button
+                type="button"
+                onClick={handleAdminSignOut}
+                disabled={authLoading}
+                className="rounded-full border border-amber-500 px-3 py-1 font-medium hover:bg-amber-500/10 disabled:opacity-60"
+              >
+                {authLoading ? "Signing out..." : "Sign Out Current Session"}
+              </button>
+            </div>
+          ) : null}
+
+          <form onSubmit={handleAdminLogin} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <input
+              type="email"
+              value={authEmail}
+              onChange={(event) => setAuthEmail(event.target.value)}
+              placeholder="Admin email"
+              className="sm:col-span-1 w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white placeholder:text-white/40"
+              required
+            />
+            <input
+              type="password"
+              value={authPassword}
+              onChange={(event) => setAuthPassword(event.target.value)}
+              placeholder="Password"
+              className="sm:col-span-1 w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white placeholder:text-white/40"
+              required
+              minLength={6}
+            />
+            <button
+              type="submit"
+              disabled={authLoading}
+              className="sm:col-span-1 rounded-full bg-[#D4AF37] px-4 py-2 text-sm font-semibold text-black hover:bg-[#e3c458] disabled:opacity-60"
+            >
+              {authLoading ? "Signing in..." : "Sign In as Admin"}
+            </button>
+          </form>
+        </section>
       ) : (
         <>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={handleAdminSignOut}
+              disabled={authLoading}
+              className="rounded-full border border-neutral-500 px-4 py-2 text-xs font-medium text-white hover:border-[#D4AF37] disabled:opacity-60"
+            >
+              {authLoading ? "Signing out..." : "Sign Out Admin"}
+            </button>
+          </div>
+
           {error && <p className="text-sm text-red-400">{error}</p>}
 
           {orders.length === 0 ? (

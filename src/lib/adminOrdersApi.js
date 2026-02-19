@@ -4,6 +4,10 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const ADMIN_EMAIL = "advaya.aestheticliving@gmail.com";
 
+export function getAdminEmail() {
+  return ADMIN_EMAIL;
+}
+
 function getFunctionUrl(functionName) {
   return `${SUPABASE_URL}/functions/v1/${functionName}`;
 }
@@ -26,6 +30,37 @@ export async function isCurrentUserAdmin() {
   }
 
   return String(user.email).trim().toLowerCase() === ADMIN_EMAIL;
+}
+
+export async function signInAdminWithPassword(email, password) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const normalizedPassword = String(password || "");
+
+  if (!normalizedEmail || !normalizedPassword) {
+    throw new Error("Admin email and password are required");
+  }
+
+  if (normalizedEmail !== ADMIN_EMAIL) {
+    throw new Error("This email is not authorized for admin access");
+  }
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: normalizedEmail,
+    password: normalizedPassword,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function signOutAdmin() {
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    throw error;
+  }
 }
 
 export async function getAdminOrders(limit = 120) {
