@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import { CartProvider } from "./context/CartContext";
 import Header from "./components/Header";
@@ -18,9 +18,13 @@ import MembershipPage from "./pages/MembershipPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import AccountPage from "./pages/AccountPage";
 import AdminOrdersPage from "./pages/AdminOrdersPage";
+import BlogWriterPage from "./pages/BlogWriterPage";
 import { ensureSupabaseGuestSession } from "./lib/authSession";
 
 function App() {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith("/admin");
+
   React.useEffect(() => {
     ensureSupabaseGuestSession().catch((error) => {
       // eslint-disable-next-line no-console
@@ -33,27 +37,33 @@ function App() {
       <div className="min-h-screen flex flex-col text-black relative">
         <GlobalBackgroundOrbs />
         <div className="relative z-10 flex flex-col flex-1">
-          <Header />
+          {!isAdminRoute ? <Header /> : null}
           <main id="main" className="flex-1">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/shop" element={<ShopPage />} />
-              <Route path="/product/:id" element={<ProductDetailPage />} />
-              <Route path="/cart" element={<CartPage />} />
-              <Route path="/blog" element={<BlogPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/terms" element={<TermsPage />} />
-              <Route path="/privacy" element={<PrivacyPage />} />
-              <Route path="/gift-card" element={<GiftCardPage />} />
-              <Route path="/membership" element={<MembershipPage />} />
-              <Route path="/account" element={<AccountPage />} />
-              <Route path="/admin" element={<AdminOrdersPage />} />
-              <Route path="/admin/orders" element={<AdminOrdersPage />} />
-            </Routes>
-            </div>
+            {isAdminRoute ? (
+              <Routes>
+                <Route path="/admin" element={<Navigate to="/admin/orders" replace />} />
+                <Route path="/admin/orders" element={<AdminOrdersPage />} />
+                <Route path="/admin/blogwriter" element={<BlogWriterPage />} />
+              </Routes>
+            ) : (
+              <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/shop" element={<ShopPage />} />
+                  <Route path="/product/:id" element={<ProductDetailPage />} />
+                  <Route path="/cart" element={<CartPage />} />
+                  <Route path="/blog" element={<BlogPage />} />
+                  <Route path="/contact" element={<ContactPage />} />
+                  <Route path="/terms" element={<TermsPage />} />
+                  <Route path="/privacy" element={<PrivacyPage />} />
+                  <Route path="/gift-card" element={<GiftCardPage />} />
+                  <Route path="/membership" element={<MembershipPage />} />
+                  <Route path="/account" element={<AccountPage />} />
+                </Routes>
+              </div>
+            )}
           </main>
-          <Footer />
+          {!isAdminRoute ? <Footer /> : null}
         </div>
       </div>
     </CartProvider>

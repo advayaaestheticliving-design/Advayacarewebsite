@@ -96,6 +96,37 @@ This automatically deploys your frontend to GitHub Pages.
 
 **Total time: ~18 minutes to go live!**
 
+## 📝 Blog Writer (Supabase) Setup
+
+### 1. Run New Blog Migrations
+
+Apply the latest SQL migrations so blog drafts/posts and image storage policies exist:
+
+- `supabase/migrations/202602190101_blog_drafts_and_posts.sql`
+- `supabase/migrations/202602190102_blog_images_storage.sql`
+
+### 2. Deploy New Blog Edge Functions
+
+```bash
+supabase functions deploy admin-blog
+supabase functions deploy admin-blog-upload-image
+```
+
+### 3. Confirm Secrets
+
+Set/confirm these in Supabase Dashboard → Settings → Secrets:
+
+- `GEMINI_API_KEY`
+- `GEMINI_MODEL` (optional)
+- `GEMINI_MODEL_BLOG` (optional override for blog generator)
+
+### 4. Admin Routes
+
+- Orders: `/admin/orders`
+- Blog Writer: `/admin/blogwriter`
+
+Use the same admin email allowlist as existing admin workflows.
+
 ## 📚 Documentation
 
 ### Quick Reference
