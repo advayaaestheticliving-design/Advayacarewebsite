@@ -13,6 +13,21 @@ function toArray(value) {
     .filter(Boolean);
 }
 
+function normalizeIndianPhone(phone) {
+  const raw = String(phone || "").trim();
+  const digits = raw.replace(/\D/g, "");
+
+  if (/^[6-9]\d{9}$/.test(digits)) {
+    return `+91${digits}`;
+  }
+
+  if (/^91[6-9]\d{9}$/.test(digits)) {
+    return `+${digits}`;
+  }
+
+  return null;
+}
+
 export async function getMembershipIdentity() {
   await ensureSupabaseGuestSession().catch(() => undefined);
   const {
@@ -25,17 +40,27 @@ export async function getMembershipIdentity() {
   };
 }
 
-export async function signUpWithEmailPassword(email, password) {
+export async function signUpWithEmailPassword(email, password, phone) {
   const normalized = String(email || "").trim();
   const normalizedPassword = String(password || "");
+  const normalizedPhone = normalizeIndianPhone(phone);
 
-  if (!normalized || !normalizedPassword) {
-    throw new Error("Email and password are required");
+  if (!normalized || !normalizedPassword || !phone) {
+    throw new Error("Email, password, and phone number are required");
+  }
+
+  if (!normalizedPhone) {
+    throw new Error("Please enter a valid 10-digit Indian mobile number");
   }
 
   const { data, error } = await supabase.auth.signUp({
     email: normalized,
     password: normalizedPassword,
+    options: {
+      data: {
+        phone: normalizedPhone,
+      },
+    },
   });
 
   if (error) {
@@ -56,6 +81,27 @@ export async function signInWithEmailPassword(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({
     email: normalized,
     password: normalizedPassword,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function signInWithMagicLink(email) {
+  const normalized = String(email || "").trim();
+
+  if (!normalized) {
+    throw new Error("Email is required");
+  }
+
+  const { data, error } = await supabase.auth.signInWithOtp({
+    email: normalized,
+    options: {
+      emailRedirectTo: window.location.href,
+    },
   });
 
   if (error) {

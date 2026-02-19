@@ -1,9 +1,54 @@
 import React, { useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
+import { supabase } from "../lib/supabaseClient";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const [authLabel, setAuthLabel] = useState("Log In/Sign up");
+  const [authTarget, setAuthTarget] = useState("/membership");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const adminEmail = "advaya.aestheticliving@gmail.com";
+
+  React.useEffect(() => {
+    let mounted = true;
+
+    const applyUser = (user) => {
+      if (!mounted) return;
+
+      if (!user) {
+        setAuthLabel("Log In/Sign up");
+        setAuthTarget("/membership");
+        setIsAdmin(false);
+        return;
+      }
+
+      const fullName = String(user.user_metadata?.full_name || "").trim();
+      const preferredName = String(user.user_metadata?.name || "").trim();
+      const email = String(user.email || "").trim();
+      const emailPrefix = email.includes("@") ? email.split("@")[0] : email;
+      const username = fullName || preferredName || emailPrefix || "Account";
+
+      setAuthLabel(username);
+      setAuthTarget("/account");
+      setIsAdmin(Boolean(adminEmail && email.toLowerCase() === adminEmail));
+    };
+
+    supabase.auth.getUser().then(({ data }) => {
+      applyUser(data?.user || null);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      applyUser(session?.user || null);
+    });
+
+    return () => {
+      mounted = false;
+      subscription?.unsubscribe();
+    };
+  }, []);
 
   const isMoreActive = ["/contact", "/terms", "/gift-card", "/privacy"].includes(
     location.pathname
@@ -71,12 +116,14 @@ const Header = () => {
                 </NavLink>
               </div>
             </div>
-            <NavLink to="/membership" className={getNavLinkClass}>
-              Membership
+            <NavLink to={authTarget} className={getNavLinkClass}>
+              {authLabel}
             </NavLink>
-            <NavLink to="/account" className={getNavLinkClass}>
-              Account
-            </NavLink>
+            {isAdmin ? (
+              <NavLink to="/admin/orders" className={getNavLinkClass}>
+                Admin
+              </NavLink>
+            ) : null}
             <NavLink to="/cart" className={getNavLinkClass}>
               Cart
             </NavLink>
@@ -177,12 +224,14 @@ const Header = () => {
                 </NavLink>
               </div>
             </details>
-            <NavLink to="/membership" className={getMobileNavLinkClass}>
-              Membership
+            <NavLink to={authTarget} className={getMobileNavLinkClass}>
+              {authLabel}
             </NavLink>
-            <NavLink to="/account" className={getMobileNavLinkClass}>
-              Account
-            </NavLink>
+            {isAdmin ? (
+              <NavLink to="/admin/orders" className={getMobileNavLinkClass}>
+                Admin
+              </NavLink>
+            ) : null}
             <NavLink to="/cart" className={getMobileNavLinkClass}>
               Cart
             </NavLink>

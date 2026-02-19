@@ -22,6 +22,8 @@ supabase db push
 # Deploy wallet-related functions
 supabase functions deploy issue-signup-coupon
 supabase functions deploy validate-discounts
+supabase functions deploy admin-orders
+supabase functions deploy member-orders
 
 # Redeploy payment functions (verify now settles coupons/gift cards and mints purchased gift cards)
 supabase functions deploy create-razorpay-order
@@ -30,6 +32,8 @@ supabase functions deploy verify-razorpay-payment
 - [ ] Wallet migration deployed
 - [ ] `issue-signup-coupon` deployed
 - [ ] `validate-discounts` deployed
+- [ ] `admin-orders` deployed
+- [ ] `member-orders` deployed
 - [ ] Payment functions redeployed
 - [ ] Wallet smoke tests completed (`WALLET_COUPON_ROLLOUT.md`)
 
@@ -51,6 +55,8 @@ npm install -g supabase
 supabase login
 supabase functions deploy create-razorpay-order
 supabase functions deploy verify-razorpay-payment
+supabase functions deploy admin-orders
+supabase functions deploy member-orders
 ```
 - [ ] Check both functions deployed successfully
 

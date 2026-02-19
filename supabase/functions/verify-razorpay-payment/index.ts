@@ -194,6 +194,8 @@ serve(async (req) => {
     const updatePayload = {
       razorpay_payment_id: razorpayPaymentId,
       status: "paid",
+      fulfillment_status: "processing",
+      fulfillment_updated_at: new Date().toISOString(),
       payment_confirmed: true,
       paid_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -251,6 +253,47 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
+    }
+
+    const { data: existingPaidEvent } = await supabase
+      .from("order_status_events")
+      .select("id")
+      .eq("order_id", updatedOrder.id)
+      .eq("status", "paid")
+      .eq("status_kind", "payment")
+      .limit(1)
+      .maybeSingle();
+
+    if (!existingPaidEvent?.id) {
+      await supabase.from("order_status_events").insert({
+        order_id: updatedOrder.id,
+        status: "paid",
+        status_kind: "payment",
+        notes: "Payment verified successfully",
+        metadata: {
+          source: "verify-razorpay-payment",
+          razorpay_payment_id: razorpayPaymentId,
+        },
+      });
+    }
+
+    const { data: existingProcessingEvent } = await supabase
+      .from("order_status_events")
+      .select("id")
+      .eq("order_id", updatedOrder.id)
+      .eq("status", "processing")
+      .eq("status_kind", "fulfillment")
+      .limit(1)
+      .maybeSingle();
+
+    if (!existingProcessingEvent?.id) {
+      await supabase.from("order_status_events").insert({
+        order_id: updatedOrder.id,
+        status: "processing",
+        status_kind: "fulfillment",
+        notes: "Order moved to processing queue",
+        metadata: { source: "verify-razorpay-payment" },
+      });
     }
 
     const couponCode = String(updatedOrder.coupon_code || "").trim().toUpperCase();

@@ -179,6 +179,7 @@ serve(async (req) => {
       .update({
         razorpay_order_id: razorpayData.id,
         status: "pending",
+        fulfillment_status: "pending",
         updated_at: new Date().toISOString(),
       })
       .eq("id", orderId)
@@ -197,6 +198,25 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
+    }
+
+    const { data: existingPendingEvent } = await supabase
+      .from("order_status_events")
+      .select("id")
+      .eq("order_id", orderData.id)
+      .eq("status", "pending")
+      .eq("status_kind", "payment")
+      .limit(1)
+      .maybeSingle();
+
+    if (!existingPendingEvent?.id) {
+      await supabase.from("order_status_events").insert({
+        order_id: orderData.id,
+        status: "pending",
+        status_kind: "payment",
+        notes: "Order created and payment initiated",
+        metadata: { source: "create-razorpay-order" },
+      });
     }
 
     console.log("✅ Order saved to database:", orderData.id);
