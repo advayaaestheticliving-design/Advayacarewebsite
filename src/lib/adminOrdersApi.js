@@ -32,21 +32,23 @@ export async function isCurrentUserAdmin() {
   return String(user.email).trim().toLowerCase() === ADMIN_EMAIL;
 }
 
-export async function signInAdminWithPassword(email, password) {
+export async function signInAdminWithMagicLink(email) {
   const normalizedEmail = String(email || "").trim().toLowerCase();
-  const normalizedPassword = String(password || "");
 
-  if (!normalizedEmail || !normalizedPassword) {
-    throw new Error("Admin email and password are required");
+  if (!normalizedEmail) {
+    throw new Error("Admin email is required");
   }
 
   if (normalizedEmail !== ADMIN_EMAIL) {
     throw new Error("This email is not authorized for admin access");
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithOtp({
     email: normalizedEmail,
-    password: normalizedPassword,
+    options: {
+      shouldCreateUser: false,
+      emailRedirectTo: `${window.location.origin}/admin`,
+    },
   });
 
   if (error) {

@@ -3,7 +3,7 @@ import {
   getAdminEmail,
   getAdminOrders,
   isCurrentUserAdmin,
-  signInAdminWithPassword,
+  signInAdminWithMagicLink,
   signOutAdmin,
   updateAdminOrderStatus,
 } from "../lib/adminOrdersApi";
@@ -54,9 +54,9 @@ function AdminOrdersPage() {
   const [pendingNotesByOrder, setPendingNotesByOrder] = React.useState({});
   const [updatingOrderId, setUpdatingOrderId] = React.useState("");
   const [authEmail, setAuthEmail] = React.useState(getAdminEmail());
-  const [authPassword, setAuthPassword] = React.useState("");
   const [authLoading, setAuthLoading] = React.useState(false);
   const [signedInEmail, setSignedInEmail] = React.useState("");
+  const [status, setStatus] = React.useState("");
 
   const loadOrders = React.useCallback(async () => {
     setLoading(true);
@@ -106,12 +106,12 @@ function AdminOrdersPage() {
   async function handleAdminLogin(event) {
     event.preventDefault();
     setError("");
+    setStatus("");
     setAuthLoading(true);
 
     try {
-      await signInAdminWithPassword(authEmail, authPassword);
-      setAuthPassword("");
-      await loadOrders();
+      await signInAdminWithMagicLink(authEmail);
+      setStatus("Magic link sent. Open the email and continue to admin access.");
     } catch (authError) {
       setError(authError?.message || "Admin login failed.");
     } finally {
@@ -121,6 +121,7 @@ function AdminOrdersPage() {
 
   async function handleAdminSignOut() {
     setError("");
+    setStatus("");
     setAuthLoading(true);
 
     try {
@@ -198,7 +199,7 @@ function AdminOrdersPage() {
             </div>
           ) : null}
 
-          <form onSubmit={handleAdminLogin} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <form onSubmit={handleAdminLogin} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input
               type="email"
               value={authEmail}
@@ -207,23 +208,16 @@ function AdminOrdersPage() {
               className="sm:col-span-1 w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white placeholder:text-white/40"
               required
             />
-            <input
-              type="password"
-              value={authPassword}
-              onChange={(event) => setAuthPassword(event.target.value)}
-              placeholder="Password"
-              className="sm:col-span-1 w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white placeholder:text-white/40"
-              required
-              minLength={6}
-            />
             <button
               type="submit"
               disabled={authLoading}
               className="sm:col-span-1 rounded-full bg-[#D4AF37] px-4 py-2 text-sm font-semibold text-black hover:bg-[#e3c458] disabled:opacity-60"
             >
-              {authLoading ? "Signing in..." : "Sign In as Admin"}
+              {authLoading ? "Sending link..." : "Send Magic Link"}
             </button>
           </form>
+
+          {status ? <p className="text-sm text-emerald-300">{status}</p> : null}
         </section>
       ) : (
         <>
