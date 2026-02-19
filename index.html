@@ -12,6 +12,19 @@
   </head>
   <body class="antialiased bg-[#0b0b0b] text-neutral-100">
     <div id="root">Loading app…</div>
+    <script>
+      (function (location) {
+        if (location.search[1] === "/") {
+          const decoded = location.search
+            .slice(1)
+            .split("&")
+            .map((part) => part.replace(/~and~/g, "&"))
+            .join("?");
+
+          window.history.replaceState(null, "", location.pathname.slice(0, -1) + decoded + location.hash);
+        }
+      })(window.location);
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
