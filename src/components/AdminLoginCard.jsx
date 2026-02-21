@@ -50,7 +50,7 @@ function AdminLoginCard({
           disabled={authLoading}
           className="rounded-full bg-[#D4AF37] px-4 py-2 text-sm font-semibold text-black hover:bg-[#e3c458] disabled:opacity-60"
         >
-          {authLoading ? "Sending code..." : otpSent ? "Resend Code" : "Send Magic Link"}
+          {authLoading ? "Sending code..." : otpSent ? "Resend Code" : "Send OTP Code"}
         </button>
       </form>
 

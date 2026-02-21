@@ -64,7 +64,7 @@ export function useAdminAccess() {
     try {
       await sendAdminOtpCode();
       setOtpSent(true);
-      setStatus("OTP code sent. Enter the code from the email to continue.");
+      setStatus("OTP code sent to admin email. Enter the code to continue.");
     } catch (authError) {
       if (/signups not allowed for otp/i.test(String(authError?.message || ""))) {
         setError(

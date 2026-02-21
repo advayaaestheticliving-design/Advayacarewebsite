@@ -1,5 +1,5 @@
 import React from "react";
-import AdminLoginCard from "../components/AdminLoginCard";
+import { Navigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
 import {
   deleteBlogDraft,
@@ -249,16 +249,7 @@ function BlogWriterPage() {
       {admin.checkingAccess ? (
         <p className="text-sm text-white/80">Checking admin access...</p>
       ) : !admin.authorized ? (
-        <AdminLoginCard
-          authEmail={admin.authEmail}
-          setAuthEmail={admin.setAuthEmail}
-          authLoading={admin.authLoading}
-          signedInEmail={admin.signedInEmail}
-          status={admin.status}
-          error={admin.error}
-          onLogin={admin.login}
-          onSignOut={admin.logout}
-        />
+        <Navigate to="/admin" replace />
       ) : (
         <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
           <AdminSidebar onSignOut={admin.logout} authLoading={admin.authLoading} />

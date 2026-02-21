@@ -1,4 +1,5 @@
 import React from "react";
+import { Navigate } from "react-router-dom";
 import AdminLoginCard from "../components/AdminLoginCard";
 import AdminSidebar from "../components/AdminSidebar";
 import { getAdminOrders, updateAdminOrderStatus } from "../lib/adminOrdersApi";
@@ -116,18 +117,7 @@ function AdminOrdersPage() {
       {admin.checkingAccess ? (
         <p className="text-sm text-white/80">Checking admin access...</p>
       ) : !admin.authorized ? (
-        <AdminLoginCard
-          authLoading={admin.authLoading}
-          signedInEmail={admin.signedInEmail}
-          otpCode={admin.otpCode}
-          setOtpCode={admin.setOtpCode}
-          otpSent={admin.otpSent}
-          status={admin.status}
-          error={admin.error}
-          onSendOtp={admin.login}
-          onVerifyOtp={admin.verifyOtp}
-          onSignOut={admin.logout}
-        />
+        <Navigate to="/admin" replace />
       ) : (
         <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
           <AdminSidebar onSignOut={admin.logout} authLoading={admin.authLoading} />

@@ -17,6 +17,7 @@ import GiftCardPage from "./pages/GiftCardPage";
 import MembershipPage from "./pages/MembershipPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import AccountPage from "./pages/AccountPage";
+import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminOrdersPage from "./pages/AdminOrdersPage";
 import BlogWriterPage from "./pages/BlogWriterPage";
 import { ensureSupabaseGuestSession } from "./lib/authSession";
@@ -41,7 +42,7 @@ function App() {
           <main id="main" className="flex-1">
             {isAdminRoute ? (
               <Routes>
-                <Route path="/admin" element={<Navigate to="/admin/orders" replace />} />
+                <Route path="/admin" element={<AdminLoginPage />} />
                 <Route path="/admin/orders" element={<AdminOrdersPage />} />
                 <Route path="/admin/blogwriter" element={<BlogWriterPage />} />
               </Routes>
