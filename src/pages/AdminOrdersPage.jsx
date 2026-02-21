@@ -119,9 +119,13 @@ function AdminOrdersPage() {
         <AdminLoginCard
           authLoading={admin.authLoading}
           signedInEmail={admin.signedInEmail}
+          otpCode={admin.otpCode}
+          setOtpCode={admin.setOtpCode}
+          otpSent={admin.otpSent}
           status={admin.status}
           error={admin.error}
-          onLogin={admin.login}
+          onSendOtp={admin.login}
+          onVerifyOtp={admin.verifyOtp}
           onSignOut={admin.logout}
         />
       ) : (

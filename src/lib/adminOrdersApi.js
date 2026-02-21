@@ -3,7 +3,6 @@ import { supabase } from "./supabaseClient";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const ADMIN_EMAIL = "advaya.aestheticliving@gmail.com";
-const ADMIN_MAGIC_LINK_REDIRECT_URL = "https://advayacare.com/admin";
 
 export function getAdminEmail() {
   return ADMIN_EMAIL;
@@ -33,13 +32,32 @@ export async function isCurrentUserAdmin() {
   return String(user.email).trim().toLowerCase() === ADMIN_EMAIL;
 }
 
-export async function signInAdminWithMagicLink() {
+export async function sendAdminOtpCode() {
   const { data, error } = await supabase.auth.signInWithOtp({
     email: ADMIN_EMAIL,
     options: {
       shouldCreateUser: false,
-      emailRedirectTo: ADMIN_MAGIC_LINK_REDIRECT_URL,
+      emailRedirectTo: "https://advayacare.com/admin",
     },
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function verifyAdminOtpCode(token) {
+  const normalizedToken = String(token || "").trim();
+  if (!normalizedToken) {
+    throw new Error("Enter the OTP code from your email");
+  }
+
+  const { data, error } = await supabase.auth.verifyOtp({
+    email: ADMIN_EMAIL,
+    token: normalizedToken,
+    type: "email",
   });
 
   if (error) {

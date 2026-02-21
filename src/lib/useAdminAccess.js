@@ -2,7 +2,8 @@ import React from "react";
 import {
   getAdminEmail,
   isCurrentUserAdmin,
-  signInAdminWithMagicLink,
+  sendAdminOtpCode,
+  verifyAdminOtpCode,
   signOutAdmin,
 } from "./adminOrdersApi";
 import { supabase } from "./supabaseClient";
@@ -12,6 +13,8 @@ export function useAdminAccess() {
   const [authorized, setAuthorized] = React.useState(false);
   const [authLoading, setAuthLoading] = React.useState(false);
   const [signedInEmail, setSignedInEmail] = React.useState("");
+  const [otpCode, setOtpCode] = React.useState("");
+  const [otpSent, setOtpSent] = React.useState(false);
   const [status, setStatus] = React.useState("");
   const [error, setError] = React.useState("");
 
@@ -59,8 +62,9 @@ export function useAdminAccess() {
     setAuthLoading(true);
 
     try {
-      await signInAdminWithMagicLink();
-      setStatus("Magic link sent. Open the email and continue to admin access.");
+      await sendAdminOtpCode();
+      setOtpSent(true);
+      setStatus("OTP code sent. Enter the code from the email to continue.");
     } catch (authError) {
       if (/signups not allowed for otp/i.test(String(authError?.message || ""))) {
         setError(
@@ -69,6 +73,24 @@ export function useAdminAccess() {
       } else {
         setError(authError?.message || "Admin login failed.");
       }
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  async function verifyOtp() {
+    setError("");
+    setStatus("");
+    setAuthLoading(true);
+
+    try {
+      await verifyAdminOtpCode(otpCode);
+      setOtpCode("");
+      setOtpSent(false);
+      setStatus("Admin verification successful.");
+      await refreshAccess();
+    } catch (authError) {
+      setError(authError?.message || "OTP verification failed.");
     } finally {
       setAuthLoading(false);
     }
@@ -83,6 +105,8 @@ export function useAdminAccess() {
       await signOutAdmin();
       setAuthorized(false);
       setSignedInEmail("");
+      setOtpCode("");
+      setOtpSent(false);
       setStatus("Signed out successfully.");
     } catch (authError) {
       setError(authError?.message || "Could not sign out admin session.");
@@ -96,10 +120,14 @@ export function useAdminAccess() {
     authorized,
     authLoading,
     signedInEmail,
+    otpCode,
+    setOtpCode,
+    otpSent,
     status,
     error,
     setError,
     login,
+    verifyOtp,
     logout,
     refreshAccess,
   };
