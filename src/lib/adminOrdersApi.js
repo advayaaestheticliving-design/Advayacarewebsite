@@ -3,6 +3,7 @@ import { supabase } from "./supabaseClient";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const ADMIN_EMAIL = "advaya.aestheticliving@gmail.com";
+const ADMIN_MAGIC_LINK_REDIRECT_URL = "https://advayacare.com/admin";
 
 export function getAdminEmail() {
   return ADMIN_EMAIL;
@@ -37,7 +38,7 @@ export async function signInAdminWithMagicLink() {
     email: ADMIN_EMAIL,
     options: {
       shouldCreateUser: false,
-      emailRedirectTo: `${window.location.origin}/admin`,
+      emailRedirectTo: ADMIN_MAGIC_LINK_REDIRECT_URL,
     },
   });
 
