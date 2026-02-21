@@ -32,19 +32,9 @@ export async function isCurrentUserAdmin() {
   return String(user.email).trim().toLowerCase() === ADMIN_EMAIL;
 }
 
-export async function signInAdminWithMagicLink(email) {
-  const normalizedEmail = String(email || "").trim().toLowerCase();
-
-  if (!normalizedEmail) {
-    throw new Error("Admin email is required");
-  }
-
-  if (normalizedEmail !== ADMIN_EMAIL) {
-    throw new Error("This email is not authorized for admin access");
-  }
-
+export async function signInAdminWithMagicLink() {
   const { data, error } = await supabase.auth.signInWithOtp({
-    email: normalizedEmail,
+    email: ADMIN_EMAIL,
     options: {
       shouldCreateUser: false,
       emailRedirectTo: `${window.location.origin}/admin`,

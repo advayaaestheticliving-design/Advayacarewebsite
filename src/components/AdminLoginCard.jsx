@@ -2,8 +2,6 @@ import React from "react";
 import { getAdminEmail } from "../lib/adminOrdersApi";
 
 function AdminLoginCard({
-  authEmail,
-  setAuthEmail,
   authLoading,
   signedInEmail,
   status,
@@ -37,19 +35,11 @@ function AdminLoginCard({
         </div>
       ) : null}
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <input
-          type="email"
-          value={authEmail}
-          onChange={(event) => setAuthEmail(event.target.value)}
-          placeholder="Admin email"
-          className="sm:col-span-1 w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white placeholder:text-white/40"
-          required
-        />
+      <form onSubmit={handleSubmit} className="space-y-3">
         <button
           type="submit"
           disabled={authLoading}
-          className="sm:col-span-1 rounded-full bg-[#D4AF37] px-4 py-2 text-sm font-semibold text-black hover:bg-[#e3c458] disabled:opacity-60"
+          className="rounded-full bg-[#D4AF37] px-4 py-2 text-sm font-semibold text-black hover:bg-[#e3c458] disabled:opacity-60"
         >
           {authLoading ? "Sending link..." : "Send Magic Link"}
         </button>

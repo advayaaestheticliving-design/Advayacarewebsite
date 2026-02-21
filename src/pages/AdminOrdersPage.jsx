@@ -117,8 +117,6 @@ function AdminOrdersPage() {
         <p className="text-sm text-white/80">Checking admin access...</p>
       ) : !admin.authorized ? (
         <AdminLoginCard
-          authEmail={admin.authEmail}
-          setAuthEmail={admin.setAuthEmail}
           authLoading={admin.authLoading}
           signedInEmail={admin.signedInEmail}
           status={admin.status}

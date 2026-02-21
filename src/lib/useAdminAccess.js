@@ -10,7 +10,6 @@ import { supabase } from "./supabaseClient";
 export function useAdminAccess() {
   const [checkingAccess, setCheckingAccess] = React.useState(true);
   const [authorized, setAuthorized] = React.useState(false);
-  const [authEmail, setAuthEmail] = React.useState(getAdminEmail());
   const [authLoading, setAuthLoading] = React.useState(false);
   const [signedInEmail, setSignedInEmail] = React.useState("");
   const [status, setStatus] = React.useState("");
@@ -60,10 +59,16 @@ export function useAdminAccess() {
     setAuthLoading(true);
 
     try {
-      await signInAdminWithMagicLink(authEmail);
+      await signInAdminWithMagicLink();
       setStatus("Magic link sent. Open the email and continue to admin access.");
     } catch (authError) {
-      setError(authError?.message || "Admin login failed.");
+      if (/signups not allowed for otp/i.test(String(authError?.message || ""))) {
+        setError(
+          `Admin account ${getAdminEmail()} is not provisioned in Supabase Auth yet. Create this user once in Supabase Auth > Users, then retry.`
+        );
+      } else {
+        setError(authError?.message || "Admin login failed.");
+      }
     } finally {
       setAuthLoading(false);
     }
@@ -89,8 +94,6 @@ export function useAdminAccess() {
   return {
     checkingAccess,
     authorized,
-    authEmail,
-    setAuthEmail,
     authLoading,
     signedInEmail,
     status,
