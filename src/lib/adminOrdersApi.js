@@ -17,7 +17,12 @@ async function getAuthToken() {
     data: { session },
   } = await supabase.auth.getSession();
 
-  if (session?.access_token) {
+  const nowEpochSeconds = Math.floor(Date.now() / 1000);
+  const isTokenFresh =
+    Boolean(session?.access_token) &&
+    (typeof session?.expires_at !== "number" || session.expires_at - 30 > nowEpochSeconds);
+
+  if (isTokenFresh) {
     return session.access_token;
   }
 
