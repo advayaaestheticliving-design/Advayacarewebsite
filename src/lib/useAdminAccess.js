@@ -9,6 +9,7 @@ import {
 import { supabase } from "./supabaseClient";
 
 export function useAdminAccess() {
+  const adminEmail = getAdminEmail();
   const [checkingAccess, setCheckingAccess] = React.useState(true);
   const [authorized, setAuthorized] = React.useState(false);
   const [authLoading, setAuthLoading] = React.useState(false);
@@ -18,43 +19,76 @@ export function useAdminAccess() {
   const [status, setStatus] = React.useState("");
   const [error, setError] = React.useState("");
 
-  const refreshAccess = React.useCallback(async () => {
-    setCheckingAccess(true);
-    setError("");
+  const refreshAccess = React.useCallback(
+    async (showSpinner = true) => {
+      if (showSpinner) {
+        setCheckingAccess(true);
+      }
+      setError("");
 
-    try {
-      const isAdmin = await isCurrentUserAdmin();
-      setAuthorized(isAdmin);
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        const sessionEmail = String(session?.user?.email || "").trim().toLowerCase();
 
-      setSignedInEmail(String(user?.email || ""));
-    } catch (accessError) {
-      setAuthorized(false);
-      setSignedInEmail("");
-      setError(accessError?.message || "Could not verify admin session.");
-    } finally {
-      setCheckingAccess(false);
-    }
-  }, []);
+        if (sessionEmail) {
+          setSignedInEmail(sessionEmail);
+          setAuthorized(sessionEmail === adminEmail);
+          return;
+        }
+
+        const isAdmin = await isCurrentUserAdmin();
+        setAuthorized(isAdmin);
+
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        setSignedInEmail(String(user?.email || ""));
+      } catch (accessError) {
+        setAuthorized(false);
+        setSignedInEmail("");
+        setError(accessError?.message || "Could not verify admin session.");
+      } finally {
+        setCheckingAccess(false);
+      }
+    },
+    [adminEmail]
+  );
 
   React.useEffect(() => {
-    refreshAccess().catch(() => undefined);
+    refreshAccess(true).catch(() => undefined);
   }, [refreshAccess]);
 
   React.useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      refreshAccess().catch(() => undefined);
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      const sessionEmail = String(session?.user?.email || "").trim().toLowerCase();
+
+      if (event === "SIGNED_OUT") {
+        setAuthorized(false);
+        setSignedInEmail("");
+        setCheckingAccess(false);
+        return;
+      }
+
+      if (sessionEmail) {
+        setSignedInEmail(sessionEmail);
+        setAuthorized(sessionEmail === adminEmail);
+        setCheckingAccess(false);
+        return;
+      }
+
+      refreshAccess(false).catch(() => undefined);
     });
 
     return () => {
       subscription?.unsubscribe();
     };
-  }, [refreshAccess]);
+  }, [adminEmail, refreshAccess]);
 
   async function login() {
     setError("");
@@ -68,7 +102,7 @@ export function useAdminAccess() {
     } catch (authError) {
       if (/signups not allowed for otp/i.test(String(authError?.message || ""))) {
         setError(
-          `Admin account ${getAdminEmail()} is not provisioned in Supabase Auth yet. Create this user once in Supabase Auth > Users, then retry.`
+          `Admin account ${adminEmail} is not provisioned in Supabase Auth yet. Create this user once in Supabase Auth > Users, then retry.`
         );
       } else {
         setError(authError?.message || "Admin login failed.");
@@ -88,7 +122,7 @@ export function useAdminAccess() {
       setOtpCode("");
       setOtpSent(false);
       setStatus("Admin verification successful.");
-      await refreshAccess();
+      await refreshAccess(false);
     } catch (authError) {
       setError(authError?.message || "OTP verification failed.");
     } finally {

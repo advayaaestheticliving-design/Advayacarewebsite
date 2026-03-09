@@ -58,6 +58,15 @@ async function authorizedFetch(url, options = {}) {
 
 export async function isCurrentUserAdmin() {
   const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const sessionEmail = String(session?.user?.email || "").trim().toLowerCase();
+  if (sessionEmail) {
+    return sessionEmail === ADMIN_EMAIL;
+  }
+
+  const {
     data: { user },
   } = await supabase.auth.getUser();
 
