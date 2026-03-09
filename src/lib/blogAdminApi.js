@@ -21,7 +21,15 @@ async function getAuthToken() {
     return session.access_token;
   }
 
-  const { data: refreshData } = await supabase.auth.refreshSession();
+  if (!session?.refresh_token) {
+    throw new Error("Admin session expired. Please sign in again from /admin.");
+  }
+
+  const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError) {
+    throw new Error("Admin session expired. Please sign in again from /admin.");
+  }
+
   if (refreshData?.session?.access_token) {
     return refreshData.session.access_token;
   }
@@ -44,7 +52,19 @@ async function authorizedFetch(url, options = {}) {
 
   let response = await execute();
   if (response.status === 401) {
-    await supabase.auth.refreshSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.refresh_token) {
+      throw new Error("Admin session expired. Please sign in again from /admin.");
+    }
+
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError) {
+      throw new Error("Admin session expired. Please sign in again from /admin.");
+    }
+
     response = await execute();
   }
 
