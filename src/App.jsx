@@ -27,11 +27,15 @@ function App() {
   const isAdminRoute = location.pathname.startsWith("/admin");
 
   React.useEffect(() => {
+    if (isAdminRoute) {
+      return;
+    }
+
     ensureSupabaseGuestSession().catch((error) => {
       // eslint-disable-next-line no-console
       console.warn("Guest session bootstrap failed", error);
     });
-  }, []);
+  }, [isAdminRoute]);
 
   return (
     <CartProvider>
