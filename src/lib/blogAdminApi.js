@@ -12,7 +12,16 @@ async function getAuthToken() {
     data: { session },
   } = await supabase.auth.getSession();
 
-  return session?.access_token || SUPABASE_ANON_KEY;
+  if (session?.access_token) {
+    return session.access_token;
+  }
+
+  const { data: refreshData } = await supabase.auth.refreshSession();
+  if (refreshData?.session?.access_token) {
+    return refreshData.session.access_token;
+  }
+
+  throw new Error("Admin session expired. Please sign in again from /admin.");
 }
 
 async function invokeAdminBlog(payload) {
