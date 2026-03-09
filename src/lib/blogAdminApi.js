@@ -29,13 +29,33 @@ async function getAuthToken() {
   throw new Error("Admin session expired. Please sign in again from /admin.");
 }
 
+async function authorizedFetch(url, options = {}) {
+  const execute = async () => {
+    const authToken = await getAuthToken();
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+  };
+
+  let response = await execute();
+  if (response.status === 401) {
+    await supabase.auth.refreshSession();
+    response = await execute();
+  }
+
+  return response;
+}
+
 async function invokeAdminBlog(payload) {
-  const authToken = await getAuthToken();
-  const response = await fetch(getFunctionUrl("admin-blog"), {
+  const response = await authorizedFetch(getFunctionUrl("admin-blog"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${authToken}`,
     },
     body: JSON.stringify(payload),
   });
@@ -89,12 +109,10 @@ export async function deleteBlogDraft(draftId) {
 }
 
 export async function uploadBlogImageFromUrl(imageUrl, title = "") {
-  const authToken = await getAuthToken();
-  const response = await fetch(getFunctionUrl("admin-blog-upload-image"), {
+  const response = await authorizedFetch(getFunctionUrl("admin-blog-upload-image"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${authToken}`,
     },
     body: JSON.stringify({ imageUrl, title }),
   });

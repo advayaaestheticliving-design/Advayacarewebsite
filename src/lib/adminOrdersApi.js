@@ -34,6 +34,28 @@ async function getAuthToken() {
   throw new Error("Admin session expired. Please sign in again from /admin.");
 }
 
+async function authorizedFetch(url, options = {}) {
+  const execute = async () => {
+    const authToken = await getAuthToken();
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+  };
+
+  let response = await execute();
+  if (response.status === 401) {
+    await supabase.auth.refreshSession();
+    response = await execute();
+  }
+
+  return response;
+}
+
 export async function isCurrentUserAdmin() {
   const {
     data: { user },
@@ -89,12 +111,8 @@ export async function signOutAdmin() {
 }
 
 export async function getAdminOrders(limit = 120) {
-  const authToken = await getAuthToken();
-  const response = await fetch(`${getFunctionUrl("admin-orders")}?limit=${Number(limit) || 120}`, {
+  const response = await authorizedFetch(`${getFunctionUrl("admin-orders")}?limit=${Number(limit) || 120}`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${authToken}`,
-    },
   });
 
   const body = await response.json().catch(() => null);
@@ -107,12 +125,10 @@ export async function getAdminOrders(limit = 120) {
 }
 
 export async function updateAdminOrderStatus(orderId, fulfillmentStatus, notes = "") {
-  const authToken = await getAuthToken();
-  const response = await fetch(getFunctionUrl("admin-orders"), {
+  const response = await authorizedFetch(getFunctionUrl("admin-orders"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${authToken}`,
     },
     body: JSON.stringify({
       orderId,
