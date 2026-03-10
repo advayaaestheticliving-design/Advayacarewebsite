@@ -5,7 +5,7 @@ import {
   verifyAdminOtpCode,
   signOutAdmin,
 } from "./adminOrdersApi";
-import { supabase } from "./supabaseClient";
+import { adminSupabase } from "./adminSupabaseClient";
 
 function decodeJwtExpiryEpochSeconds(accessToken) {
   const token = String(accessToken || "").trim();
@@ -38,13 +38,13 @@ export function useAdminAccess() {
   const [error, setError] = React.useState("");
 
   const clearLocalSession = React.useCallback(async () => {
-    await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+    await adminSupabase.auth.signOut({ scope: "local" }).catch(() => undefined);
   }, []);
 
   const resolveAdminSession = React.useCallback(async () => {
     const {
       data: { session },
-    } = await supabase.auth.getSession();
+    } = await adminSupabase.auth.getSession();
 
     const initialSessionEmail = String(session?.user?.email || "").trim().toLowerCase();
     const hasAccessToken = Boolean(String(session?.access_token || "").trim());
@@ -55,7 +55,7 @@ export function useAdminAccess() {
     if (!sessionEmail && hasAccessToken && hasRefreshToken) {
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await adminSupabase.auth.getUser();
 
       sessionEmail = String(user?.email || "").trim().toLowerCase();
     }
@@ -86,7 +86,7 @@ export function useAdminAccess() {
       return { email: "", authorized: false, expired: true };
     }
 
-    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+    const { data: refreshData, error: refreshError } = await adminSupabase.auth.refreshSession();
     if (refreshError || !refreshData?.session?.access_token) {
       await clearLocalSession();
       return { email: "", authorized: false, expired: true };
@@ -136,7 +136,7 @@ export function useAdminAccess() {
   React.useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
+    } = adminSupabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
         setAuthorized(false);
         setSignedInEmail("");

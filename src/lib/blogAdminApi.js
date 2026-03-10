@@ -1,4 +1,4 @@
-import { supabase } from "./supabaseClient";
+import { adminSupabase } from "./adminSupabaseClient";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -27,13 +27,13 @@ function decodeJwtExpiryEpochSeconds(accessToken) {
 }
 
 async function clearInvalidAdminSession() {
-  await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+  await adminSupabase.auth.signOut({ scope: "local" }).catch(() => undefined);
 }
 
 async function getAuthToken() {
   const {
     data: { session },
-  } = await supabase.auth.getSession();
+  } = await adminSupabase.auth.getSession();
 
   const nowEpochSeconds = Math.floor(Date.now() / 1000);
   const sessionExpiry = Number(session?.expires_at);
@@ -52,7 +52,7 @@ async function getAuthToken() {
     throw new Error("Admin session expired. Please sign in again from /admin.");
   }
 
-  const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+  const { data: refreshData, error: refreshError } = await adminSupabase.auth.refreshSession();
   if (refreshError) {
     await clearInvalidAdminSession();
     throw new Error("Admin session expired. Please sign in again from /admin.");
@@ -83,13 +83,13 @@ async function authorizedFetch(url, options = {}) {
   if (response.status === 401) {
     const {
       data: { session },
-    } = await supabase.auth.getSession();
+    } = await adminSupabase.auth.getSession();
 
     if (!session?.refresh_token) {
       throw new Error("Admin session expired. Please sign in again from /admin.");
     }
 
-    const { error: refreshError } = await supabase.auth.refreshSession();
+    const { error: refreshError } = await adminSupabase.auth.refreshSession();
     if (refreshError) {
       await clearInvalidAdminSession();
       throw new Error("Admin session expired. Please sign in again from /admin.");

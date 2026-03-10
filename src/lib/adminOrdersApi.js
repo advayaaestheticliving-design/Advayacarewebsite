@@ -1,4 +1,4 @@
-import { supabase } from "./supabaseClient";
+import { adminSupabase } from "./adminSupabaseClient";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -32,13 +32,13 @@ function decodeJwtExpiryEpochSeconds(accessToken) {
 }
 
 async function clearInvalidAdminSession() {
-  await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+  await adminSupabase.auth.signOut({ scope: "local" }).catch(() => undefined);
 }
 
 async function getAuthToken() {
   const {
     data: { session },
-  } = await supabase.auth.getSession();
+  } = await adminSupabase.auth.getSession();
 
   const nowEpochSeconds = Math.floor(Date.now() / 1000);
   const sessionExpiry = Number(session?.expires_at);
@@ -57,7 +57,7 @@ async function getAuthToken() {
     throw new Error("Admin session expired. Please sign in again from /admin.");
   }
 
-  const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+  const { data: refreshData, error: refreshError } = await adminSupabase.auth.refreshSession();
   if (refreshError) {
     await clearInvalidAdminSession();
     throw new Error("Admin session expired. Please sign in again from /admin.");
@@ -88,13 +88,13 @@ async function authorizedFetch(url, options = {}) {
   if (response.status === 401) {
     const {
       data: { session },
-    } = await supabase.auth.getSession();
+    } = await adminSupabase.auth.getSession();
 
     if (!session?.refresh_token) {
       throw new Error("Admin session expired. Please sign in again from /admin.");
     }
 
-    const { error: refreshError } = await supabase.auth.refreshSession();
+    const { error: refreshError } = await adminSupabase.auth.refreshSession();
     if (refreshError) {
       await clearInvalidAdminSession();
       throw new Error("Admin session expired. Please sign in again from /admin.");
@@ -113,7 +113,7 @@ async function authorizedFetch(url, options = {}) {
 export async function isCurrentUserAdmin() {
   const {
     data: { session },
-  } = await supabase.auth.getSession();
+  } = await adminSupabase.auth.getSession();
 
   const sessionEmail = String(session?.user?.email || "").trim().toLowerCase();
   if (sessionEmail) {
@@ -122,7 +122,7 @@ export async function isCurrentUserAdmin() {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await adminSupabase.auth.getUser();
 
   if (!user?.email || !ADMIN_EMAIL) {
     return false;
@@ -132,7 +132,7 @@ export async function isCurrentUserAdmin() {
 }
 
 export async function sendAdminOtpCode() {
-  const { data, error } = await supabase.auth.signInWithOtp({
+  const { data, error } = await adminSupabase.auth.signInWithOtp({
     email: ADMIN_EMAIL,
     options: {
       shouldCreateUser: false,
@@ -153,7 +153,7 @@ export async function verifyAdminOtpCode(token) {
     throw new Error("Enter the OTP code from your email");
   }
 
-  const { data, error } = await supabase.auth.verifyOtp({
+  const { data, error } = await adminSupabase.auth.verifyOtp({
     email: ADMIN_EMAIL,
     token: normalizedToken,
     type: "email",
@@ -167,7 +167,7 @@ export async function verifyAdminOtpCode(token) {
 }
 
 export async function signOutAdmin() {
-  const { error } = await supabase.auth.signOut();
+  const { error } = await adminSupabase.auth.signOut();
   if (error) {
     throw error;
   }
