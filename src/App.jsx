@@ -20,7 +20,7 @@ import AccountPage from "./pages/AccountPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminOrdersPage from "./pages/AdminOrdersPage";
 import BlogWriterPage from "./pages/BlogWriterPage";
-import { ensureSupabaseGuestSession } from "./lib/authSession";
+import { clearLegacyGuestAuthState, ensureSupabaseGuestSession } from "./lib/authSession";
 
 function App() {
   const location = useLocation();
@@ -28,6 +28,7 @@ function App() {
 
   React.useEffect(() => {
     if (isAdminRoute) {
+      clearLegacyGuestAuthState().catch(() => undefined);
       return;
     }
 

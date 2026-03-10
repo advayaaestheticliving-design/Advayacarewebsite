@@ -48,6 +48,11 @@ export function useAdminAccess() {
 
     const sessionEmail = String(session?.user?.email || "").trim().toLowerCase();
     if (!sessionEmail) {
+      if (session?.access_token) {
+        await clearLocalSession();
+        return { email: "", authorized: false, expired: true };
+      }
+
       return { email: "", authorized: false, expired: false };
     }
 

@@ -3,6 +3,29 @@ import { getOrCreateSessionId } from "./cartApi";
 
 const TOKEN_KEY = "ac_guest_access_token";
 
+export function getStoredGuestAccessToken() {
+  return localStorage.getItem(TOKEN_KEY) || "";
+}
+
+export async function clearLegacyGuestAuthState() {
+  localStorage.removeItem(TOKEN_KEY);
+
+  if (!isSupabaseConfigured || !supabase) {
+    return;
+  }
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const hasEmail = Boolean(String(session?.user?.email || "").trim());
+  const hasRefreshToken = Boolean(String(session?.refresh_token || "").trim());
+
+  if (!hasEmail && !hasRefreshToken && session?.access_token) {
+    await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+  }
+}
+
 export async function ensureSupabaseGuestSession() {
   if (!isSupabaseConfigured || !supabase) {
     return;
@@ -10,10 +33,6 @@ export async function ensureSupabaseGuestSession() {
 
   const existingToken = localStorage.getItem(TOKEN_KEY);
   if (existingToken) {
-    await supabase.auth.setSession({
-      access_token: existingToken,
-      refresh_token: "",
-    });
     return;
   }
 
@@ -59,9 +78,4 @@ export async function ensureSupabaseGuestSession() {
   }
 
   localStorage.setItem(TOKEN_KEY, accessToken);
-
-  await supabase.auth.setSession({
-    access_token: accessToken,
-    refresh_token: "",
-  });
 }
