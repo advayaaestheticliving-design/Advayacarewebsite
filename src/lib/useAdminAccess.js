@@ -46,9 +46,22 @@ export function useAdminAccess() {
       data: { session },
     } = await supabase.auth.getSession();
 
-    const sessionEmail = String(session?.user?.email || "").trim().toLowerCase();
+    const initialSessionEmail = String(session?.user?.email || "").trim().toLowerCase();
+    const hasAccessToken = Boolean(String(session?.access_token || "").trim());
+    const hasRefreshToken = Boolean(String(session?.refresh_token || "").trim());
+
+    let sessionEmail = initialSessionEmail;
+
+    if (!sessionEmail && hasAccessToken && hasRefreshToken) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      sessionEmail = String(user?.email || "").trim().toLowerCase();
+    }
+
     if (!sessionEmail) {
-      if (session?.access_token) {
+      if (hasAccessToken && !hasRefreshToken) {
         await clearLocalSession();
         return { email: "", authorized: false, expired: true };
       }
@@ -68,7 +81,7 @@ export function useAdminAccess() {
       return { email: sessionEmail, authorized: sessionEmail === adminEmail, expired: false };
     }
 
-    if (!session?.refresh_token) {
+    if (!hasRefreshToken) {
       await clearLocalSession();
       return { email: "", authorized: false, expired: true };
     }
