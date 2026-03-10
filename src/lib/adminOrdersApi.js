@@ -31,6 +31,10 @@ function decodeJwtExpiryEpochSeconds(accessToken) {
   }
 }
 
+async function clearInvalidAdminSession() {
+  await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+}
+
 async function getAuthToken() {
   const {
     data: { session },
@@ -49,11 +53,13 @@ async function getAuthToken() {
   }
 
   if (!session?.refresh_token) {
+    await clearInvalidAdminSession();
     throw new Error("Admin session expired. Please sign in again from /admin.");
   }
 
   const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
   if (refreshError) {
+    await clearInvalidAdminSession();
     throw new Error("Admin session expired. Please sign in again from /admin.");
   }
 
@@ -61,6 +67,7 @@ async function getAuthToken() {
     return refreshData.session.access_token;
   }
 
+  await clearInvalidAdminSession();
   throw new Error("Admin session expired. Please sign in again from /admin.");
 }
 
@@ -84,15 +91,22 @@ async function authorizedFetch(url, options = {}) {
     } = await supabase.auth.getSession();
 
     if (!session?.refresh_token) {
+      await clearInvalidAdminSession();
       throw new Error("Admin session expired. Please sign in again from /admin.");
     }
 
     const { error: refreshError } = await supabase.auth.refreshSession();
     if (refreshError) {
+      await clearInvalidAdminSession();
       throw new Error("Admin session expired. Please sign in again from /admin.");
     }
 
     response = await execute();
+
+    if (response.status === 401) {
+      await clearInvalidAdminSession();
+      throw new Error("Admin session expired. Please sign in again from /admin.");
+    }
   }
 
   return response;

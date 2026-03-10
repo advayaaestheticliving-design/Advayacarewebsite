@@ -1,12 +1,30 @@
 import React from "react";
 import {
   getAdminEmail,
-  isCurrentUserAdmin,
   sendAdminOtpCode,
   verifyAdminOtpCode,
   signOutAdmin,
 } from "./adminOrdersApi";
 import { supabase } from "./supabaseClient";
+
+function decodeJwtExpiryEpochSeconds(accessToken) {
+  const token = String(accessToken || "").trim();
+  if (!token) return null;
+
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+
+  try {
+    const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized + "=".repeat((4 - (normalized.length % 4 || 4)) % 4);
+    const payloadText = atob(padded);
+    const payload = JSON.parse(payloadText);
+    const exp = Number(payload?.exp);
+    return Number.isFinite(exp) ? exp : null;
+  } catch {
+    return null;
+  }
+}
 
 export function useAdminAccess() {
   const adminEmail = getAdminEmail();
@@ -19,6 +37,51 @@ export function useAdminAccess() {
   const [status, setStatus] = React.useState("");
   const [error, setError] = React.useState("");
 
+  const clearLocalSession = React.useCallback(async () => {
+    await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+  }, []);
+
+  const resolveAdminSession = React.useCallback(async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    const sessionEmail = String(session?.user?.email || "").trim().toLowerCase();
+    if (!sessionEmail) {
+      return { email: "", authorized: false, expired: false };
+    }
+
+    const nowEpochSeconds = Math.floor(Date.now() / 1000);
+    const sessionExpiry = Number(session?.expires_at);
+    const tokenExpiry = decodeJwtExpiryEpochSeconds(session?.access_token);
+    const effectiveExpiry = Number.isFinite(sessionExpiry) ? sessionExpiry : tokenExpiry;
+    const isTokenFresh =
+      Boolean(session?.access_token) &&
+      Number.isFinite(effectiveExpiry) && effectiveExpiry - 30 > nowEpochSeconds;
+
+    if (isTokenFresh) {
+      return { email: sessionEmail, authorized: sessionEmail === adminEmail, expired: false };
+    }
+
+    if (!session?.refresh_token) {
+      await clearLocalSession();
+      return { email: "", authorized: false, expired: true };
+    }
+
+    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError || !refreshData?.session?.access_token) {
+      await clearLocalSession();
+      return { email: "", authorized: false, expired: true };
+    }
+
+    const refreshedEmail = String(refreshData.session.user?.email || "").trim().toLowerCase();
+    return {
+      email: refreshedEmail,
+      authorized: refreshedEmail === adminEmail,
+      expired: false,
+    };
+  }, [adminEmail, clearLocalSession]);
+
   const refreshAccess = React.useCallback(
     async (showSpinner = true) => {
       if (showSpinner) {
@@ -27,26 +90,16 @@ export function useAdminAccess() {
       setError("");
 
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        const snapshot = await resolveAdminSession();
+        setSignedInEmail(snapshot.email);
+        setAuthorized(snapshot.authorized);
 
-        const sessionEmail = String(session?.user?.email || "").trim().toLowerCase();
-
-        if (sessionEmail) {
-          setSignedInEmail(sessionEmail);
-          setAuthorized(sessionEmail === adminEmail);
-          return;
+        if (snapshot.expired) {
+          setOtpCode("");
+          setOtpSent(false);
+          setStatus("");
+          setError("Admin session expired. Please send OTP and sign in again.");
         }
-
-        const isAdmin = await isCurrentUserAdmin();
-        setAuthorized(isAdmin);
-
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        setSignedInEmail(String(user?.email || ""));
       } catch (accessError) {
         setAuthorized(false);
         setSignedInEmail("");
@@ -55,7 +108,7 @@ export function useAdminAccess() {
         setCheckingAccess(false);
       }
     },
-    [adminEmail]
+    [resolveAdminSession]
   );
 
   React.useEffect(() => {
@@ -65,19 +118,10 @@ export function useAdminAccess() {
   React.useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      const sessionEmail = String(session?.user?.email || "").trim().toLowerCase();
-
+    } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
         setAuthorized(false);
         setSignedInEmail("");
-        setCheckingAccess(false);
-        return;
-      }
-
-      if (sessionEmail) {
-        setSignedInEmail(sessionEmail);
-        setAuthorized(sessionEmail === adminEmail);
         setCheckingAccess(false);
         return;
       }
