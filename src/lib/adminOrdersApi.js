@@ -35,6 +35,22 @@ async function clearInvalidAdminSession() {
   await adminSupabase.auth.signOut({ scope: "local" }).catch(() => undefined);
 }
 
+async function isAdminAccessTokenValid(accessToken) {
+  const token = String(accessToken || "").trim();
+  if (!token) return false;
+
+  const {
+    data: { user },
+    error,
+  } = await adminSupabase.auth.getUser(token);
+
+  if (error || !user?.email) {
+    return false;
+  }
+
+  return String(user.email).trim().toLowerCase() === ADMIN_EMAIL;
+}
+
 async function getAuthToken() {
   const {
     data: { session },
@@ -48,7 +64,7 @@ async function getAuthToken() {
     Boolean(session?.access_token) &&
     Number.isFinite(effectiveExpiry) && effectiveExpiry - 30 > nowEpochSeconds;
 
-  if (isTokenFresh) {
+  if (isTokenFresh && (await isAdminAccessTokenValid(session?.access_token))) {
     return session.access_token;
   }
 
@@ -63,7 +79,10 @@ async function getAuthToken() {
     throw new Error("Admin session expired. Please sign in again from /admin.");
   }
 
-  if (refreshData?.session?.access_token) {
+  if (
+    refreshData?.session?.access_token &&
+    (await isAdminAccessTokenValid(refreshData.session.access_token))
+  ) {
     return refreshData.session.access_token;
   }
 

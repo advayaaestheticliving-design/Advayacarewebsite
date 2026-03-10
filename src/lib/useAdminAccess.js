@@ -69,6 +69,38 @@ export function useAdminAccess() {
       return { email: "", authorized: false, expired: false };
     }
 
+    const {
+      data: { user: verifiedUser },
+      error: verifyError,
+    } = await adminSupabase.auth.getUser(session.access_token);
+
+    if (!verifyError && verifiedUser?.email) {
+      const verifiedEmail = String(verifiedUser.email).trim().toLowerCase();
+      sessionEmail = verifiedEmail;
+    } else if (hasRefreshToken) {
+      const { data: refreshedData, error: refreshError } = await adminSupabase.auth.refreshSession();
+
+      if (refreshError || !refreshedData?.session?.access_token) {
+        await clearLocalSession();
+        return { email: "", authorized: false, expired: true };
+      }
+
+      const {
+        data: { user: refreshedUser },
+        error: refreshedVerifyError,
+      } = await adminSupabase.auth.getUser(refreshedData.session.access_token);
+
+      if (refreshedVerifyError || !refreshedUser?.email) {
+        await clearLocalSession();
+        return { email: "", authorized: false, expired: true };
+      }
+
+      sessionEmail = String(refreshedUser.email).trim().toLowerCase();
+    } else {
+      await clearLocalSession();
+      return { email: "", authorized: false, expired: true };
+    }
+
     const nowEpochSeconds = Math.floor(Date.now() / 1000);
     const sessionExpiry = Number(session?.expires_at);
     const tokenExpiry = decodeJwtExpiryEpochSeconds(session?.access_token);
@@ -162,6 +194,9 @@ export function useAdminAccess() {
       setOtpSent(true);
       setStatus("OTP code sent to admin email. Enter the code to continue.");
     } catch (authError) {
+      if (String(authError?.status || "") === "429" || /rate limit|too many/i.test(String(authError?.message || ""))) {
+        setError("Too many OTP requests right now. Please wait a minute and try again.");
+      } else
       if (/signups not allowed for otp/i.test(String(authError?.message || ""))) {
         setError(
           `Admin account ${adminEmail} is not provisioned in Supabase Auth yet. Create this user once in Supabase Auth > Users, then retry.`
