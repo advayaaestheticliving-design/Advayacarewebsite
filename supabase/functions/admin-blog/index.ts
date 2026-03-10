@@ -24,13 +24,13 @@ function parseBearerToken(req: Request) {
   return authHeader.slice("Bearer ".length).trim();
 }
 
-async function getRequestUser(req: Request, supabaseUrl: string, anonKey: string) {
+async function getRequestUser(req: Request, supabaseUrl: string, serviceRoleKey: string) {
   const token = parseBearerToken(req);
   if (!token) {
     return { user: null, error: "Missing authorization token" };
   }
 
-  const authClient = createClient(supabaseUrl, anonKey);
+  const authClient = createClient(supabaseUrl, serviceRoleKey);
   const {
     data: { user },
     error,
@@ -172,15 +172,14 @@ serve(async (req) => {
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
-  if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+  if (!supabaseUrl || !supabaseServiceKey) {
     return jsonResponse({ error: "Server configuration error: Supabase credentials missing" }, 500);
   }
 
   try {
-    const { user, error: authError } = await getRequestUser(req, supabaseUrl, supabaseAnonKey);
+    const { user, error: authError } = await getRequestUser(req, supabaseUrl, supabaseServiceKey);
     if (authError || !user) {
       return jsonResponse({ error: authError || "Unauthorized" }, 401);
     }
