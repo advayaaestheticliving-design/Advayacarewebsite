@@ -31,6 +31,7 @@ function AdminLoginPage() {
         otpCode={admin.otpCode}
         setOtpCode={admin.setOtpCode}
         otpSent={admin.otpSent}
+        otpCooldownSeconds={admin.otpCooldownSeconds}
         status={admin.status}
         error={admin.error}
         onSendOtp={admin.login}

@@ -7,6 +7,7 @@ function AdminLoginCard({
   otpCode,
   setOtpCode,
   otpSent,
+  otpCooldownSeconds,
   status,
   error,
   onSendOtp,
@@ -47,10 +48,16 @@ function AdminLoginCard({
       <form onSubmit={handleSend} className="space-y-3">
         <button
           type="submit"
-          disabled={authLoading}
+          disabled={authLoading || otpCooldownSeconds > 0}
           className="rounded-full bg-[#D4AF37] px-4 py-2 text-sm font-semibold text-black hover:bg-[#e3c458] disabled:opacity-60"
         >
-          {authLoading ? "Sending code..." : otpSent ? "Resend Code" : "Send OTP Code"}
+          {authLoading
+            ? "Sending code..."
+            : otpCooldownSeconds > 0
+              ? `Resend in ${otpCooldownSeconds}s`
+              : otpSent
+                ? "Resend Code"
+                : "Send OTP Code"}
         </button>
       </form>
 

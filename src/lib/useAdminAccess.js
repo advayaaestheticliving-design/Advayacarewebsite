@@ -34,6 +34,7 @@ export function useAdminAccess() {
   const [signedInEmail, setSignedInEmail] = React.useState("");
   const [otpCode, setOtpCode] = React.useState("");
   const [otpSent, setOtpSent] = React.useState(false);
+  const [otpCooldownUntil, setOtpCooldownUntil] = React.useState(0);
   const [status, setStatus] = React.useState("");
   const [error, setError] = React.useState("");
 
@@ -185,6 +186,13 @@ export function useAdminAccess() {
   }, [adminEmail, refreshAccess]);
 
   async function login() {
+    const nowMs = Date.now();
+    if (otpCooldownUntil > nowMs) {
+      const waitSeconds = Math.max(1, Math.ceil((otpCooldownUntil - nowMs) / 1000));
+      setError(`Please wait ${waitSeconds}s before requesting another OTP.`);
+      return;
+    }
+
     setError("");
     setStatus("");
     setAuthLoading(true);
@@ -192,9 +200,11 @@ export function useAdminAccess() {
     try {
       await sendAdminOtpCode();
       setOtpSent(true);
+      setOtpCooldownUntil(Date.now() + 60_000);
       setStatus("OTP code sent to admin email. Enter the code to continue.");
     } catch (authError) {
       if (String(authError?.status || "") === "429" || /rate limit|too many/i.test(String(authError?.message || ""))) {
+        setOtpCooldownUntil(Date.now() + 120_000);
         setError("Too many OTP requests right now. Please wait a minute and try again.");
       } else
       if (/signups not allowed for otp/i.test(String(authError?.message || ""))) {
@@ -254,6 +264,7 @@ export function useAdminAccess() {
     otpCode,
     setOtpCode,
     otpSent,
+    otpCooldownSeconds: Math.max(0, Math.ceil((otpCooldownUntil - Date.now()) / 1000)),
     status,
     error,
     setError,
