@@ -7,15 +7,37 @@ function getFunctionUrl(functionName) {
   return `${SUPABASE_URL}/functions/v1/${functionName}`;
 }
 
+function decodeJwtExpiryEpochSeconds(accessToken) {
+  const token = String(accessToken || "").trim();
+  if (!token) return null;
+
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+
+  try {
+    const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized + "=".repeat((4 - (normalized.length % 4 || 4)) % 4);
+    const payloadText = atob(padded);
+    const payload = JSON.parse(payloadText);
+    const exp = Number(payload?.exp);
+    return Number.isFinite(exp) ? exp : null;
+  } catch {
+    return null;
+  }
+}
+
 async function getAuthToken() {
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
   const nowEpochSeconds = Math.floor(Date.now() / 1000);
+  const sessionExpiry = Number(session?.expires_at);
+  const tokenExpiry = decodeJwtExpiryEpochSeconds(session?.access_token);
+  const effectiveExpiry = Number.isFinite(sessionExpiry) ? sessionExpiry : tokenExpiry;
   const isTokenFresh =
     Boolean(session?.access_token) &&
-    (typeof session?.expires_at !== "number" || session.expires_at - 30 > nowEpochSeconds);
+    Number.isFinite(effectiveExpiry) && effectiveExpiry - 30 > nowEpochSeconds;
 
   if (isTokenFresh) {
     return session.access_token;
