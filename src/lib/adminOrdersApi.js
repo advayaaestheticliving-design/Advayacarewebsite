@@ -91,7 +91,6 @@ async function authorizedFetch(url, options = {}) {
     } = await supabase.auth.getSession();
 
     if (!session?.refresh_token) {
-      await clearInvalidAdminSession();
       throw new Error("Admin session expired. Please sign in again from /admin.");
     }
 
@@ -104,8 +103,7 @@ async function authorizedFetch(url, options = {}) {
     response = await execute();
 
     if (response.status === 401) {
-      await clearInvalidAdminSession();
-      throw new Error("Admin session expired. Please sign in again from /admin.");
+      throw new Error("Admin authorization failed (401). Please retry once from /admin/orders.");
     }
   }
 
