@@ -10,6 +10,11 @@ function ProductDetailPage() {
   const [product, setProduct] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
+  const [activeIndex, setActiveIndex] = React.useState(0);
+  const [isHovered, setIsHovered] = React.useState(false);
+  const touchStartXRef = React.useRef(null);
+  const touchStartYRef = React.useRef(null);
+  const isSwipingRef = React.useRef(false);
 
   React.useEffect(() => {
     let mounted = true;
@@ -37,6 +42,28 @@ function ProductDetailPage() {
     };
   }, [id]);
 
+  const images = Array.isArray(product?.images) ? product.images : [];
+
+  React.useEffect(() => {
+    if (!images.length) {
+      setActiveIndex(0);
+      return;
+    }
+
+    setActiveIndex((prev) => Math.min(prev, images.length - 1));
+  }, [images.length]);
+
+  React.useEffect(() => {
+    if (images.length > 1 && !isHovered) {
+      const interval = setInterval(() => {
+        setActiveIndex((idx) => (idx + 1) % images.length);
+      }, 4000);
+      return () => clearInterval(interval);
+    }
+
+    return undefined;
+  }, [images, isHovered]);
+
   if (loading) {
     return (
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-10">
@@ -61,7 +88,6 @@ function ProductDetailPage() {
     benefits_detail,
     use_cases,
     ingredients,
-    images: dbImages,
     low_stock_threshold,
   } = normalizedProduct;
 
@@ -82,8 +108,6 @@ function ProductDetailPage() {
     stockClass = "text-emerald-200";
   }
 
-  const images = Array.isArray(dbImages) ? dbImages : [];
-
   const resolveImage = (filename) => {
     if (!filename) return undefined;
     if (String(filename).startsWith("http://") || String(filename).startsWith("https://")) {
@@ -93,22 +117,6 @@ function ProductDetailPage() {
     const finalName = hasExt ? filename : `${filename}.avif`;
     return `${import.meta.env.BASE_URL}images/${finalName}`;
   };
-
-  // Automatic gallery state + hover pause
-  const [activeIndex, setActiveIndex] = React.useState(0);
-  const [isHovered, setIsHovered] = React.useState(false);
-  const touchStartXRef = React.useRef(null);
-  const touchStartYRef = React.useRef(null);
-  const isSwipingRef = React.useRef(false);
-
-  React.useEffect(() => {
-    if ((images || []).length > 1 && !isHovered) {
-      const interval = setInterval(() => {
-        setActiveIndex((idx) => (idx + 1) % images.length);
-      }, 4000); // advance every 4s
-      return () => clearInterval(interval);
-    }
-  }, [images, isHovered]);
 
   const handleTouchStart = (e) => {
     if (!e.touches || e.touches.length === 0) return;

@@ -73,6 +73,14 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    const { error: staleReleaseError } = await supabase.rpc(
+      "release_stale_inventory_reservations",
+      { p_max_age_minutes: 120 }
+    );
+    if (staleReleaseError) {
+      console.warn("⚠️ Could not run stale reservation cleanup", staleReleaseError);
+    }
+
     // Fetch order from DB and use authoritative values for amount/customer
     const { data: order, error: orderFetchError } = await supabase
       .from("orders")
