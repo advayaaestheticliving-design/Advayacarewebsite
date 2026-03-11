@@ -13,13 +13,25 @@ function formatDate(value) {
   });
 }
 
+function toPlainText(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  if (typeof DOMParser !== "undefined") {
+    const doc = new DOMParser().parseFromString(raw, "text/html");
+    return String(doc.body?.textContent || "").replace(/\s+/g, " ").trim();
+  }
+
+  return raw.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 function getPreviewText(post) {
-  const shortDescription = String(post?.short_description || "").trim();
+  const shortDescription = toPlainText(post?.short_description);
   if (shortDescription) {
     return shortDescription;
   }
 
-  const normalizedContent = String(post?.content || "").replace(/\s+/g, " ").trim();
+  const normalizedContent = toPlainText(post?.content);
   if (!normalizedContent) {
     return "Read the full article for practical skincare guidance and routines.";
   }
