@@ -201,7 +201,10 @@ async function invokeAdminBlog(payload) {
 
 export async function generateBlogTitle(contentPlan = "") {
   const body = await invokeAdminBlog({ action: "generate_title", contentPlan });
-  return String(body?.title || "");
+  return {
+    title: String(body?.title || ""),
+    contentPlan: String(body?.contentPlan || ""),
+  };
 }
 
 export async function generateBlogContent(title, contentPlan = "") {
@@ -217,6 +220,21 @@ export async function generateBlogShortDescription(title, content) {
 export async function generateBlogImageSearchTerms(title, content) {
   const body = await invokeAdminBlog({ action: "generate_image_terms", title, content });
   return Array.isArray(body?.terms) ? body.terms.join(", ") : "";
+}
+
+export async function generateBlogSeoMetadata(title, content, shortDescription = "") {
+  const body = await invokeAdminBlog({
+    action: "generate_metadata",
+    title,
+    content,
+    shortDescription,
+  });
+
+  return {
+    tags: Array.isArray(body?.tags) ? body.tags.join(", ") : "",
+    seoTitle: String(body?.seoTitle || ""),
+    seoDescription: String(body?.seoDescription || ""),
+  };
 }
 
 export async function saveBlogDraft(payload) {

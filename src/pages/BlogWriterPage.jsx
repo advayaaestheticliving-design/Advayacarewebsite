@@ -5,6 +5,7 @@ import {
   deleteBlogDraft,
   generateBlogContent,
   generateBlogImageSearchTerms,
+  generateBlogSeoMetadata,
   generateBlogShortDescription,
   generateBlogTitle,
   listBlogDrafts,
@@ -100,9 +101,32 @@ function BlogWriterPage() {
 
   async function handleGenerateTitle() {
     await runAction("generate-title", async () => {
-      const title = await generateBlogTitle(form.contentPlan);
-      setField("title", title);
-      setStatus("Generated blog title suggestion.");
+      const generated = await generateBlogTitle(form.contentPlan);
+      setField("title", generated.title);
+      if (generated.contentPlan) {
+        setField("contentPlan", generated.contentPlan);
+      }
+      setStatus("Generated blog title and content plan.");
+    });
+  }
+
+  async function handleGenerateSeoAndTags() {
+    if (!form.title.trim() && !form.content.trim() && !form.shortDescription.trim()) {
+      setError("Add title, content, or short description first.");
+      return;
+    }
+
+    await runAction("generate-seo-metadata", async () => {
+      const generated = await generateBlogSeoMetadata(
+        form.title,
+        form.content,
+        form.shortDescription
+      );
+
+      setField("tags", generated.tags);
+      setField("seoTitle", generated.seoTitle);
+      setField("seoDescription", generated.seoDescription);
+      setStatus("Generated tags, SEO title, and SEO description.");
     });
   }
 
@@ -407,6 +431,19 @@ function BlogWriterPage() {
                   placeholder="Optional SEO title"
                 />
               </div>
+            </div>
+
+            <div>
+              <button
+                type="button"
+                onClick={handleGenerateSeoAndTags}
+                disabled={loadingAction === "generate-seo-metadata"}
+                className="rounded-full border border-neutral-500 px-4 py-2 text-sm font-semibold text-white hover:border-[#D4AF37] disabled:opacity-60"
+              >
+                {loadingAction === "generate-seo-metadata"
+                  ? "Generating..."
+                  : "Generate Tags + SEO Fields"}
+              </button>
             </div>
 
             <div className="space-y-2">

@@ -200,13 +200,50 @@ serve(async (req) => {
       const contentPlan = String(body.contentPlan || "").trim();
       const generated = await callGeminiJson(
         [
-          "Generate one strong skincare blog title for Indian audiences.",
-          "Return JSON only: {\"title\":\"...\"}",
-          `Content plan: ${contentPlan || "General skincare education for modern Indian climate and routines."}`,
+          "Generate one strong skincare blog title and a concise content plan for Indian audiences.",
+          "Return JSON only: {\"title\":\"...\",\"contentPlan\":\"...\"}",
+          "The contentPlan should be a practical outline with key points, written as plain text.",
+          `Existing content plan (if any): ${contentPlan || "None"}`,
         ].join("\n")
       );
 
-      return jsonResponse({ title: String(generated?.title || "").trim() });
+      const generatedTitle = String(generated?.title || "").trim();
+      const generatedPlan = String(generated?.contentPlan || generated?.content_plan || "").trim();
+      return jsonResponse({ title: generatedTitle, contentPlan: generatedPlan });
+    }
+
+    if (action === "generate_metadata") {
+      const title = String(body.title || "").trim();
+      const content = String(body.content || "").trim();
+      const shortDescription = String(body.shortDescription || "").trim();
+
+      if (!title && !content && !shortDescription) {
+        return jsonResponse({ error: "Provide title, content, or short description to generate metadata" }, 400);
+      }
+
+      const generated = await callGeminiJson(
+        [
+          "Generate SEO metadata for a skincare blog post.",
+          "Return JSON only: {\"tags\":[\"tag1\",\"tag2\"],\"seoTitle\":\"...\",\"seoDescription\":\"...\"}",
+          "Rules:",
+          "- tags: 5 to 8 concise tags, lowercase, no hashtags",
+          "- seoTitle: under 60 characters",
+          "- seoDescription: under 160 characters",
+          `Title: ${title}`,
+          `Short description: ${shortDescription}`,
+          `Content: ${content}`,
+        ].join("\n")
+      );
+
+      const tags = Array.isArray(generated?.tags)
+        ? generated.tags.map((item: unknown) => String(item || "").trim()).filter(Boolean)
+        : [];
+
+      return jsonResponse({
+        tags,
+        seoTitle: String(generated?.seoTitle || generated?.seo_title || "").trim(),
+        seoDescription: String(generated?.seoDescription || generated?.seo_description || "").trim(),
+      });
     }
 
     if (action === "generate_content") {
