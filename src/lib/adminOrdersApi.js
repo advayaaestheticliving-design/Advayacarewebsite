@@ -3,6 +3,7 @@ import { adminSupabase } from "./adminSupabaseClient";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const ADMIN_EMAIL = "advaya.aestheticliving@gmail.com";
+const NETWORK_ERROR_MESSAGE = "Network interrupted. Check your internet connection and retry.";
 
 export function getAdminEmail() {
   return ADMIN_EMAIL;
@@ -31,6 +32,17 @@ function decodeJwtExpiryEpochSeconds(accessToken) {
   }
 }
 
+function isNetworkError(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+  return (
+    message.includes("failed to fetch") ||
+    message.includes("network") ||
+    message.includes("err_") ||
+    message.includes("name not resolved") ||
+    message.includes("internet disconnected")
+  );
+}
+
 async function clearInvalidAdminSession() {
   await adminSupabase.auth.signOut({ scope: "local" }).catch(() => undefined);
 }
@@ -39,10 +51,19 @@ async function isAdminAccessTokenValid(accessToken) {
   const token = String(accessToken || "").trim();
   if (!token) return false;
 
-  const {
-    data: { user },
-    error,
-  } = await adminSupabase.auth.getUser(token);
+  let user = null;
+  let error = null;
+
+  try {
+    const { data, error: getUserError } = await adminSupabase.auth.getUser(token);
+    user = data?.user || null;
+    error = getUserError;
+  } catch (getUserError) {
+    if (isNetworkError(getUserError)) {
+      throw new Error(NETWORK_ERROR_MESSAGE);
+    }
+    throw getUserError;
+  }
 
   if (error || !user?.email) {
     return false;
@@ -73,8 +94,24 @@ async function getAuthToken() {
     throw new Error("Admin session expired. Please sign in again from /admin.");
   }
 
-  const { data: refreshData, error: refreshError } = await adminSupabase.auth.refreshSession();
+  let refreshData = null;
+  let refreshError = null;
+
+  try {
+    const { data, error } = await adminSupabase.auth.refreshSession();
+    refreshData = data;
+    refreshError = error;
+  } catch (refreshException) {
+    if (isNetworkError(refreshException)) {
+      throw new Error(NETWORK_ERROR_MESSAGE);
+    }
+    throw refreshException;
+  }
+
   if (refreshError) {
+    if (isNetworkError(refreshError)) {
+      throw new Error(NETWORK_ERROR_MESSAGE);
+    }
     await clearInvalidAdminSession();
     throw new Error("Admin session expired. Please sign in again from /admin.");
   }
@@ -93,14 +130,21 @@ async function getAuthToken() {
 async function authorizedFetch(url, options = {}) {
   const execute = async () => {
     const authToken = await getAuthToken();
-    return fetch(url, {
-      ...options,
-      headers: {
-        ...(options.headers || {}),
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${authToken}`,
-      },
-    });
+    try {
+      return await fetch(url, {
+        ...options,
+        headers: {
+          ...(options.headers || {}),
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+    } catch (fetchError) {
+      if (isNetworkError(fetchError)) {
+        throw new Error(NETWORK_ERROR_MESSAGE);
+      }
+      throw fetchError;
+    }
   };
 
   let response = await execute();
@@ -113,8 +157,20 @@ async function authorizedFetch(url, options = {}) {
       throw new Error("Admin session expired. Please sign in again from /admin.");
     }
 
-    const { error: refreshError } = await adminSupabase.auth.refreshSession();
+    let refreshError = null;
+    try {
+      ({ error: refreshError } = await adminSupabase.auth.refreshSession());
+    } catch (refreshException) {
+      if (isNetworkError(refreshException)) {
+        throw new Error(NETWORK_ERROR_MESSAGE);
+      }
+      throw refreshException;
+    }
+
     if (refreshError) {
+      if (isNetworkError(refreshError)) {
+        throw new Error(NETWORK_ERROR_MESSAGE);
+      }
       await clearInvalidAdminSession();
       throw new Error("Admin session expired. Please sign in again from /admin.");
     }

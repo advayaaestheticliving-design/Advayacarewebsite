@@ -7,6 +7,8 @@ import {
 } from "./adminOrdersApi";
 import { adminSupabase } from "./adminSupabaseClient";
 
+const NETWORK_ERROR_MESSAGE = "Network interrupted. Check your internet connection and retry.";
+
 function decodeJwtExpiryEpochSeconds(accessToken) {
   const token = String(accessToken || "").trim();
   if (!token) return null;
@@ -24,6 +26,17 @@ function decodeJwtExpiryEpochSeconds(accessToken) {
   } catch {
     return null;
   }
+}
+
+function isNetworkError(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+  return (
+    message.includes("failed to fetch") ||
+    message.includes("network") ||
+    message.includes("err_") ||
+    message.includes("name not resolved") ||
+    message.includes("internet disconnected")
+  );
 }
 
 export function useAdminAccess() {
@@ -54,9 +67,15 @@ export function useAdminAccess() {
     let sessionEmail = initialSessionEmail;
 
     if (!sessionEmail && hasAccessToken && hasRefreshToken) {
-      const {
-        data: { user },
-      } = await adminSupabase.auth.getUser();
+      let user = null;
+      try {
+        ({ data: { user } } = await adminSupabase.auth.getUser());
+      } catch (userFetchError) {
+        if (isNetworkError(userFetchError)) {
+          throw new Error(NETWORK_ERROR_MESSAGE);
+        }
+        throw userFetchError;
+      }
 
       sessionEmail = String(user?.email || "").trim().toLowerCase();
     }
@@ -70,26 +89,59 @@ export function useAdminAccess() {
       return { email: "", authorized: false, expired: false };
     }
 
-    const {
-      data: { user: verifiedUser },
-      error: verifyError,
-    } = await adminSupabase.auth.getUser(session.access_token);
+    let verifiedUser = null;
+    let verifyError = null;
+
+    try {
+      const { data, error } = await adminSupabase.auth.getUser(session.access_token);
+      verifiedUser = data?.user || null;
+      verifyError = error;
+    } catch (verifyException) {
+      if (isNetworkError(verifyException)) {
+        throw new Error(NETWORK_ERROR_MESSAGE);
+      }
+      throw verifyException;
+    }
 
     if (!verifyError && verifiedUser?.email) {
       const verifiedEmail = String(verifiedUser.email).trim().toLowerCase();
       sessionEmail = verifiedEmail;
     } else if (hasRefreshToken) {
-      const { data: refreshedData, error: refreshError } = await adminSupabase.auth.refreshSession();
+      let refreshedData = null;
+      let refreshError = null;
+
+      try {
+        const { data, error } = await adminSupabase.auth.refreshSession();
+        refreshedData = data;
+        refreshError = error;
+      } catch (refreshException) {
+        if (isNetworkError(refreshException)) {
+          throw new Error(NETWORK_ERROR_MESSAGE);
+        }
+        throw refreshException;
+      }
 
       if (refreshError || !refreshedData?.session?.access_token) {
+        if (isNetworkError(refreshError)) {
+          throw new Error(NETWORK_ERROR_MESSAGE);
+        }
         await clearLocalSession();
         return { email: "", authorized: false, expired: true };
       }
 
-      const {
-        data: { user: refreshedUser },
-        error: refreshedVerifyError,
-      } = await adminSupabase.auth.getUser(refreshedData.session.access_token);
+      let refreshedUser = null;
+      let refreshedVerifyError = null;
+
+      try {
+        const { data, error } = await adminSupabase.auth.getUser(refreshedData.session.access_token);
+        refreshedUser = data?.user || null;
+        refreshedVerifyError = error;
+      } catch (refreshedVerifyException) {
+        if (isNetworkError(refreshedVerifyException)) {
+          throw new Error(NETWORK_ERROR_MESSAGE);
+        }
+        throw refreshedVerifyException;
+      }
 
       if (refreshedVerifyError || !refreshedUser?.email) {
         await clearLocalSession();
@@ -119,8 +171,24 @@ export function useAdminAccess() {
       return { email: "", authorized: false, expired: true };
     }
 
-    const { data: refreshData, error: refreshError } = await adminSupabase.auth.refreshSession();
+    let refreshData = null;
+    let refreshError = null;
+
+    try {
+      const { data, error } = await adminSupabase.auth.refreshSession();
+      refreshData = data;
+      refreshError = error;
+    } catch (refreshException) {
+      if (isNetworkError(refreshException)) {
+        throw new Error(NETWORK_ERROR_MESSAGE);
+      }
+      throw refreshException;
+    }
+
     if (refreshError || !refreshData?.session?.access_token) {
+      if (isNetworkError(refreshError)) {
+        throw new Error(NETWORK_ERROR_MESSAGE);
+      }
       await clearLocalSession();
       return { email: "", authorized: false, expired: true };
     }
@@ -152,6 +220,11 @@ export function useAdminAccess() {
           setError("Admin session expired. Please send OTP and sign in again.");
         }
       } catch (accessError) {
+        if (isNetworkError(accessError)) {
+          setError(NETWORK_ERROR_MESSAGE);
+          return;
+        }
+
         setAuthorized(false);
         setSignedInEmail("");
         setError(accessError?.message || "Could not verify admin session.");
@@ -206,6 +279,8 @@ export function useAdminAccess() {
       if (String(authError?.status || "") === "429" || /rate limit|too many/i.test(String(authError?.message || ""))) {
         setOtpCooldownUntil(Date.now() + 120_000);
         setError("Too many OTP requests right now. Please wait a minute and try again.");
+      } else if (isNetworkError(authError)) {
+        setError(NETWORK_ERROR_MESSAGE);
       } else
       if (/signups not allowed for otp/i.test(String(authError?.message || ""))) {
         setError(
@@ -231,6 +306,10 @@ export function useAdminAccess() {
       setStatus("Admin verification successful.");
       await refreshAccess(false);
     } catch (authError) {
+      if (isNetworkError(authError)) {
+        setError(NETWORK_ERROR_MESSAGE);
+        return;
+      }
       setError(authError?.message || "OTP verification failed.");
     } finally {
       setAuthLoading(false);

@@ -15,7 +15,7 @@ export const adminSupabase = isAdminSupabaseConfigured
       auth: {
         storageKey: "ac_admin_auth",
         persistSession: true,
-        autoRefreshToken: true,
+        autoRefreshToken: false,
         detectSessionInUrl: false,
       },
     })
