@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { getPublishedBlogs } from "../lib/blogApi";
 
 function formatDate(value) {
@@ -10,6 +11,24 @@ function formatDate(value) {
     month: "short",
     year: "numeric",
   });
+}
+
+function getPreviewText(post) {
+  const shortDescription = String(post?.short_description || "").trim();
+  if (shortDescription) {
+    return shortDescription;
+  }
+
+  const normalizedContent = String(post?.content || "").replace(/\s+/g, " ").trim();
+  if (!normalizedContent) {
+    return "Read the full article for practical skincare guidance and routines.";
+  }
+
+  if (normalizedContent.length <= 190) {
+    return normalizedContent;
+  }
+
+  return `${normalizedContent.slice(0, 187)}...`;
 }
 
 function BlogPage() {
@@ -46,46 +65,95 @@ function BlogPage() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-6">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">Blog</h1>
-        <p className="text-sm sm:text-base leading-relaxed text-slate-700 mt-1">
-          Insights on ingredients, rituals, and routines crafted for Indian skin and climate.
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8 animate-fade-in">
+      <header className="max-w-3xl space-y-2">
+        <p className="text-xs uppercase tracking-[0.2em] text-white/70">Advaya Journal</p>
+        <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#D4AF37]">Skincare Stories And Ritual Wisdom</h1>
+        <p className="text-sm sm:text-base leading-relaxed text-white/80">
+          Explore ingredient insights, practical routines, and mindful care rituals made for Indian skin and climate.
         </p>
-      </div>
+      </header>
 
-      {loading ? <p className="text-sm text-slate-700">Loading posts...</p> : null}
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {loading ? <p className="text-sm text-white/80">Loading posts...</p> : null}
+      {error ? <p className="text-sm text-red-400">{error}</p> : null}
 
       {!loading && !error && posts.length === 0 ? (
-        <p className="text-sm text-slate-700">No published posts yet. Check back soon.</p>
+        <section className="rounded-2xl border border-neutral-700 bg-black/50 p-5 sm:p-6 space-y-3">
+          <h2 className="text-xl font-semibold text-[#D4AF37]">No published posts yet</h2>
+          <p className="text-sm sm:text-base text-white/80">Fresh articles are on the way. Check back soon for new skincare stories.</p>
+        </section>
       ) : null}
 
       {!loading && !error && posts.length > 0 ? (
-        <div className="space-y-4">
-          {posts.map((post) => (
-            <article key={post.id} className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 space-y-3">
-              <div className="space-y-1">
-                <h2 className="text-xl font-semibold text-slate-900">{post.title}</h2>
-                <p className="text-xs uppercase tracking-wide text-slate-500">{formatDate(post.published_at)}</p>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+          {posts.map((post) => {
+            const slug = String(post?.slug || "").trim();
+            const cardContent = (
+              <>
+                {post.image_url ? (
+                  <div className="overflow-hidden rounded-xl border border-neutral-700">
+                    <img
+                      src={post.image_url}
+                      alt={post.title}
+                      className="h-52 w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+                      loading="lazy"
+                    />
+                  </div>
+                ) : null}
 
-              {post.image_url ? (
-                <img
-                  src={post.image_url}
-                  alt={post.title}
-                  className="w-full max-h-96 object-cover rounded-xl border border-slate-200"
-                  loading="lazy"
-                />
-              ) : null}
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-[0.2em] text-white/60">{formatDate(post.published_at)}</p>
+                  <h2 className="text-xl sm:text-2xl font-semibold leading-tight text-[#D4AF37] group-hover:text-[#e3c458] transition">
+                    {post.title}
+                  </h2>
+                  <p className="text-sm sm:text-base leading-relaxed text-white/80">{getPreviewText(post)}</p>
+                </div>
 
-              {post.short_description ? (
-                <p className="text-sm sm:text-base leading-relaxed text-slate-700">{post.short_description}</p>
-              ) : null}
+                <span className="inline-flex items-center rounded-full border border-[#D4AF37]/70 px-4 py-2 text-xs sm:text-sm font-medium tracking-wide text-[#D4AF37] transition group-hover:bg-[#D4AF37] group-hover:text-black">
+                  Read Full Article
+                </span>
+              </>
+            );
 
-              <p className="text-sm sm:text-base leading-relaxed text-slate-800 whitespace-pre-line">{post.content}</p>
-            </article>
-          ))}
+            if (slug) {
+              return (
+                <Link
+                  key={post.id}
+                  to={`/blog/${encodeURIComponent(slug)}`}
+                  aria-label={`Read article: ${post.title}`}
+                  className="group block cursor-pointer rounded-2xl border border-neutral-700 bg-black/50 p-4 sm:p-5 space-y-4 transform-gpu transition duration-300 hover:-translate-y-1 hover:border-[#D4AF37] hover:bg-black/70 hover:shadow-[0_14px_35px_rgba(212,175,55,0.22)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
+                >
+                  {cardContent}
+                </Link>
+              );
+            }
+
+            return (
+              <article
+                key={post.id}
+                className="rounded-2xl border border-neutral-700 bg-black/50 p-4 sm:p-5 space-y-4"
+              >
+                {post.image_url ? (
+                  <div className="overflow-hidden rounded-xl border border-neutral-700">
+                    <img
+                      src={post.image_url}
+                      alt={post.title}
+                      className="h-52 w-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                ) : null}
+
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-[0.2em] text-white/60">{formatDate(post.published_at)}</p>
+                  <h2 className="text-xl sm:text-2xl font-semibold leading-tight text-[#D4AF37]">{post.title}</h2>
+                  <p className="text-sm sm:text-base leading-relaxed text-white/80">{getPreviewText(post)}</p>
+                </div>
+
+                <p className="text-xs uppercase tracking-[0.2em] text-white/50">Article link unavailable</p>
+              </article>
+            );
+          })}
         </div>
       ) : null}
     </div>

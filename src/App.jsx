@@ -11,6 +11,7 @@ import ShopPage from "./pages/ShopPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import CartPage from "./pages/CartPage";
 import BlogPage from "./pages/BlogPage";
+import BlogArticlePage from "./pages/BlogArticlePage";
 import ContactPage from "./pages/ContactPage";
 import TermsPage from "./pages/TermsPage";
 import GiftCardPage from "./pages/GiftCardPage";
@@ -59,6 +60,7 @@ function App() {
                   <Route path="/product/:id" element={<ProductDetailPage />} />
                   <Route path="/cart" element={<CartPage />} />
                   <Route path="/blog" element={<BlogPage />} />
+                  <Route path="/blog/:slug" element={<BlogArticlePage />} />
                   <Route path="/contact" element={<ContactPage />} />
                   <Route path="/terms" element={<TermsPage />} />
                   <Route path="/privacy" element={<PrivacyPage />} />
