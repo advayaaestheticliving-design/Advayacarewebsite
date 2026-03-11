@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import productsData from "../data/products.json";
+import { fetchProductById, getAvailableStock, isProductPurchasable, normalizeProduct } from "../lib/productsApi";
 
 function ProductDetailPage() {
   const { id } = useParams();
@@ -12,19 +12,29 @@ function ProductDetailPage() {
   const [error, setError] = React.useState(null);
 
   React.useEffect(() => {
-    try {
-      setLoading(true);
-      setError(null);
-      const found = Array.isArray(productsData)
-        ? productsData.find((p) => p.id === id)
-        : null;
-      setProduct(found || null);
-    } catch {
-      setError("Something went wrong loading product.");
-      setProduct(null);
-    } finally {
-      setLoading(false);
-    }
+    let mounted = true;
+
+    setLoading(true);
+    setError(null);
+
+    fetchProductById(id)
+      .then((found) => {
+        if (!mounted) return;
+        setProduct(found || null);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setError("Something went wrong loading product.");
+        setProduct(null);
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
   if (loading) {
@@ -43,6 +53,7 @@ function ProductDetailPage() {
     );
   }
 
+  const normalizedProduct = normalizeProduct(product);
   const {
     name,
     price_inr,
@@ -51,12 +62,33 @@ function ProductDetailPage() {
     use_cases,
     ingredients,
     images: dbImages,
-  } = product;
+    low_stock_threshold,
+  } = normalizedProduct;
+
+  const availableStock = getAvailableStock(normalizedProduct);
+  const canPurchase = isProductPurchasable(normalizedProduct);
+  const lowStockThreshold = Number(low_stock_threshold || 5);
+  const isLowStock = Number.isFinite(availableStock)
+    && availableStock > 0
+    && availableStock <= lowStockThreshold;
+
+  let stockText = "Out of stock";
+  let stockClass = "text-red-300";
+  if (canPurchase && isLowStock) {
+    stockText = `Low stock (${availableStock} left)`;
+    stockClass = "text-amber-200";
+  } else if (canPurchase) {
+    stockText = `In stock (${availableStock} available)`;
+    stockClass = "text-emerald-200";
+  }
 
   const images = Array.isArray(dbImages) ? dbImages : [];
 
   const resolveImage = (filename) => {
     if (!filename) return undefined;
+    if (String(filename).startsWith("http://") || String(filename).startsWith("https://")) {
+      return filename;
+    }
     const hasExt = filename.includes(".");
     const finalName = hasExt ? filename : `${filename}.avif`;
     return `${import.meta.env.BASE_URL}images/${finalName}`;
@@ -126,11 +158,13 @@ function ProductDetailPage() {
   });
 
   const handleAddToCart = () => {
-    addToCart(product, 1);
+    if (!canPurchase) return;
+    addToCart(normalizedProduct, 1);
   };
 
   const handleBuyNow = () => {
-    addToCart(product, 1);
+    if (!canPurchase) return;
+    addToCart(normalizedProduct, 1);
     navigate("/cart");
   };
 
@@ -193,16 +227,22 @@ function ProductDetailPage() {
             {formattedPrice}
           </div>
 
+          <p className={`text-sm font-medium ${stockClass}`}>
+            {stockText}
+          </p>
+
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <button
               onClick={handleAddToCart}
-              className="w-full sm:w-auto inline-flex items-center justify-center rounded-full bg-[#b58b2f] px-5 py-2.5 text-sm font-medium tracking-wide text-black shadow-sm hover:bg-[#d4af37] transition-colors"
+              disabled={!canPurchase}
+              className="w-full sm:w-auto inline-flex items-center justify-center rounded-full bg-[#b58b2f] px-5 py-2.5 text-sm font-medium tracking-wide text-black shadow-sm hover:bg-[#d4af37] transition-colors disabled:cursor-not-allowed disabled:bg-neutral-500"
             >
               Add to Cart
             </button>
             <button
               onClick={handleBuyNow}
-              className="w-full sm:w-auto inline-flex items-center justify-center rounded-full bg-[#b58b2f] px-5 py-2.5 text-sm font-medium tracking-wide text-black shadow-sm hover:bg-[#d4af37] transition-colors"
+              disabled={!canPurchase}
+              className="w-full sm:w-auto inline-flex items-center justify-center rounded-full bg-[#b58b2f] px-5 py-2.5 text-sm font-medium tracking-wide text-black shadow-sm hover:bg-[#d4af37] transition-colors disabled:cursor-not-allowed disabled:bg-neutral-500"
             >
               Buy Now
             </button>

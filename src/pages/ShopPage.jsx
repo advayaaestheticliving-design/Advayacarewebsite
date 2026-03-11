@@ -1,6 +1,6 @@
 import React from "react";
 import ProductCard from "../components/ProductCard";
-import productsData from "../data/products.json";
+import { fetchProducts } from "../lib/productsApi";
 
 function ShopPage() {
   const [selectedFilter, setSelectedFilter] = React.useState("All");
@@ -12,16 +12,34 @@ function ShopPage() {
   const categories = ["All", "Face", "Body", "Hair"];
 
   React.useEffect(() => {
+    let mounted = true;
+
     try {
       setLoading(true);
       setError(null);
-      setProducts(Array.isArray(productsData) ? productsData : []);
+
+      fetchProducts()
+        .then((rows) => {
+          if (!mounted) return;
+          setProducts(Array.isArray(rows) ? rows : []);
+        })
+        .catch(() => {
+          if (!mounted) return;
+          setError("Something went wrong loading products.");
+          setProducts([]);
+        })
+        .finally(() => {
+          if (!mounted) return;
+          setLoading(false);
+        });
     } catch {
       setError("Something went wrong loading products.");
       setProducts([]);
-    } finally {
-      setLoading(false);
     }
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const filteredProducts =

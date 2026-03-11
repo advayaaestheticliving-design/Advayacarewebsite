@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { createOrder } from "../lib/cartApi";
 import { validateDiscounts } from "../lib/walletApi";
+import { getAvailableStock, isProductPurchasable, normalizeProduct } from "../lib/productsApi";
 
 const CART_COOKIE_NAME = "ac_cart";
 const CART_COOKIE_MAX_AGE_DAYS = 30;
@@ -23,6 +24,9 @@ const readCartCookie = () => {
         name: item.name || "",
         price_inr: Number(item.price_inr) || 0,
         quantity: Number(item.quantity) || 1,
+        available_stock: Number.isFinite(Number(item.available_stock))
+          ? Math.max(0, Math.floor(Number(item.available_stock)))
+          : null,
       }));
   } catch {
     return [];
@@ -37,6 +41,10 @@ const writeCartCookie = (items) => {
 };
 
 const CartContext = createContext(undefined);
+
+function isGiftCardProductId(productId) {
+  return String(productId || "").startsWith("gift-card-");
+}
 
 export function CartProvider({ children }) {
   const [items, setItems] = useState([]); // { productId, name, price_inr, quantity }
@@ -61,24 +69,44 @@ export function CartProvider({ children }) {
 
   const addToCart = async (product, quantity = 1) => {
     if (!product || !product.id) return;
+    const normalizedProduct = normalizeProduct(product);
+    const trackedStock = !isGiftCardProductId(normalizedProduct.id);
+
+    if (trackedStock && !isProductPurchasable(normalizedProduct)) {
+      return;
+    }
+
+    const requestedQuantity = Math.max(1, Number(quantity) || 1);
+    const availableStock = trackedStock ? getAvailableStock(normalizedProduct) : null;
 
     setItems((prev) => {
       const existing = prev.find((item) => item.productId === product.id);
+
       if (existing) {
+        const nextQuantity = trackedStock
+          ? Math.min(existing.quantity + requestedQuantity, Number(availableStock || 0))
+          : existing.quantity + requestedQuantity;
+
         return prev.map((item) =>
           item.productId === product.id
-            ? { ...item, quantity: item.quantity + quantity }
+            ? {
+                ...item,
+                quantity: nextQuantity,
+                available_stock: trackedStock ? availableStock : null,
+              }
             : item
         );
       }
+
       return [
         ...prev,
         {
           id: undefined,
-          productId: product.id,
-          name: product.name,
-          price_inr: product.price_inr,
-          quantity,
+          productId: normalizedProduct.id,
+          name: normalizedProduct.name,
+          price_inr: normalizedProduct.price_inr,
+          quantity: trackedStock ? Math.min(requestedQuantity, Number(availableStock || 0)) : requestedQuantity,
+          available_stock: trackedStock ? availableStock : null,
         },
       ];
     });
@@ -92,9 +120,15 @@ export function CartProvider({ children }) {
   const updateQuantity = async (productId, quantity) => {
     const safeQty = Math.max(1, Number(quantity) || 1);
     setItems((prev) =>
-      prev.map((item) =>
-        item.productId === productId ? { ...item, quantity: safeQty } : item
-      )
+      prev.map((item) => {
+        if (item.productId !== productId) return item;
+        if (!Number.isFinite(Number(item.available_stock))) {
+          return { ...item, quantity: safeQty };
+        }
+
+        const cappedQty = Math.min(safeQty, Math.max(1, Number(item.available_stock) || 1));
+        return { ...item, quantity: cappedQty };
+      })
     );
   };
 

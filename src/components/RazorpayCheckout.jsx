@@ -3,6 +3,7 @@ import {
   initializeRazorpayPayment,
   handlePaymentSuccess,
   loadRazorpayScript,
+  releaseOrderInventory,
 } from "../lib/razorpayApi";
 
 export default function RazorpayCheckout({
@@ -27,6 +28,17 @@ export default function RazorpayCheckout({
       setError(null);
     }
   }, [isOpen]);
+
+  const releaseReservation = async (reason) => {
+    if (!orderId) return;
+
+    try {
+      await releaseOrderInventory(orderId, reason);
+    } catch (releaseError) {
+      // eslint-disable-next-line no-console
+      console.warn("Could not release reserved inventory", releaseError);
+    }
+  };
 
   const handlePayment = async () => {
     try {
@@ -91,8 +103,9 @@ export default function RazorpayCheckout({
           }
         },
         modal: {
-          ondismiss: () => {
+          ondismiss: async () => {
             setIsProcessing(false);
+            await releaseReservation("checkout_dismissed");
             if (onCancel) {
               onCancel();
             }
@@ -107,6 +120,7 @@ export default function RazorpayCheckout({
       rzp.open();
     } catch (err) {
       setError(err.message || "Failed to initialize payment");
+      await releaseReservation("checkout_initialization_failed");
       setIsProcessing(false);
       if (onError) {
         onError(err);
@@ -123,8 +137,9 @@ export default function RazorpayCheckout({
       <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-lg mx-4">
         {/* Close button */}
         <button
-          onClick={() => {
+          onClick={async () => {
             setIsProcessing(false);
+            await releaseReservation("checkout_closed");
             if (onCancel) onCancel();
           }}
           className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
@@ -201,8 +216,9 @@ export default function RazorpayCheckout({
         {/* Action Buttons */}
         <div className="flex gap-3">
           <button
-            onClick={() => {
+            onClick={async () => {
               setIsProcessing(false);
+              await releaseReservation("checkout_cancelled");
               if (onCancel) onCancel();
             }}
             disabled={isProcessing}

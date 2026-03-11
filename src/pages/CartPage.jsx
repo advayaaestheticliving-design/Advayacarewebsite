@@ -143,11 +143,19 @@ function CartPage() {
                       maximumFractionDigits: 0,
                     })}
                   </p>
+                  {Number.isFinite(Number(item.available_stock)) && (
+                    <p className="text-[11px] text-slate-600 mt-1">
+                      {Number(item.available_stock) > 0
+                        ? `Available now: ${Number(item.available_stock)}`
+                        : "Currently out of stock"}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <input
                     type="number"
                     min={1}
+                    max={Number.isFinite(Number(item.available_stock)) ? Math.max(1, Number(item.available_stock)) : undefined}
                     value={item.quantity}
                     onChange={(e) =>
                       updateQuantity(item.productId, Number(e.target.value))

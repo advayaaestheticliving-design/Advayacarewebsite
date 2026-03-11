@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
-import productsData from "../data/products.json";
+import { fetchProducts } from "../lib/productsApi";
 
 function HomePage() {
 	const [featured, setFeatured] = React.useState([]);
@@ -9,17 +9,33 @@ function HomePage() {
 	const [error, setError] = React.useState(null);
 
 	React.useEffect(() => {
+		let mounted = true;
+
 		try {
 			setLoading(true);
 			setError(null);
-			const allProducts = Array.isArray(productsData) ? productsData : [];
-			setFeatured(allProducts.slice(0, 3));
+			fetchProducts()
+				.then((allProducts) => {
+					if (!mounted) return;
+					setFeatured(Array.isArray(allProducts) ? allProducts.slice(0, 3) : []);
+				})
+				.catch(() => {
+					if (!mounted) return;
+					setError("Something went wrong loading products.");
+					setFeatured([]);
+				})
+				.finally(() => {
+					if (!mounted) return;
+					setLoading(false);
+				});
 		} catch {
 			setError("Something went wrong loading products.");
 			setFeatured([]);
-		} finally {
-			setLoading(false);
 		}
+
+		return () => {
+			mounted = false;
+		};
 	}, []);
 
 

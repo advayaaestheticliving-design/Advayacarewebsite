@@ -17,6 +17,9 @@ function AdminSidebar({ onSignOut, authLoading }) {
         <NavLink to="/admin/orders" className={getNavClass}>
           Orders
         </NavLink>
+        <NavLink to="/admin/products" className={getNavClass}>
+          Products
+        </NavLink>
         <NavLink to="/admin/blogwriter" className={getNavClass}>
           Blog Writer
         </NavLink>

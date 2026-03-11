@@ -6,6 +6,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function releaseReservedInventory(supabase: ReturnType<typeof createClient>, orderId: string, reason: string) {
+  try {
+    await supabase.rpc("release_inventory_for_order", {
+      p_order_id: orderId,
+      p_reason: reason,
+    });
+  } catch (releaseError) {
+    console.error("❌ Failed to release reserved inventory", releaseError);
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -83,9 +94,47 @@ serve(async (req) => {
       );
     }
 
+    console.log("📦 Reserving inventory for order...");
+    const { data: reservationResult, error: reservationError } = await supabase.rpc(
+      "reserve_inventory_for_order",
+      { p_order_id: orderId }
+    );
+
+    if (reservationError) {
+      console.error("❌ Reservation RPC failed:", reservationError);
+      return new Response(
+        JSON.stringify({
+          error: "Could not reserve inventory for this order",
+          details: reservationError.message,
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (!reservationResult?.success) {
+      console.error("❌ Reservation rejected:", reservationResult);
+      return new Response(
+        JSON.stringify({
+          error: "Some items are no longer in stock",
+          code: reservationResult?.error || "insufficient_stock",
+          items: Array.isArray(reservationResult?.items) ? reservationResult.items : [],
+        }),
+        {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    console.log("✅ Inventory reservation status:", reservationResult?.status || "reserved");
+
     const amountInInr = Number(order.amount ?? 0);
     if (!Number.isFinite(amountInInr) || amountInInr <= 0) {
       console.error("❌ Invalid order amount:", order.amount);
+      await releaseReservedInventory(supabase, orderId, "invalid_order_amount");
       return new Response(
         JSON.stringify({
           error: "Invalid order amount",
@@ -116,6 +165,7 @@ serve(async (req) => {
 
     if (!razorpayKeyId || !razorpayKeySecret) {
       console.error("❌ Razorpay credentials not found in environment");
+      await releaseReservedInventory(supabase, orderId, "missing_razorpay_credentials");
       return new Response(
         JSON.stringify({
           error: "Server configuration error: Razorpay credentials missing",
@@ -158,6 +208,7 @@ serve(async (req) => {
 
     if (!razorpayResponse.ok) {
       console.error("❌ Razorpay API error:", razorpayData);
+      await releaseReservedInventory(supabase, orderId, "razorpay_order_creation_failed");
       return new Response(
         JSON.stringify({
           error: razorpayData.error?.description || "Failed to create Razorpay order",
@@ -188,6 +239,7 @@ serve(async (req) => {
 
     if (dbError) {
       console.error("❌ Database insert error:", dbError);
+      await releaseReservedInventory(supabase, orderId, "order_update_failed_after_reserve");
       return new Response(
         JSON.stringify({
           error: "Failed to save order to database",
@@ -236,13 +288,14 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    const resolvedError = error instanceof Error ? error : new Error(String(error));
     console.error("💥 UNEXPECTED ERROR:", error);
-    console.error("Error stack:", error.stack);
+    console.error("Error stack:", resolvedError.stack);
 
     return new Response(
       JSON.stringify({
         error: "Internal server error",
-        message: error.message,
+        message: resolvedError.message,
       }),
       {
         status: 500,

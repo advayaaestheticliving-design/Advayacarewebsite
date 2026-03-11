@@ -1,6 +1,7 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { getAvailableStock, isProductPurchasable, normalizeProduct } from "../lib/productsApi";
 
 function ProductCard({ product }) {
   const navigate = useNavigate();
@@ -8,10 +9,40 @@ function ProductCard({ product }) {
 
   if (!product) return null;
 
-  const { id, name, price_inr, benefits_brief, one_line_summary, images = [], filterTags = [] } = product;
+  const normalizedProduct = normalizeProduct(product);
+  const {
+    id,
+    name,
+    price_inr,
+    benefits_brief,
+    one_line_summary,
+    images = [],
+    filterTags = [],
+    low_stock_threshold,
+  } = normalizedProduct;
+
+  const availableStock = getAvailableStock(normalizedProduct);
+  const canPurchase = isProductPurchasable(normalizedProduct);
+  const lowStockThreshold = Number(low_stock_threshold || 5);
+  const isLowStock = Number.isFinite(availableStock)
+    && availableStock > 0
+    && availableStock <= lowStockThreshold;
+
+  let stockText = "Out of stock";
+  let stockClasses = "bg-red-100 text-red-700 border-red-200";
+  if (canPurchase && isLowStock) {
+    stockText = `Low stock (${availableStock} left)`;
+    stockClasses = "bg-amber-100 text-amber-700 border-amber-200";
+  } else if (canPurchase) {
+    stockText = `In stock (${availableStock})`;
+    stockClasses = "bg-emerald-100 text-emerald-700 border-emerald-200";
+  }
 
   const resolveImage = (filename) => {
     if (!filename) return undefined;
+    if (String(filename).startsWith("http://") || String(filename).startsWith("https://")) {
+      return filename;
+    }
     const hasExt = filename.includes(".");
     const finalName = hasExt ? filename : `${filename}.avif`;
     return `${import.meta.env.BASE_URL}images/${finalName}`;
@@ -26,12 +57,14 @@ function ProductCard({ product }) {
 
   const handleAddToCart = (e) => {
     e.preventDefault();
-    addToCart(product, 1);
+    if (!canPurchase) return;
+    addToCart(normalizedProduct, 1);
   };
 
   const handleBuyNow = (e) => {
     e.preventDefault();
-    addToCart(product, 1);
+    if (!canPurchase) return;
+    addToCart(normalizedProduct, 1);
     navigate("/cart");
   };
 
@@ -64,6 +97,9 @@ function ProductCard({ product }) {
           <span className="text-sm sm:text-base font-semibold text-slate-900">
             {formattedPrice}
           </span>
+          <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${stockClasses}`}>
+            {stockText}
+          </span>
         </div>
         {filterTags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -81,14 +117,16 @@ function ProductCard({ product }) {
           <button
             type="button"
             onClick={handleAddToCart}
-            className="w-full rounded-full bg-black px-3 py-2 text-xs sm:text-sm font-medium text-white hover:bg-neutral-800 transition-colors"
+            disabled={!canPurchase}
+            className="w-full rounded-full bg-black px-3 py-2 text-xs sm:text-sm font-medium text-white hover:bg-neutral-800 transition-colors disabled:cursor-not-allowed disabled:bg-neutral-500"
           >
             Add to Cart
           </button>
           <button
             type="button"
             onClick={handleBuyNow}
-            className="w-full rounded-full bg-black px-3 py-2 text-xs sm:text-sm font-medium text-white hover:bg-neutral-800 transition-colors"
+            disabled={!canPurchase}
+            className="w-full rounded-full bg-black px-3 py-2 text-xs sm:text-sm font-medium text-white hover:bg-neutral-800 transition-colors disabled:cursor-not-allowed disabled:bg-neutral-500"
           >
             Buy Now
           </button>

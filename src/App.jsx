@@ -21,6 +21,7 @@ import AccountPage from "./pages/AccountPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminOrdersPage from "./pages/AdminOrdersPage";
 import BlogWriterPage from "./pages/BlogWriterPage";
+import AdminProductsPage from "./pages/AdminProductsPage";
 import { clearLegacyGuestAuthState, ensureSupabaseGuestSession } from "./lib/authSession";
 
 function App() {
@@ -51,6 +52,7 @@ function App() {
                 <Route path="/admin" element={<AdminLoginPage />} />
                 <Route path="/admin/orders" element={<AdminOrdersPage />} />
                 <Route path="/admin/blogwriter" element={<BlogWriterPage />} />
+                <Route path="/admin/products" element={<AdminProductsPage />} />
               </Routes>
             ) : (
               <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">

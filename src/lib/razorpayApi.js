@@ -112,6 +112,22 @@ export async function handlePaymentSuccess(paymentData) {
   }
 }
 
+export async function releaseOrderInventory(orderId, reason = "checkout_cancelled") {
+  const normalizedOrderId = String(orderId || "").trim();
+  if (!normalizedOrderId) return null;
+
+  const { data, error } = await supabase.rpc("release_inventory_for_order", {
+    p_order_id: normalizedOrderId,
+    p_reason: String(reason || "checkout_cancelled"),
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data || null;
+}
+
 /**
  * Get payment status from database
  */

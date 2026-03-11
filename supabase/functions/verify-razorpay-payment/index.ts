@@ -255,6 +255,19 @@ serve(async (req) => {
       );
     }
 
+    let inventoryWarning = "";
+    const { data: finalizeResult, error: finalizeError } = await supabase.rpc(
+      "finalize_inventory_for_order",
+      { p_order_id: updatedOrder.id }
+    );
+
+    if (finalizeError || !finalizeResult?.success) {
+      inventoryWarning = String(finalizeResult?.message || finalizeError?.message || "Inventory finalization failed");
+      console.error("❌ Inventory finalization issue:", finalizeError || finalizeResult);
+    } else {
+      console.log("✅ Inventory finalized for order", updatedOrder.id);
+    }
+
     const { data: existingPaidEvent } = await supabase
       .from("order_status_events")
       .select("id")
@@ -431,6 +444,7 @@ serve(async (req) => {
       transactionId: razorpayPaymentId,
       paymentId: razorpayPaymentId,
       amount: updatedOrder.amount ?? updatedOrder.total_amount_inr,
+      inventoryWarning,
       issuedGiftCards: purchasedGiftCards.map((gc) => ({
         id: gc.id,
         code: gc.code,
@@ -446,14 +460,15 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    const resolvedError = error instanceof Error ? error : new Error(String(error));
     console.error("💥 UNEXPECTED ERROR:", error);
-    console.error("Error stack:", error.stack);
+    console.error("Error stack:", resolvedError.stack);
 
     return new Response(
       JSON.stringify({
         success: false,
         error: "Internal server error",
-        message: error.message,
+        message: resolvedError.message,
       }),
       {
         status: 500,
