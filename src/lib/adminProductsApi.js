@@ -174,7 +174,8 @@ async function authorizedFetch(url, options = {}) {
     response = await execute();
 
     if (response.status === 401) {
-      throw new Error("Admin authorization failed (401). Please retry once from /admin/products.");
+      await clearInvalidAdminSession();
+      throw new Error("Admin session expired. Please sign in again from /admin.");
     }
   }
 
