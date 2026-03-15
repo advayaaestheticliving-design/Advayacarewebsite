@@ -120,13 +120,18 @@ async function authorizedFetch(url, options = {}) {
   const execute = async () => {
     const authToken = await getAuthToken();
     try {
+      const baseHeaders = {
+        ...(options.headers || {}),
+        Authorization: `Bearer ${authToken}`,
+      };
+
+      const headers = SUPABASE_ANON_KEY
+        ? { ...baseHeaders, apikey: SUPABASE_ANON_KEY }
+        : baseHeaders;
+
       return await fetch(url, {
         ...options,
-        headers: {
-          ...(options.headers || {}),
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${authToken}`,
-        },
+        headers,
       });
     } catch (fetchError) {
       if (isNetworkError(fetchError)) {
@@ -136,44 +141,15 @@ async function authorizedFetch(url, options = {}) {
     }
   };
 
-  let response = await execute();
+  const response = await execute();
   if (response.status === 401) {
-    const {
-      data: { session },
-    } = await adminSupabase.auth.getSession();
-
-    if (!session?.refresh_token) {
-      throw new Error("Admin session expired. Please sign in again from /admin.");
-    }
-
-    let refreshError = null;
-    try {
-      ({ error: refreshError } = await adminSupabase.auth.refreshSession());
-    } catch (refreshException) {
-      if (isNetworkError(refreshException)) {
-        throw new Error(NETWORK_ERROR_MESSAGE);
-      }
-      throw refreshException;
-    }
-
-    if (refreshError) {
-      if (isNetworkError(refreshError)) {
-        throw new Error(NETWORK_ERROR_MESSAGE);
-      }
-      throw new Error("Admin session expired. Please sign in again from /admin.");
-    }
-
-    response = await execute();
-
-    if (response.status === 401) {
-      const body = await response.clone().json().catch(() => null);
-      const details = String(body?.error || "").trim();
-      throw new Error(
-        details
-          ? `Admin authorization failed (401): ${details}`
-          : "Admin authorization failed (401). Please sign in again from /admin if this keeps happening."
-      );
-    }
+    const body = await response.clone().json().catch(() => null);
+    const details = String(body?.error || "").trim();
+    throw new Error(
+      details
+        ? `Admin authorization failed (401): ${details}`
+        : "Admin authorization failed (401). Please sign in again from /admin if this keeps happening."
+    );
   }
 
   return response;
