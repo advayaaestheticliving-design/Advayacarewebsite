@@ -144,6 +144,7 @@ function AdminOrdersPage() {
                 {orders.map((order) => {
                   const selectedStatus =
                     pendingStatusByOrder[order.id] || order.fulfillment_status || "processing";
+                  const orderItems = Array.isArray(order.items) ? order.items : [];
 
                   return (
                     <section
@@ -235,6 +236,35 @@ function AdminOrdersPage() {
                           </div>
                         ) : (
                           <p className="text-xs text-white/60">No timeline events yet.</p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-white">Order Items</h3>
+                        {orderItems.length > 0 ? (
+                          <div className="space-y-2">
+                            {orderItems.map((item, index) => {
+                              const quantity = Math.max(1, Number(item?.quantity) || 1);
+                              const unitPrice = Number(item?.price_inr || 0);
+                              const lineTotal = quantity * unitPrice;
+
+                              return (
+                                <div
+                                  key={`${order.id}-item-${item?.product_id || item?.name || index}`}
+                                  className="rounded-lg border border-neutral-700 bg-black/60 px-3 py-2 text-xs text-white/90"
+                                >
+                                  <div className="grid gap-1 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center sm:gap-3">
+                                    <p className="font-medium text-white">{item?.name || "Unknown product"}</p>
+                                    <p className="text-white/70">Qty: {quantity}</p>
+                                    <p className="text-white/70">{formatCurrency(unitPrice)}</p>
+                                    <p className="sm:text-right">{formatCurrency(lineTotal)}</p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-white/60">No items in this order.</p>
                         )}
                       </div>
                     </section>
