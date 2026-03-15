@@ -39,10 +39,6 @@ function isNetworkError(error) {
   );
 }
 
-async function clearInvalidAdminSession() {
-  await adminSupabase.auth.signOut({ scope: "local" }).catch(() => undefined);
-}
-
 async function isAdminAccessTokenValid(accessToken) {
   const token = String(accessToken || "").trim();
   if (!token) return false;
@@ -86,7 +82,6 @@ async function getAuthToken() {
   }
 
   if (!session?.refresh_token) {
-    await clearInvalidAdminSession();
     throw new Error("Admin session expired. Please sign in again from /admin.");
   }
 
@@ -108,7 +103,6 @@ async function getAuthToken() {
     if (isNetworkError(refreshError)) {
       throw new Error(NETWORK_ERROR_MESSAGE);
     }
-    await clearInvalidAdminSession();
     throw new Error("Admin session expired. Please sign in again from /admin.");
   }
 
@@ -119,7 +113,6 @@ async function getAuthToken() {
     return refreshData.session.access_token;
   }
 
-  await clearInvalidAdminSession();
   throw new Error("Admin session expired. Please sign in again from /admin.");
 }
 
@@ -167,7 +160,6 @@ async function authorizedFetch(url, options = {}) {
       if (isNetworkError(refreshError)) {
         throw new Error(NETWORK_ERROR_MESSAGE);
       }
-      await clearInvalidAdminSession();
       throw new Error("Admin session expired. Please sign in again from /admin.");
     }
 
