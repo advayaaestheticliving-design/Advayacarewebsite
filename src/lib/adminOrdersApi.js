@@ -13,6 +13,11 @@ function getFunctionUrl(functionName) {
   return `${SUPABASE_URL}/functions/v1/${functionName}`;
 }
 
+function getSupabaseProjectRef() {
+  const match = String(SUPABASE_URL || "").match(/^https:\/\/([a-z0-9-]+)\.supabase\.co$/i);
+  return match ? String(match[1] || "").toLowerCase() : "";
+}
+
 function decodeJwtExpiryEpochSeconds(accessToken) {
   const token = String(accessToken || "").trim();
   if (!token) return null;
@@ -30,6 +35,31 @@ function decodeJwtExpiryEpochSeconds(accessToken) {
   } catch {
     return null;
   }
+}
+
+function decodeJwtPayload(accessToken) {
+  const token = String(accessToken || "").trim();
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+
+  try {
+    const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized + "=".repeat((4 - (normalized.length % 4 || 4)) % 4);
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
+function isJwtStructurallyValidForProject(accessToken) {
+  const payload = decodeJwtPayload(accessToken);
+  if (!payload) return false;
+
+  const iss = String(payload?.iss || "").trim().toLowerCase();
+  const projectRef = getSupabaseProjectRef();
+  if (!projectRef) return true;
+
+  return iss.includes(`${projectRef}.supabase.co/auth/v1`);
 }
 
 function isNetworkError(error) {
@@ -90,16 +120,20 @@ async function getAuthToken() {
     data: { session },
   } = await adminSupabase.auth.getSession();
 
+  const accessToken = String(session?.access_token || "").trim();
+
   const nowEpochSeconds = Math.floor(Date.now() / 1000);
   const sessionExpiry = Number(session?.expires_at);
-  const tokenExpiry = decodeJwtExpiryEpochSeconds(session?.access_token);
+  const tokenExpiry = decodeJwtExpiryEpochSeconds(accessToken);
   const effectiveExpiry = Number.isFinite(sessionExpiry) ? sessionExpiry : tokenExpiry;
+  const isTokenStructurallyValid = isJwtStructurallyValidForProject(accessToken);
   const isTokenFresh =
-    Boolean(session?.access_token) &&
+    Boolean(accessToken) &&
+    isTokenStructurallyValid &&
     Number.isFinite(effectiveExpiry) && effectiveExpiry - 30 > nowEpochSeconds;
 
-  if (isTokenFresh && (await isAdminAccessTokenValid(session?.access_token))) {
-    return session.access_token;
+  if (isTokenFresh && (await isAdminAccessTokenValid(accessToken))) {
+    return accessToken;
   }
 
   if (!session?.refresh_token) {
@@ -138,8 +172,8 @@ async function getAuthToken() {
 }
 
 async function authorizedFetch(url, options = {}) {
-  const execute = async () => {
-    const authToken = await getAuthToken();
+  const execute = async (authTokenOverride = "") => {
+    const authToken = String(authTokenOverride || "").trim() || (await getAuthToken());
     try {
       const baseHeaders = {
         ...(options.headers || {}),
@@ -174,10 +208,13 @@ async function authorizedFetch(url, options = {}) {
       } = await adminSupabase.auth.getSession();
 
       if (session?.refresh_token) {
-        const { error: refreshError } = await adminSupabase.auth.refreshSession();
+        const { data: refreshData, error: refreshError } = await adminSupabase.auth.refreshSession({
+          refresh_token: session.refresh_token,
+        });
 
         if (!refreshError) {
-          response = await execute();
+          const refreshedAccessToken = String(refreshData?.session?.access_token || "").trim();
+          response = await execute(refreshedAccessToken);
           if (response.status !== 401) {
             return response;
           }
