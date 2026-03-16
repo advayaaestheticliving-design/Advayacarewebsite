@@ -43,6 +43,23 @@ function isNetworkError(error) {
   );
 }
 
+function getAuthErrorDetails(body) {
+  const details = String(body?.error || body?.message || "").trim();
+  if (details) return details;
+
+  const code = Number(body?.code);
+  if (Number.isFinite(code) && code > 0) {
+    return `code ${code}`;
+  }
+
+  return "";
+}
+
+function isJwtRejected(details) {
+  const text = String(details || "").toLowerCase();
+  return text.includes("invalid jwt") || text.includes("token is malformed");
+}
+
 async function isAdminAccessTokenValid(accessToken) {
   const token = String(accessToken || "").trim();
   if (!token) return false;
@@ -145,13 +162,35 @@ async function authorizedFetch(url, options = {}) {
     }
   };
 
-  const response = await execute();
+  let response = await execute();
   if (response.status === 401) {
-    const body = await response.clone().json().catch(() => null);
-    const details = String(body?.error || "").trim();
+    const firstBody = await response.clone().json().catch(() => null);
+    const firstDetails = getAuthErrorDetails(firstBody);
+
+    // Recover once when an edge gateway rejects a stale/rotated JWT.
+    if (isJwtRejected(firstDetails)) {
+      const {
+        data: { session },
+      } = await adminSupabase.auth.getSession();
+
+      if (session?.refresh_token) {
+        const { error: refreshError } = await adminSupabase.auth.refreshSession();
+
+        if (!refreshError) {
+          response = await execute();
+          if (response.status !== 401) {
+            return response;
+          }
+        }
+      }
+    }
+
+    const finalBody = await response.clone().json().catch(() => null);
+    const finalDetails = getAuthErrorDetails(finalBody);
+
     throw new Error(
-      details
-        ? `Admin authorization failed (401): ${details}`
+      finalDetails
+        ? `Admin authorization failed (401): ${finalDetails}`
         : "Admin authorization failed (401). Please sign in again from /admin if this keeps happening."
     );
   }
