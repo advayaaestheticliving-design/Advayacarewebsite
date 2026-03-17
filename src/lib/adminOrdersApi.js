@@ -276,6 +276,9 @@ export async function verifyAdminOtpCode(token) {
     throw new Error("Enter the OTP code from your email");
   }
 
+  // Start from a clean local auth state so a stale token cannot survive OTP login.
+  await adminSupabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+
   const { data, error } = await adminSupabase.auth.verifyOtp({
     email: ADMIN_EMAIL,
     token: normalizedToken,
@@ -284,6 +287,27 @@ export async function verifyAdminOtpCode(token) {
 
   if (error) {
     throw error;
+  }
+
+  const sessionAccessToken = String(data?.session?.access_token || "").trim();
+  let effectiveAccessToken = sessionAccessToken;
+
+  if (!effectiveAccessToken) {
+    const {
+      data: { session },
+    } = await adminSupabase.auth.getSession();
+    effectiveAccessToken = String(session?.access_token || "").trim();
+  }
+
+  if (!effectiveAccessToken) {
+    throw new Error("Could not establish admin session. Please request a new OTP and try again.");
+  }
+
+  const tokenLooksValid = isJwtStructurallyValidForProject(effectiveAccessToken);
+  const tokenBelongsToAdmin = await isAdminAccessTokenValid(effectiveAccessToken);
+  if (!tokenLooksValid || !tokenBelongsToAdmin) {
+    await adminSupabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+    throw new Error("Admin session setup failed. Please request a new OTP and sign in again.");
   }
 
   return data;
