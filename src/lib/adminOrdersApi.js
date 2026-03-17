@@ -208,9 +208,7 @@ async function authorizedFetch(url, options = {}) {
       } = await adminSupabase.auth.getSession();
 
       if (session?.refresh_token) {
-        const { data: refreshData, error: refreshError } = await adminSupabase.auth.refreshSession({
-          refresh_token: session.refresh_token,
-        });
+        const { data: refreshData, error: refreshError } = await adminSupabase.auth.refreshSession();
 
         if (!refreshError) {
           const refreshedAccessToken = String(refreshData?.session?.access_token || "").trim();
@@ -224,10 +222,6 @@ async function authorizedFetch(url, options = {}) {
 
     const finalBody = await response.clone().json().catch(() => null);
     const finalDetails = getAuthErrorDetails(finalBody);
-
-    if (isJwtRejected(finalDetails)) {
-      await adminSupabase.auth.signOut({ scope: "local" }).catch(() => undefined);
-    }
 
     throw new Error(
       finalDetails
