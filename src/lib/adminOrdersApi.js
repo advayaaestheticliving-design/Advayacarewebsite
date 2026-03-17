@@ -225,6 +225,10 @@ async function authorizedFetch(url, options = {}) {
     const finalBody = await response.clone().json().catch(() => null);
     const finalDetails = getAuthErrorDetails(finalBody);
 
+    if (isJwtRejected(finalDetails)) {
+      await adminSupabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+    }
+
     throw new Error(
       finalDetails
         ? `Admin authorization failed (401): ${finalDetails}`

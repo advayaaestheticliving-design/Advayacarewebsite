@@ -9,6 +9,31 @@ import { adminSupabase } from "./adminSupabaseClient";
 
 const NETWORK_ERROR_MESSAGE = "Network interrupted. Check your internet connection and retry.";
 
+function decodeJwtPayload(accessToken) {
+  const token = String(accessToken || "").trim();
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+
+  try {
+    const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized + "=".repeat((4 - (normalized.length % 4 || 4)) % 4);
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
+function hasValidAdminTokenShape(accessToken) {
+  const payload = decodeJwtPayload(accessToken);
+  if (!payload) return false;
+
+  const iss = String(payload?.iss || "").trim().toLowerCase();
+  const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || "").trim().toLowerCase();
+  if (!supabaseUrl) return true;
+
+  return iss.includes(`${supabaseUrl}/auth/v1`);
+}
+
 function decodeJwtExpiryEpochSeconds(accessToken) {
   const token = String(accessToken || "").trim();
   if (!token) return null;
@@ -63,6 +88,11 @@ export function useAdminAccess() {
     const initialSessionEmail = String(session?.user?.email || "").trim().toLowerCase();
     const hasAccessToken = Boolean(String(session?.access_token || "").trim());
     const hasRefreshToken = Boolean(String(session?.refresh_token || "").trim());
+
+    if (hasAccessToken && !hasValidAdminTokenShape(session?.access_token)) {
+      await clearLocalSession();
+      return { email: "", authorized: false, expired: true };
+    }
 
     let sessionEmail = initialSessionEmail;
 
