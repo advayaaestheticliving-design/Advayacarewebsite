@@ -69,10 +69,6 @@ function isNetworkError(error) {
   );
 }
 
-async function clearInvalidAdminSession() {
-  await adminSupabase.auth.signOut({ scope: "local" }).catch(() => undefined);
-}
-
 function getAuthErrorDetails(body) {
   const details = String(body?.error || body?.message || "").trim();
   if (details) return details;
@@ -137,7 +133,6 @@ async function getAuthToken() {
   }
 
   if (!session?.refresh_token) {
-    await clearInvalidAdminSession();
     throw new Error("Admin session expired. Please sign in again from /admin.");
   }
 
@@ -159,7 +154,6 @@ async function getAuthToken() {
     if (isNetworkError(refreshError)) {
       throw new Error(NETWORK_ERROR_MESSAGE);
     }
-    await clearInvalidAdminSession();
     throw new Error("Admin session expired. Please sign in again from /admin.");
   }
 
@@ -170,7 +164,6 @@ async function getAuthToken() {
     return refreshData.session.access_token;
   }
 
-  await clearInvalidAdminSession();
   throw new Error("Admin session expired. Please sign in again from /admin.");
 }
 
@@ -259,7 +252,6 @@ async function authorizedFetch(url, options = {}) {
       if (isNetworkError(refreshError)) {
         throw new Error(NETWORK_ERROR_MESSAGE);
       }
-      await clearInvalidAdminSession();
       throw new Error("Admin session expired. Please sign in again from /admin.");
     }
 
@@ -271,8 +263,11 @@ async function authorizedFetch(url, options = {}) {
       const finalDetails = getAuthErrorDetails(finalBody);
 
       if (isJwtRejected(finalDetails)) {
-        await clearInvalidAdminSession();
-        throw new Error("Admin session expired. Please sign in again from /admin.");
+        throw new Error(
+          finalDetails
+            ? `Admin authorization failed (401): ${finalDetails}`
+            : "Admin authorization failed (401). Please sign in again from /admin if this keeps happening."
+        );
       }
 
       throw new Error(
