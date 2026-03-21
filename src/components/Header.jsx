@@ -90,7 +90,7 @@ const Header = () => {
               alt="Advayacare logo"
               width="131"
               height="131"
-              className="logo-img shrink-0"
+              className="logo-img shrink-0 w-[131px] h-[131px]"
               draggable="false"
             />
           </Link>
