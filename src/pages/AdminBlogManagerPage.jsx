@@ -345,10 +345,8 @@ function AdminBlogManagerPage() {
     setError("");
 
     try {
-      const [draftRows, postRows] = await Promise.all([
-        listBlogDrafts(100),
-        listBlogPosts({ limit: 200, includeArchived: true }),
-      ]);
+      const draftRows = await listBlogDrafts(100);
+      const postRows = await listBlogPosts({ limit: 200, includeArchived: true });
 
       setDrafts(Array.isArray(draftRows) ? draftRows : []);
       setPosts(Array.isArray(postRows) ? postRows : []);

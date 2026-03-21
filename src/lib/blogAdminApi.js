@@ -9,6 +9,11 @@ function getFunctionUrl(functionName) {
   return `${SUPABASE_URL}/functions/v1/${functionName}`;
 }
 
+function getSupabaseProjectRef() {
+  const match = String(SUPABASE_URL || "").match(/^https:\/\/([a-z0-9-]+)\.supabase\.co$/i);
+  return match ? String(match[1] || "").toLowerCase() : "";
+}
+
 function decodeJwtExpiryEpochSeconds(accessToken) {
   const token = String(accessToken || "").trim();
   if (!token) return null;
@@ -28,6 +33,31 @@ function decodeJwtExpiryEpochSeconds(accessToken) {
   }
 }
 
+function decodeJwtPayload(accessToken) {
+  const token = String(accessToken || "").trim();
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+
+  try {
+    const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized + "=".repeat((4 - (normalized.length % 4 || 4)) % 4);
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
+function isJwtStructurallyValidForProject(accessToken) {
+  const payload = decodeJwtPayload(accessToken);
+  if (!payload) return false;
+
+  const iss = String(payload?.iss || "").trim().toLowerCase();
+  const projectRef = getSupabaseProjectRef();
+  if (!projectRef) return true;
+
+  return iss.includes(`${projectRef}.supabase.co/auth/v1`);
+}
+
 function isNetworkError(error) {
   const message = String(error?.message || error || "").toLowerCase();
   return (
@@ -41,6 +71,23 @@ function isNetworkError(error) {
 
 async function clearInvalidAdminSession() {
   await adminSupabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+}
+
+function getAuthErrorDetails(body) {
+  const details = String(body?.error || body?.message || "").trim();
+  if (details) return details;
+
+  const code = Number(body?.code);
+  if (Number.isFinite(code) && code > 0) {
+    return `code ${code}`;
+  }
+
+  return "";
+}
+
+function isJwtRejected(details) {
+  const text = String(details || "").toLowerCase();
+  return text.includes("invalid jwt") || text.includes("token is malformed");
 }
 
 async function isAdminAccessTokenValid(accessToken) {
@@ -73,16 +120,20 @@ async function getAuthToken() {
     data: { session },
   } = await adminSupabase.auth.getSession();
 
+  const accessToken = String(session?.access_token || "").trim();
+
   const nowEpochSeconds = Math.floor(Date.now() / 1000);
   const sessionExpiry = Number(session?.expires_at);
-  const tokenExpiry = decodeJwtExpiryEpochSeconds(session?.access_token);
+  const tokenExpiry = decodeJwtExpiryEpochSeconds(accessToken);
   const effectiveExpiry = Number.isFinite(sessionExpiry) ? sessionExpiry : tokenExpiry;
+  const isTokenStructurallyValid = isJwtStructurallyValidForProject(accessToken);
   const isTokenFresh =
-    Boolean(session?.access_token) &&
+    Boolean(accessToken) &&
+    isTokenStructurallyValid &&
     Number.isFinite(effectiveExpiry) && effectiveExpiry - 30 > nowEpochSeconds;
 
-  if (isTokenFresh && (await isAdminAccessTokenValid(session?.access_token))) {
-    return session.access_token;
+  if (isTokenFresh && (await isAdminAccessTokenValid(accessToken))) {
+    return accessToken;
   }
 
   if (!session?.refresh_token) {
@@ -124,16 +175,21 @@ async function getAuthToken() {
 }
 
 async function authorizedFetch(url, options = {}) {
-  const execute = async () => {
-    const authToken = await getAuthToken();
+  const execute = async (authTokenOverride = "") => {
+    const authToken = String(authTokenOverride || "").trim() || (await getAuthToken());
     try {
+      const baseHeaders = {
+        ...(options.headers || {}),
+        Authorization: `Bearer ${authToken}`,
+      };
+
+      const headers = SUPABASE_ANON_KEY
+        ? { ...baseHeaders, apikey: SUPABASE_ANON_KEY }
+        : baseHeaders;
+
       return await fetch(url, {
         ...options,
-        headers: {
-          ...(options.headers || {}),
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${authToken}`,
-        },
+        headers,
       });
     } catch (fetchError) {
       if (isNetworkError(fetchError)) {
@@ -145,6 +201,39 @@ async function authorizedFetch(url, options = {}) {
 
   let response = await execute();
   if (response.status === 401) {
+    const firstBody = await response.clone().json().catch(() => null);
+    const firstDetails = getAuthErrorDetails(firstBody);
+
+    if (isJwtRejected(firstDetails)) {
+      const {
+        data: { session },
+      } = await adminSupabase.auth.getSession();
+
+      if (session?.refresh_token) {
+        let refreshData = null;
+        let refreshError = null;
+
+        try {
+          const refreshResult = await adminSupabase.auth.refreshSession();
+          refreshData = refreshResult.data;
+          refreshError = refreshResult.error;
+        } catch (refreshException) {
+          if (isNetworkError(refreshException)) {
+            throw new Error(NETWORK_ERROR_MESSAGE);
+          }
+          throw refreshException;
+        }
+
+        if (!refreshError) {
+          const refreshedAccessToken = String(refreshData?.session?.access_token || "").trim();
+          response = await execute(refreshedAccessToken);
+          if (response.status !== 401) {
+            return response;
+          }
+        }
+      }
+    }
+
     const {
       data: { session },
     } = await adminSupabase.auth.getSession();
@@ -154,8 +243,11 @@ async function authorizedFetch(url, options = {}) {
     }
 
     let refreshError = null;
+    let refreshData = null;
     try {
-      ({ error: refreshError } = await adminSupabase.auth.refreshSession());
+      const refreshResult = await adminSupabase.auth.refreshSession();
+      refreshData = refreshResult.data;
+      refreshError = refreshResult.error;
     } catch (refreshException) {
       if (isNetworkError(refreshException)) {
         throw new Error(NETWORK_ERROR_MESSAGE);
@@ -171,11 +263,18 @@ async function authorizedFetch(url, options = {}) {
       throw new Error("Admin session expired. Please sign in again from /admin.");
     }
 
-    response = await execute();
+    const refreshedAccessToken = String(refreshData?.session?.access_token || "").trim();
+    response = await execute(refreshedAccessToken);
 
     if (response.status === 401) {
-      await clearInvalidAdminSession();
-      throw new Error("Admin session expired. Please sign in again from /admin.");
+      const finalBody = await response.clone().json().catch(() => null);
+      const finalDetails = getAuthErrorDetails(finalBody);
+
+      throw new Error(
+        finalDetails
+          ? `Admin authorization failed (401): ${finalDetails}`
+          : "Admin authorization failed (401). Please sign in again from /admin if this keeps happening."
+      );
     }
   }
 
