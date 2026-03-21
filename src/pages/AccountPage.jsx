@@ -149,7 +149,7 @@ function AccountPage() {
     setMembershipEditing(false);
   }, []);
 
-  const loadMembershipData = React.useCallback(async (catalog = productCatalog) => {
+  const loadMembershipData = React.useCallback(async (catalog = []) => {
     const profile = await getMembershipProfile();
     setMembershipProfile(profile);
     setMembershipForm(mapMembershipProfileToForm(profile));
@@ -172,7 +172,7 @@ function AccountPage() {
     setMembershipRecommendationSavedAt(latestRun?.created_at || "");
     setMembershipRecommendations(mapRecommendationsToProducts(latestRun?.recommendations, catalog));
     setMembershipRecommendationsStale(Boolean(latestRun) && !isRecommendationRunFresh(profile, latestRun));
-  }, [productCatalog]);
+  }, []);
 
   const loadData = React.useCallback(async () => {
     const requestId = loadRequestIdRef.current + 1;
