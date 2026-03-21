@@ -39,14 +39,11 @@ function Footer() {
               <img
                 src={`${import.meta.env.BASE_URL}images/logo.png`}
                 alt="Advayacare logo"
-                width="224"
-                height="224"
-                className="logo-img shrink-0 w-[224px] h-[224px] md:w-[224px] md:h-[224px]"
+                width="157"
+                height="157"
+                className="logo-img shrink-0 w-[157px] h-[157px] md:w-[157px] md:h-[157px]"
                 draggable="false"
               />
-              <span className="text-[30px] leading-none tracking-[0.18em] uppercase font-medium text-[#b58b2f]">
-                Glow with intention
-              </span>
             </Link>
           </div>
           {/* Right: Navigation */}
@@ -54,7 +51,7 @@ function Footer() {
             <h3 className="text-sm font-semibold tracking-wide text-white uppercase mb-3">
               Navigate
             </h3>
-            <nav className="space-y-2">
+            <nav className="grid grid-cols-2 gap-x-6 gap-y-2">
               {navItems.map((item) => (
                 <div key={item.to}>
                   <Link

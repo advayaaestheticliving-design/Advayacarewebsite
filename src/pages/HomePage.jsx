@@ -45,7 +45,7 @@ function HomePage() {
 			<section className="pt-4 sm:pt-6 lg:pt-8">
 				<div className="space-y-5 max-w-3xl mx-auto text-center">
 					<h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold text-[#D4AF37] leading-tight">
-						Glow with intention
+						Glow with Intention
 					</h1>
 					<p className="text-base sm:text-lg text-white max-w-xl mx-auto">
 						Vegan, organic skincare for Indian skin. Thoughtful rituals that honour your skin&apos;s rhythm and the climate it lives in.

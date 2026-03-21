@@ -64,12 +64,39 @@ const Header = () => {
   const getMobileNavLinkClass = ({ isActive }) =>
     `${navLinkBase} ${isActive ? "border-l-2 border-amber-700 pl-2" : ""}`;
 
+  const cartIcon = (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="h-4 w-4"
+      aria-hidden="true"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h2l1.2 10.2a2 2 0 001.98 1.8h8.64a2 2 0 001.97-1.66L20 8H7" />
+      <circle cx="10" cy="19" r="1.5" />
+      <circle cx="17" cy="19" r="1.5" />
+    </svg>
+  );
+
   return (
     <header className="sticky top-0 z-20 bg-black border-b border-neutral-800">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-20 items-center gap-6">
+          <Link to="/" className="flex items-center select-none shrink-0">
+            <img
+              src={`${import.meta.env.BASE_URL}images/logo.png`}
+              alt="Advayacare logo"
+              width="48"
+              height="48"
+              className="logo-img shrink-0"
+              draggable="false"
+            />
+          </Link>
+
           {/* Nav (desktop only) */}
-          <nav className="hidden md:flex items-center gap-6 text-[11px] font-medium tracking-wide uppercase">
+          <nav className="hidden md:flex items-center gap-6 ml-2 text-[11px] font-medium tracking-wide uppercase">
             <NavLink to="/" className={getNavLinkClass} end>
               Home
             </NavLink>
@@ -116,6 +143,9 @@ const Header = () => {
                 </NavLink>
               </div>
             </div>
+          </nav>
+
+          <div className="hidden md:flex items-center gap-4 ml-3 pl-4 border-l border-neutral-700/80 text-[11px] font-medium tracking-wide uppercase">
             <NavLink to={authTarget} className={getNavLinkClass}>
               {authLabel}
             </NavLink>
@@ -124,25 +154,11 @@ const Header = () => {
                 Admin
               </NavLink>
             ) : null}
-            <NavLink to="/cart" className={getNavLinkClass}>
+            <NavLink to="/cart" className={`${navLinkDesktop} inline-flex items-center gap-1`}>
+              {cartIcon}
               Cart
             </NavLink>
-          </nav>
-
-          {/* Logo + tagline (single instance) */}
-          <Link to="/" className="flex items-center gap-3 ml-auto select-none">
-            <img
-              src={`${import.meta.env.BASE_URL}images/logo.png`}
-              alt="Advayacare logo"
-              width="48"
-              height="48"
-              className="logo-img shrink-0"
-              draggable="false"
-            />
-            <span className="text-[10px] tracking-[0.28em] uppercase font-medium text-[#b58b2f] whitespace-nowrap">
-              Glow with intention
-            </span>
-          </Link>
+          </div>
 
           {/* Hamburger (mobile only) */}
           <button
@@ -232,8 +248,9 @@ const Header = () => {
                 Admin
               </NavLink>
             ) : null}
-            <NavLink to="/cart" className={getMobileNavLinkClass}>
-              Cart
+            <NavLink to="/cart" className={`${getMobileNavLinkClass({ isActive: location.pathname === "/cart" })} inline-flex items-center gap-2`}>
+              {cartIcon}
+              <span>Cart</span>
             </NavLink>
           </div>
         )}
