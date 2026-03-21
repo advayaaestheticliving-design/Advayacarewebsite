@@ -26,6 +26,11 @@ async function getAuthToken({ forceRefresh = false } = {}) {
     if (!refreshError && refreshedToken) {
       return refreshedToken;
     }
+
+    if (forceRefresh) {
+      await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+      throw new Error(MEMBER_SESSION_EXPIRED_MESSAGE);
+    }
   }
 
   if (currentToken) {
@@ -53,6 +58,20 @@ export async function getMyOrdersWithTimeline() {
     authToken = await getAuthToken({ forceRefresh: true });
     response = await executeFetch(authToken);
     body = await response.clone().json().catch(() => null);
+
+    if (response.status === 401) {
+      const details = String(body?.error || "").toLowerCase();
+      const tokenRejected =
+        details.includes("invalid") ||
+        details.includes("expired") ||
+        details.includes("jwt") ||
+        details.includes("authorization");
+
+      if (tokenRejected) {
+        await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+        throw new Error(MEMBER_SESSION_EXPIRED_MESSAGE);
+      }
+    }
   }
 
   if (!response.ok) {
