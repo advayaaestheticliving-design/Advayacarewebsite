@@ -24,30 +24,48 @@ function parseBearerToken(req: Request) {
   return authHeader.slice("Bearer ".length).trim();
 }
 
-async function getRequestUser(req: Request, supabaseUrl: string, anonKey: string) {
+async function getRequestUser(
+  req: Request,
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  anonKey: string
+) {
   const token = parseBearerToken(req);
-  if (!token) {
+  if (!token || token === "undefined" || token === "null") {
     return { user: null, error: "Missing authorization token" };
   }
 
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-  const authClients = [serviceKey, anonKey]
-    .map((key) => String(key || "").trim())
-    .filter(Boolean)
-    .map((key) => createClient(supabaseUrl, key));
+  const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+  const {
+    data: serviceData,
+    error: serviceError,
+  } = await serviceClient.auth.getUser(token);
 
-  for (const authClient of authClients) {
-    const {
-      data: { user },
-      error,
-    } = await authClient.auth.getUser(token);
-
-    if (!error && user) {
-      return { user, error: null };
-    }
+  if (!serviceError && serviceData?.user) {
+    return { user: serviceData.user, error: null };
   }
 
-  return { user: null, error: "Invalid or expired authorization token" };
+  if (anonKey) {
+    const anonClient = createClient(supabaseUrl, anonKey);
+    const {
+      data: anonData,
+      error: anonError,
+    } = await anonClient.auth.getUser(token);
+
+    if (!anonError && anonData?.user) {
+      return { user: anonData.user, error: null };
+    }
+
+    return {
+      user: null,
+      error: anonError?.message || serviceError?.message || "Invalid or expired authorization token",
+    };
+  }
+
+  return {
+    user: null,
+    error: serviceError?.message || "Invalid or expired authorization token",
+  };
 }
 
 function normalizeCsvArray(value: unknown) {
@@ -229,7 +247,12 @@ serve(async (req) => {
   }
 
   try {
-    const { user, error: authError } = await getRequestUser(req, supabaseUrl, supabaseAnonKey);
+    const { user, error: authError } = await getRequestUser(
+      req,
+      supabaseUrl,
+      supabaseServiceKey,
+      supabaseAnonKey
+    );
     if (authError || !user) {
       return jsonResponse({ error: authError || "Unauthorized" }, 401);
     }
