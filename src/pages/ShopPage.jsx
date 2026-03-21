@@ -1,6 +1,17 @@
 import React from "react";
 import ProductCard from "../components/ProductCard";
+import MembershipPromoPopup from "../components/MembershipPromoPopup";
 import { fetchProducts } from "../lib/productsApi";
+import { getMembershipProfile } from "../lib/membershipApi";
+import { supabase } from "../lib/supabaseClient";
+
+const SHOP_MEMBER_PROMO_SESSION_KEY = "shop-member-promo-seen-v1";
+const SHOP_MEMBER_PROMO_VARIANT_KEY = "shop-member-promo-variant-v1";
+const SHOP_MEMBER_PROMO_DURATION_SECONDS = 120;
+
+function pickPromoVariant() {
+  return Math.random() < 0.5 ? "A" : "B";
+}
 
 function ShopPage() {
   const [selectedFilter, setSelectedFilter] = React.useState("All");
@@ -8,6 +19,9 @@ function ShopPage() {
   const [products, setProducts] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
+  const [showMemberPromo, setShowMemberPromo] = React.useState(false);
+  const [promoSecondsLeft, setPromoSecondsLeft] = React.useState(SHOP_MEMBER_PROMO_DURATION_SECONDS);
+  const [promoVariant, setPromoVariant] = React.useState("A");
 
   const categories = ["All", "Face", "Body", "Hair"];
 
@@ -41,6 +55,100 @@ function ShopPage() {
       mounted = false;
     };
   }, []);
+
+  const dismissMemberPromo = React.useCallback(() => {
+    setShowMemberPromo(false);
+    try {
+      window.sessionStorage.setItem(SHOP_MEMBER_PROMO_SESSION_KEY, "1");
+    } catch {
+      // no-op: session storage might be unavailable in private browsing modes
+    }
+  }, []);
+
+  React.useEffect(() => {
+    let mounted = true;
+    let countdownInterval;
+
+    const runPromoEligibilityCheck = async () => {
+      let alreadyShownInSession = false;
+
+      try {
+        alreadyShownInSession =
+          window.sessionStorage.getItem(SHOP_MEMBER_PROMO_SESSION_KEY) === "1";
+      } catch {
+        alreadyShownInSession = false;
+      }
+
+      if (alreadyShownInSession || !mounted) {
+        return;
+      }
+
+      let isLoggedIn = false;
+      let hasMembershipProfile = false;
+
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        isLoggedIn = Boolean(session?.user?.id);
+      } catch {
+        isLoggedIn = false;
+      }
+
+      try {
+        const membershipProfile = await getMembershipProfile();
+        hasMembershipProfile = Boolean(membershipProfile?.id);
+      } catch {
+        hasMembershipProfile = false;
+      }
+
+      const shouldShowPromo = !isLoggedIn || !hasMembershipProfile;
+      if (!mounted || !shouldShowPromo) {
+        return;
+      }
+
+      let assignedVariant = "A";
+      try {
+        const storedVariant = window.sessionStorage.getItem(SHOP_MEMBER_PROMO_VARIANT_KEY);
+        assignedVariant = storedVariant === "A" || storedVariant === "B"
+          ? storedVariant
+          : pickPromoVariant();
+        window.sessionStorage.setItem(SHOP_MEMBER_PROMO_VARIANT_KEY, assignedVariant);
+      } catch {
+        assignedVariant = pickPromoVariant();
+      }
+
+      const expiresAt = Date.now() + SHOP_MEMBER_PROMO_DURATION_SECONDS * 1000;
+      setPromoVariant(assignedVariant);
+      setPromoSecondsLeft(SHOP_MEMBER_PROMO_DURATION_SECONDS);
+      setShowMemberPromo(true);
+
+      countdownInterval = window.setInterval(() => {
+        if (!mounted) return;
+
+        const remainingSeconds = Math.max(
+          0,
+          Math.ceil((expiresAt - Date.now()) / 1000),
+        );
+
+        setPromoSecondsLeft(remainingSeconds);
+
+        if (remainingSeconds <= 0) {
+          window.clearInterval(countdownInterval);
+          dismissMemberPromo();
+        }
+      }, 1000);
+    };
+
+    runPromoEligibilityCheck();
+
+    return () => {
+      mounted = false;
+      if (countdownInterval) {
+        window.clearInterval(countdownInterval);
+      }
+    };
+  }, [dismissMemberPromo]);
 
   const filteredProducts =
     selectedFilter === "All"
@@ -126,6 +234,14 @@ function ShopPage() {
           ))}
         </div>
       )}
+
+      <MembershipPromoPopup
+        isOpen={showMemberPromo}
+        variant={promoVariant}
+        secondsLeft={promoSecondsLeft}
+        onClose={dismissMemberPromo}
+        onRegister={dismissMemberPromo}
+      />
     </div>
   );
 }
