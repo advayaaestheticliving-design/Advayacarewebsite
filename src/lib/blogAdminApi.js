@@ -271,16 +271,13 @@ async function authorizedFetch(url, options = {}) {
       const finalBody = await response.clone().json().catch(() => null);
       const finalDetails = getAuthErrorDetails(finalBody);
 
+      await clearInvalidAdminSession();
+
       if (isJwtRejected(finalDetails)) {
-        await clearInvalidAdminSession();
         throw new Error("Admin session expired. Please sign in again from /admin.");
       }
 
-      throw new Error(
-        finalDetails
-          ? `Admin authorization failed (401): ${finalDetails}`
-          : "Admin authorization failed (401). Please sign in again from /admin if this keeps happening."
-      );
+      throw new Error("Admin session expired. Please sign in again from /admin.");
     }
   }
 
