@@ -2,10 +2,10 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { getMyCoupons, getMyGiftCards } from "../lib/walletApi";
 import { getMyOrdersWithTimeline } from "../lib/ordersApi";
-import productsData from "../data/products.json";
 import MembershipProfileEditor from "../components/MembershipProfileEditor";
 import MembershipRecommendationsPanel from "../components/MembershipRecommendationsPanel";
 import { useMemberSession } from "../context/MemberSessionContext";
+import { fetchProducts } from "../lib/productsApi";
 import {
   getLatestMembershipRecommendationRun,
   getMembershipProfile,
@@ -54,14 +54,14 @@ function toLabel(value) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function mapRecommendationsToProducts(recommendations) {
+function mapRecommendationsToProducts(recommendations, productCatalog = []) {
   if (!Array.isArray(recommendations)) {
     return [];
   }
 
   return recommendations
     .map((item, index) => {
-      const product = productsData.find((entry) => entry.id === item.id);
+      const product = productCatalog.find((entry) => entry.id === item.id) || null;
 
       return {
         ...item,
@@ -101,6 +101,7 @@ function AccountPage() {
   const [coupons, setCoupons] = React.useState([]);
   const [giftCards, setGiftCards] = React.useState([]);
   const [orders, setOrders] = React.useState([]);
+  const [productCatalog, setProductCatalog] = React.useState([]);
   const [membershipProfile, setMembershipProfile] = React.useState(null);
   const [membershipForm, setMembershipForm] = React.useState(initialMembershipProfileForm);
   const [membershipRecommendations, setMembershipRecommendations] = React.useState([]);
@@ -148,7 +149,7 @@ function AccountPage() {
     setMembershipEditing(false);
   }, []);
 
-  const loadMembershipData = React.useCallback(async () => {
+  const loadMembershipData = React.useCallback(async (catalog = productCatalog) => {
     const profile = await getMembershipProfile();
     setMembershipProfile(profile);
     setMembershipForm(mapMembershipProfileToForm(profile));
@@ -169,9 +170,9 @@ function AccountPage() {
 
     const latestRun = await getLatestMembershipRecommendationRun(profile.id);
     setMembershipRecommendationSavedAt(latestRun?.created_at || "");
-    setMembershipRecommendations(mapRecommendationsToProducts(latestRun?.recommendations));
+    setMembershipRecommendations(mapRecommendationsToProducts(latestRun?.recommendations, catalog));
     setMembershipRecommendationsStale(Boolean(latestRun) && !isRecommendationRunFresh(profile, latestRun));
-  }, []);
+  }, [productCatalog]);
 
   const loadData = React.useCallback(async () => {
     const requestId = loadRequestIdRef.current + 1;
@@ -192,11 +193,15 @@ function AccountPage() {
         return;
       }
 
-      const [couponRows, giftCardRows, orderRows] = await Promise.allSettled([
+      const [productRows, couponRows, giftCardRows, orderRows] = await Promise.allSettled([
+        fetchProducts(),
         getMyCoupons(),
         getMyGiftCards(),
         getMyOrdersWithTimeline(),
       ]);
+
+      const resolvedCatalog = productRows.status === "fulfilled" ? productRows.value : [];
+      setProductCatalog(resolvedCatalog);
 
       setCoupons(couponRows.status === "fulfilled" ? couponRows.value : []);
       setGiftCards(giftCardRows.status === "fulfilled" ? giftCardRows.value : []);
@@ -217,7 +222,7 @@ function AccountPage() {
         }
       }
 
-      await loadMembershipData();
+      await loadMembershipData(resolvedCatalog);
     } catch (loadError) {
       if (loadRequestIdRef.current !== requestId) {
         return;
@@ -281,12 +286,18 @@ function AccountPage() {
       }
 
       try {
-        const generatedRecommendations = await getMembershipRecommendations(savedProfile.id, productsData);
+        const currentCatalog = productCatalog.length > 0 ? productCatalog : await fetchProducts();
+
+        if (productCatalog.length === 0 && currentCatalog.length > 0) {
+          setProductCatalog(currentCatalog);
+        }
+
+        const generatedRecommendations = await getMembershipRecommendations(savedProfile.id, currentCatalog);
         const latestRun = await getLatestMembershipRecommendationRun(savedProfile.id);
         const savedRecommendations = latestRun?.recommendations || generatedRecommendations;
 
         setMembershipRecommendationSavedAt(latestRun?.created_at || new Date().toISOString());
-        setMembershipRecommendations(mapRecommendationsToProducts(savedRecommendations));
+        setMembershipRecommendations(mapRecommendationsToProducts(savedRecommendations, currentCatalog));
         setMembershipRecommendationsStale(Boolean(latestRun) && !isRecommendationRunFresh(savedProfile, latestRun));
         setMembershipEditing(false);
         setMembershipStatus("Profile saved. Your latest AI recommendations were refreshed and stored.");

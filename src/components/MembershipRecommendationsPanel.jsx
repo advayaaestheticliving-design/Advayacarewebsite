@@ -112,15 +112,15 @@ function MembershipRecommendationsPanel({
       ) : showCompactCarousel ? (
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-white/75">Swipe or scroll sideways to review your saved recommendation set.</p>
+            <p className="text-sm text-white/75">Browse your saved recommendation set below.</p>
             <p className="text-xs uppercase tracking-[0.2em] text-white/45">{recommendations.length} products</p>
           </div>
 
-          <div className="-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-1 space-y-4 px-1 md:flex md:snap-x md:snap-mandatory md:gap-4 md:space-y-0 md:overflow-x-auto md:pb-3 md:[scrollbar-width:none] md:[&::-webkit-scrollbar]:hidden">
             {recommendations.map((item) => (
               <article
                 key={item.id}
-                className="min-w-[280px] max-w-[320px] flex-1 snap-start space-y-3 rounded-[24px] border border-neutral-700 bg-black/35 p-4"
+                className="space-y-3 rounded-[24px] border border-neutral-700 bg-black/35 p-4 md:min-w-[280px] md:max-w-[320px] md:flex-1 md:snap-start"
               >
                 <div className="rounded-xl border border-neutral-700 bg-black/45 p-3">
                   <p className="text-sm text-white">
