@@ -28,6 +28,11 @@ function normalizeCsv(value) {
     .filter(Boolean);
 }
 
+function isAdminSessionError(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+  return message.includes("admin session expired") || message.includes("authorization failed (401)");
+}
+
 function BlogWriterPage() {
   const admin = useAdminAccess();
   const [draftId, setDraftId] = React.useState("");
@@ -69,11 +74,14 @@ function BlogWriterPage() {
       const rows = await listBlogDrafts(40);
       setDrafts(rows);
     } catch (loadError) {
+      if (isAdminSessionError(loadError)) {
+        await admin.refreshAccess(false);
+      }
       setError(loadError?.message || "Could not load drafts.");
     } finally {
       setLoadingDrafts(false);
     }
-  }, [admin.authorized]);
+  }, [admin.authorized, admin.refreshAccess]);
 
   React.useEffect(() => {
     if (!admin.checkingAccess && admin.authorized) {
@@ -93,6 +101,9 @@ function BlogWriterPage() {
     try {
       await action();
     } catch (actionError) {
+      if (isAdminSessionError(actionError)) {
+        await admin.refreshAccess(false);
+      }
       setError(actionError?.message || "Blog action failed.");
     } finally {
       setLoadingAction("");

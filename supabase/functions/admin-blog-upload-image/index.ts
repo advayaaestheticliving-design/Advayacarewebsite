@@ -24,23 +24,41 @@ function parseBearerToken(req: Request) {
   return authHeader.slice("Bearer ".length).trim();
 }
 
-async function getRequestUser(req: Request, supabaseUrl: string, anonKey: string) {
+async function getRequestUser(
+  req: Request,
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  anonKey: string
+) {
   const token = parseBearerToken(req);
-  if (!token) {
+  if (!token || token === "undefined" || token === "null") {
     return { user: null, error: "Missing authorization token" };
   }
 
-  const authClient = createClient(supabaseUrl, anonKey);
+  const serviceClient = createClient(supabaseUrl, serviceRoleKey);
   const {
-    data: { user },
-    error,
-  } = await authClient.auth.getUser(token);
+    data: serviceData,
+    error: serviceError,
+  } = await serviceClient.auth.getUser(token);
 
-  if (error || !user) {
-    return { user: null, error: "Invalid or expired authorization token" };
+  if (!serviceError && serviceData?.user) {
+    return { user: serviceData.user, error: null };
   }
 
-  return { user, error: null };
+  const anonClient = createClient(supabaseUrl, anonKey);
+  const {
+    data: anonData,
+    error: anonError,
+  } = await anonClient.auth.getUser(token);
+
+  if (anonError || !anonData?.user) {
+    return {
+      user: null,
+      error: anonError?.message || serviceError?.message || "Invalid or expired authorization token",
+    };
+  }
+
+  return { user: anonData.user, error: null };
 }
 
 function slugify(value: string) {
@@ -81,7 +99,12 @@ serve(async (req) => {
   }
 
   try {
-    const { user, error: authError } = await getRequestUser(req, supabaseUrl, supabaseAnonKey);
+    const { user, error: authError } = await getRequestUser(
+      req,
+      supabaseUrl,
+      supabaseServiceKey,
+      supabaseAnonKey
+    );
     if (authError || !user) {
       return jsonResponse({ error: authError || "Unauthorized" }, 401);
     }

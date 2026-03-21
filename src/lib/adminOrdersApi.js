@@ -90,6 +90,10 @@ function isJwtRejected(details) {
   return text.includes("invalid jwt") || text.includes("token is malformed");
 }
 
+async function clearLocalAdminSession() {
+  await adminSupabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+}
+
 async function isAdminAccessTokenValid(accessToken) {
   const token = String(accessToken || "").trim();
   if (!token) return false;
@@ -171,6 +175,52 @@ async function getAuthToken() {
   throw new Error("Admin session expired. Please sign in again from /admin.");
 }
 
+async function forceRefreshAdminAccessToken() {
+  const {
+    data: { session },
+  } = await adminSupabase.auth.getSession();
+
+  if (!session?.refresh_token) {
+    await clearLocalAdminSession();
+    return "";
+  }
+
+  let refreshData = null;
+  let refreshError = null;
+
+  try {
+    const { data, error } = await adminSupabase.auth.refreshSession();
+    refreshData = data;
+    refreshError = error;
+  } catch (refreshException) {
+    if (isNetworkError(refreshException)) {
+      throw new Error(NETWORK_ERROR_MESSAGE);
+    }
+    throw refreshException;
+  }
+
+  if (refreshError) {
+    if (isNetworkError(refreshError)) {
+      throw new Error(NETWORK_ERROR_MESSAGE);
+    }
+    await clearLocalAdminSession();
+    return "";
+  }
+
+  const refreshedAccessToken = String(refreshData?.session?.access_token || "").trim();
+  if (!refreshedAccessToken) {
+    await clearLocalAdminSession();
+    return "";
+  }
+
+  if (!(await isAdminAccessTokenValid(refreshedAccessToken))) {
+    await clearLocalAdminSession();
+    return "";
+  }
+
+  return refreshedAccessToken;
+}
+
 export async function authorizedAdminFetch(url, options = {}) {
   const execute = async (authTokenOverride = "") => {
     const authToken = String(authTokenOverride || "").trim() || (await getAuthToken());
@@ -203,19 +253,12 @@ export async function authorizedAdminFetch(url, options = {}) {
 
     // Recover once when an edge gateway rejects a stale/rotated JWT.
     if (isJwtRejected(firstDetails)) {
-      const {
-        data: { session },
-      } = await adminSupabase.auth.getSession();
+      const refreshedAccessToken = await forceRefreshAdminAccessToken();
 
-      if (session?.refresh_token) {
-        const { data: refreshData, error: refreshError } = await adminSupabase.auth.refreshSession();
-
-        if (!refreshError) {
-          const refreshedAccessToken = String(refreshData?.session?.access_token || "").trim();
-          response = await execute(refreshedAccessToken);
-          if (response.status !== 401) {
-            return response;
-          }
+      if (refreshedAccessToken) {
+        response = await execute(refreshedAccessToken);
+        if (response.status !== 401) {
+          return response;
         }
       }
     }
@@ -223,10 +266,12 @@ export async function authorizedAdminFetch(url, options = {}) {
     const finalBody = await response.clone().json().catch(() => null);
     const finalDetails = getAuthErrorDetails(finalBody);
 
+    await clearLocalAdminSession();
+
     throw new Error(
       finalDetails
-        ? `Admin authorization failed (401): ${finalDetails}`
-        : "Admin authorization failed (401). Please sign in again from /admin if this keeps happening."
+        ? `Admin authorization failed (401): ${finalDetails}. Please sign in again from /admin.`
+        : "Admin session expired. Please sign in again from /admin."
     );
   }
 
@@ -277,7 +322,7 @@ export async function verifyAdminOtpCode(token) {
   }
 
   // Start from a clean local auth state so a stale token cannot survive OTP login.
-  await adminSupabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+  await clearLocalAdminSession();
 
   const { data, error } = await adminSupabase.auth.verifyOtp({
     email: ADMIN_EMAIL,
@@ -306,7 +351,7 @@ export async function verifyAdminOtpCode(token) {
   const tokenLooksValid = isJwtStructurallyValidForProject(effectiveAccessToken);
   const tokenBelongsToAdmin = await isAdminAccessTokenValid(effectiveAccessToken);
   if (!tokenLooksValid || !tokenBelongsToAdmin) {
-    await adminSupabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+    await clearLocalAdminSession();
     throw new Error("Admin session setup failed. Please request a new OTP and sign in again.");
   }
 
