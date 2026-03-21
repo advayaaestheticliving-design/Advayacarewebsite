@@ -47,6 +47,10 @@ async function getAuthToken({ forceRefresh = false } = {}) {
 }
 
 export async function getMyOrdersWithTimeline() {
+  if (Date.now() - lastMemberOrdersAuthFailureAt < AUTH_RETRY_COOLDOWN_MS) {
+    return [];
+  }
+
   const executeFetch = async (authToken) =>
     fetch(getFunctionUrl("member-orders"), {
       method: "GET",
@@ -75,7 +79,7 @@ export async function getMyOrdersWithTimeline() {
 
       if (tokenRejected) {
         lastMemberOrdersAuthFailureAt = Date.now();
-        throw new Error(MEMBER_SESSION_EXPIRED_MESSAGE);
+        return [];
       }
     }
   }

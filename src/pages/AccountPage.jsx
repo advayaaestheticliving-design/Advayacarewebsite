@@ -192,7 +192,18 @@ function AccountPage() {
       setOrders(orderRows.status === "fulfilled" ? orderRows.value : []);
 
       if (orderRows.status === "rejected") {
-        setError(orderRows.reason?.message || "Could not load member orders right now.");
+        const orderErrorMessage = String(orderRows.reason?.message || "").toLowerCase();
+        const isMemberOrderAuthIssue =
+          orderErrorMessage.includes("member session expired") ||
+          orderErrorMessage.includes("failed to fetch member orders (401)") ||
+          orderErrorMessage.includes("authorization") ||
+          orderErrorMessage.includes("unauthorized");
+
+        if (isMemberOrderAuthIssue) {
+          setOrders([]);
+        } else {
+          setError(orderRows.reason?.message || "Could not load member orders right now.");
+        }
       }
 
       await loadMembershipData();
