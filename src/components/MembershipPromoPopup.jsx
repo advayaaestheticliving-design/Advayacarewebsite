@@ -118,7 +118,7 @@ function MembershipPromoPopup({
 
           <div className="flex flex-col gap-2 pt-1 sm:flex-row" style={entranceMotion.ctas}>
             <Link
-              to="/membership"
+              to="/membership?mode=sign-up&source=shop-promo"
               onClick={onRegister}
               className="inline-flex flex-1 items-center justify-center rounded-full bg-[#D4AF37] px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-[#e4c25c] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
             >

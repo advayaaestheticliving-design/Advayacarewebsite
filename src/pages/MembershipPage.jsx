@@ -1,4 +1,5 @@
 import React from "react";
+import { useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 import productsData from "../data/products.json";
 import {
@@ -35,13 +36,16 @@ function isValidIndianPhone(phone) {
 }
 
 function MembershipPage() {
+  const [searchParams] = useSearchParams();
   const [form, setForm] = React.useState(initialForm);
   const [profileId, setProfileId] = React.useState(null);
   const [recommendations, setRecommendations] = React.useState([]);
   const [authEmail, setAuthEmail] = React.useState("");
   const [authPassword, setAuthPassword] = React.useState("");
   const [authPhone, setAuthPhone] = React.useState("");
-  const [authMode, setAuthMode] = React.useState("sign-in");
+  const [authMode, setAuthMode] = React.useState(
+    searchParams.get("mode") === "sign-up" ? "sign-up" : "sign-in",
+  );
   const [memberEmail, setMemberEmail] = React.useState("");
   const [showProfileForm, setShowProfileForm] = React.useState(false);
   const [status, setStatus] = React.useState("");
@@ -131,6 +135,13 @@ function MembershipPage() {
       subscription?.unsubscribe();
     };
   }, [loadProfileAndRecommendations]);
+
+  React.useEffect(() => {
+    const queryMode = searchParams.get("mode");
+    if (queryMode === "sign-up" || queryMode === "sign-in") {
+      setAuthMode(queryMode);
+    }
+  }, [searchParams]);
 
   const handleChange = (event) => {
     const { name, type, value, checked } = event.target;
