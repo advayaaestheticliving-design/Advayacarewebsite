@@ -7,6 +7,7 @@ import { supabase } from "../lib/supabaseClient";
 
 const SHOP_MEMBER_PROMO_SESSION_KEY = "shop-member-promo-seen-v1";
 const SHOP_MEMBER_PROMO_VARIANT_KEY = "shop-member-promo-variant-v1";
+const SHOP_MEMBER_PROMO_DELAY_SECONDS = 120;
 const SHOP_MEMBER_PROMO_DURATION_SECONDS = 120;
 
 function pickPromoVariant() {
@@ -67,6 +68,7 @@ function ShopPage() {
 
   React.useEffect(() => {
     let mounted = true;
+    let showDelayTimeout;
     let countdownInterval;
 
     const runPromoEligibilityCheck = async () => {
@@ -118,32 +120,39 @@ function ShopPage() {
         assignedVariant = pickPromoVariant();
       }
 
-      const expiresAt = Date.now() + SHOP_MEMBER_PROMO_DURATION_SECONDS * 1000;
-      setPromoVariant(assignedVariant);
-      setPromoSecondsLeft(SHOP_MEMBER_PROMO_DURATION_SECONDS);
-      setShowMemberPromo(true);
-
-      countdownInterval = window.setInterval(() => {
+      showDelayTimeout = window.setTimeout(() => {
         if (!mounted) return;
 
-        const remainingSeconds = Math.max(
-          0,
-          Math.ceil((expiresAt - Date.now()) / 1000),
-        );
+        const expiresAt = Date.now() + SHOP_MEMBER_PROMO_DURATION_SECONDS * 1000;
+        setPromoVariant(assignedVariant);
+        setPromoSecondsLeft(SHOP_MEMBER_PROMO_DURATION_SECONDS);
+        setShowMemberPromo(true);
 
-        setPromoSecondsLeft(remainingSeconds);
+        countdownInterval = window.setInterval(() => {
+          if (!mounted) return;
 
-        if (remainingSeconds <= 0) {
-          window.clearInterval(countdownInterval);
-          dismissMemberPromo();
-        }
-      }, 1000);
+          const remainingSeconds = Math.max(
+            0,
+            Math.ceil((expiresAt - Date.now()) / 1000),
+          );
+
+          setPromoSecondsLeft(remainingSeconds);
+
+          if (remainingSeconds <= 0) {
+            window.clearInterval(countdownInterval);
+            dismissMemberPromo();
+          }
+        }, 1000);
+      }, SHOP_MEMBER_PROMO_DELAY_SECONDS * 1000);
     };
 
     runPromoEligibilityCheck();
 
     return () => {
       mounted = false;
+      if (showDelayTimeout) {
+        window.clearTimeout(showDelayTimeout);
+      }
       if (countdownInterval) {
         window.clearInterval(countdownInterval);
       }
