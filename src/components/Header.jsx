@@ -88,8 +88,8 @@ const Header = () => {
             <img
               src={`${import.meta.env.BASE_URL}images/logo.png`}
               alt="Advayacare logo"
-              width="48"
-              height="48"
+              width="58"
+              height="58"
               className="logo-img shrink-0"
               draggable="false"
             />
