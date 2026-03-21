@@ -304,28 +304,53 @@ export async function linkGuestProfileToUser(userId, guestSessionId) {
     .eq("id", guestProfile.id);
 }
 
+async function getRecommendationAccessToken({ forceRefresh = false } = {}) {
+  const sessionResult = forceRefresh ? await supabase.auth.refreshSession() : await supabase.auth.getSession();
+  const session = sessionResult?.data?.session || null;
+  const accessToken = session?.access_token || "";
+
+  if (accessToken) {
+    return accessToken;
+  }
+
+  if (session?.user) {
+    throw new Error("Your member session expired. Sign in again to refresh AI recommendations.");
+  }
+
+  throw new Error("Sign in to refresh AI recommendations.");
+}
+
 export async function getMembershipRecommendations(profileId, products = []) {
   const baseUrl = import.meta.env.VITE_SUPABASE_URL;
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
 
-  const response = await fetch(`${baseUrl}/functions/v1/generate-membership-recommendations`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: anonKey,
-      Authorization: `Bearer ${session?.access_token || anonKey}`,
-    },
-    body: JSON.stringify({
-      profileId,
-      guestSessionId: getOrCreateSessionId(),
-      products,
-    }),
-  });
+  const requestRecommendations = async (accessToken) => {
+    const response = await fetch(`${baseUrl}/functions/v1/generate-membership-recommendations`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: anonKey,
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        profileId,
+        guestSessionId: getOrCreateSessionId(),
+        products,
+      }),
+    });
 
-  const body = await response.json().catch(() => null);
+    const body = await response.json().catch(() => null);
+
+    return { response, body };
+  };
+
+  let accessToken = await getRecommendationAccessToken();
+  let { response, body } = await requestRecommendations(accessToken);
+
+  if (response.status === 401) {
+    accessToken = await getRecommendationAccessToken({ forceRefresh: true });
+    ({ response, body } = await requestRecommendations(accessToken));
+  }
 
   if (!response.ok) {
     throw new Error(body?.error || `Recommendation request failed (${response.status})`);
