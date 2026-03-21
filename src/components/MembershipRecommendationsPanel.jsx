@@ -31,6 +31,7 @@ function MembershipRecommendationsPanel({
 }) {
   const hasRecommendations = Array.isArray(recommendations) && recommendations.length > 0;
   const showCompactCarousel = hasProfile;
+  const carouselRef = React.useRef(null);
   const statusTone = !hasProfile
     ? "border-dashed border-neutral-600 bg-black/40 text-white/80"
     : !hasAiConsent
@@ -61,28 +62,37 @@ function MembershipRecommendationsPanel({
           ? "These recommendations are being served from the latest saved run. No new AI request is made on page load."
           : "No saved AI recommendation run exists yet for this profile.";
 
+  const scrollCarousel = (direction) => {
+    const node = carouselRef.current;
+    if (!node) {
+      return;
+    }
+
+    const scrollAmount = Math.max(node.clientWidth * 0.8, 320);
+    node.scrollBy({
+      left: direction * scrollAmount,
+      behavior: "smooth",
+    });
+  };
+
   return (
     <section className="rounded-[28px] border border-neutral-700 bg-gradient-to-br from-black/70 via-black/55 to-[#14191c]/70 p-5 sm:p-6 space-y-5 shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-white">Saved AI Recommendations</h2>
-          <p className="mt-1 text-sm text-white">
-            We reuse your last saved recommendations until you update your profile.
-          </p>
-        </div>
-        <div className="text-right space-y-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-white/45">Recommendation status</p>
-          <p className="text-xs text-white/75">{generatedAt ? `Last saved ${formatDateTime(generatedAt)}` : "No saved run yet"}</p>
-          {profileUpdatedAt ? <p className="text-xs text-white/50">Profile updated {formatDateTime(profileUpdatedAt)}</p> : null}
-        </div>
-      </div>
-
-      <div className={`rounded-2xl border p-4 ${statusTone}`}>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em]">{statusLabel}</p>
-        <p className="mt-2 text-sm">{statusCopy}</p>
-      </div>
-
       {!hasProfile ? (
+        <>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Saved AI Recommendations</h2>
+              <p className="mt-1 text-sm text-white">
+                We reuse your last saved recommendations until you update your profile.
+              </p>
+            </div>
+          </div>
+
+          <div className={`rounded-2xl border p-4 ${statusTone}`}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em]">{statusLabel}</p>
+            <p className="mt-2 text-sm">{statusCopy}</p>
+          </div>
+
         <div className="rounded-xl border border-dashed border-neutral-600 bg-black/40 p-5 text-sm text-white/80 space-y-3">
           <p>Create your AI recommendation profile to unlock a saved routine match for your skin needs.</p>
           <button
@@ -93,30 +103,80 @@ function MembershipRecommendationsPanel({
             Create AI Profile
           </button>
         </div>
+        </>
       ) : !hasAiConsent ? (
-        <div className="rounded-xl border border-neutral-700 bg-black/40 p-5 text-sm text-white/80 space-y-2">
-          <p>AI recommendations are paused because AI consent is currently disabled on your profile.</p>
-          <button
-            type="button"
-            onClick={onOpenEditor}
-            className="rounded-full border border-[#D4AF37] px-4 py-2 text-xs font-medium text-[#D4AF37] hover:bg-[#D4AF37]/10"
-          >
-            Enable AI Consent
-          </button>
-        </div>
-      ) : !hasRecommendations ? (
-        <div className="rounded-xl border border-neutral-700 bg-black/40 p-5 text-sm text-white/80 space-y-2">
-          <p>Your profile is saved, but there are no stored AI recommendations yet.</p>
-          <p>Open the editor and save your profile to generate and store your recommendations.</p>
-        </div>
-      ) : showCompactCarousel ? (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-white/75">Browse your saved recommendation set below.</p>
-            <p className="text-xs uppercase tracking-[0.2em] text-white/45">{recommendations.length} products</p>
+        <>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Saved AI Recommendations</h2>
+              <p className="mt-1 text-sm text-white">
+                We reuse your last saved recommendations until you update your profile.
+              </p>
+            </div>
           </div>
 
-          <div className="-mx-1 space-y-4 px-1 md:flex md:snap-x md:snap-mandatory md:gap-4 md:space-y-0 md:overflow-x-auto md:pb-3 md:[scrollbar-width:none] md:[&::-webkit-scrollbar]:hidden">
+          <div className="rounded-xl border border-neutral-700 bg-black/40 p-5 text-sm text-white/80 space-y-2">
+            <p>AI recommendations are paused because AI consent is currently disabled on your profile.</p>
+            <button
+              type="button"
+              onClick={onOpenEditor}
+              className="rounded-full border border-[#D4AF37] px-4 py-2 text-xs font-medium text-[#D4AF37] hover:bg-[#D4AF37]/10"
+            >
+              Enable AI Consent
+            </button>
+          </div>
+        </>
+      ) : !hasRecommendations ? (
+        <>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Saved AI Recommendations</h2>
+              <p className="mt-1 text-sm text-white">
+                We reuse your last saved recommendations until you update your profile.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-neutral-700 bg-black/40 p-5 text-sm text-white/80 space-y-2">
+            <p>Your profile is saved, but there are no stored AI recommendations yet.</p>
+            <p>Open the editor and save your profile to generate and store your recommendations.</p>
+          </div>
+        </>
+      ) : showCompactCarousel ? (
+        <div className="space-y-4 rounded-[24px] border border-white/10 bg-black/25 p-4 sm:p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="space-y-1">
+              <p className="text-sm text-white/75">Browse your saved recommendation set below.</p>
+              <p className="text-xs text-white/50">
+                {generatedAt ? `Last saved ${formatDateTime(generatedAt)}` : "No saved run yet"}
+                {profileUpdatedAt ? ` • Profile updated ${formatDateTime(profileUpdatedAt)}` : ""}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <p className="hidden text-xs uppercase tracking-[0.2em] text-white/45 sm:block">{recommendations.length} products</p>
+              <button
+                type="button"
+                onClick={() => scrollCarousel(-1)}
+                className="hidden h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-lg text-white transition hover:border-[#D4AF37] hover:text-[#D4AF37] md:inline-flex"
+                aria-label="Scroll recommendations left"
+              >
+                &lt;
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollCarousel(1)}
+                className="hidden h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-lg text-white transition hover:border-[#D4AF37] hover:text-[#D4AF37] md:inline-flex"
+                aria-label="Scroll recommendations right"
+              >
+                &gt;
+              </button>
+            </div>
+          </div>
+
+          <div
+            ref={carouselRef}
+            className="-mx-1 space-y-4 px-1 md:flex md:snap-x md:snap-mandatory md:gap-4 md:space-y-0 md:overflow-x-auto md:pb-3 md:[scrollbar-width:none] md:[&::-webkit-scrollbar]:hidden"
+          >
             {recommendations.map((item) => (
               <article
                 key={item.id}
