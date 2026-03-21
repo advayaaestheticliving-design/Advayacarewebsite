@@ -116,17 +116,6 @@ function MembershipRecommendationsPanel({
               key={item.id}
               className="space-y-3 md:min-w-[280px] md:max-w-[320px] md:flex-1 md:snap-start"
             >
-              <div className="rounded-xl border border-neutral-700 bg-black/45 p-3">
-                <p className="text-sm text-white">
-                  <span className="font-semibold">Why this match:</span> {item.reason}
-                </p>
-                {item.caution ? (
-                  <p className="mt-1 text-xs text-amber-300">
-                    <span className="font-semibold">Caution:</span> {item.caution}
-                  </p>
-                ) : null}
-              </div>
-
               {item.product ? (
                 <ProductCard product={item.product} />
               ) : (
@@ -148,6 +137,17 @@ function MembershipRecommendationsPanel({
                   </div>
                 </div>
               )}
+
+              <div className="rounded-xl border border-neutral-700 bg-black/45 p-3">
+                <p className="text-sm text-white">
+                  <span className="font-semibold">Why this match:</span> {item.reason}
+                </p>
+                {item.caution ? (
+                  <p className="mt-1 text-xs text-amber-300">
+                    <span className="font-semibold">Caution:</span> {item.caution}
+                  </p>
+                ) : null}
+              </div>
             </article>
           ))}
         </div>
@@ -226,16 +226,6 @@ function MembershipRecommendationsPanel({
         <div className="space-y-6">
           {recommendations.map((item) => (
             <div key={item.id} className="space-y-2">
-              <div className="rounded-xl border border-neutral-700 bg-black/40 p-3">
-                <p className="text-sm text-white">
-                  <span className="font-semibold">Why this match:</span> {item.reason}
-                </p>
-                {item.caution ? (
-                  <p className="text-xs text-amber-300 mt-1">
-                    <span className="font-semibold">Caution:</span> {item.caution}
-                  </p>
-                ) : null}
-              </div>
               {item.product ? (
                 <ProductCard product={item.product} />
               ) : (
@@ -257,6 +247,16 @@ function MembershipRecommendationsPanel({
                   </div>
                 </div>
               )}
+              <div className="rounded-xl border border-neutral-700 bg-black/40 p-3">
+                <p className="text-sm text-white">
+                  <span className="font-semibold">Why this match:</span> {item.reason}
+                </p>
+                {item.caution ? (
+                  <p className="text-xs text-amber-300 mt-1">
+                    <span className="font-semibold">Caution:</span> {item.caution}
+                  </p>
+                ) : null}
+              </div>
             </div>
           ))}
         </div>
