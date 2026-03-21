@@ -356,14 +356,11 @@ function AdminBlogManagerPage() {
       setDrafts(Array.isArray(draftRows) ? draftRows : []);
       setPosts(Array.isArray(postRows) ? postRows : []);
     } catch (loadError) {
-      if (isAdminSessionError(loadError)) {
-        await admin.refreshAccess(false);
-      }
       setError(loadError?.message || "Could not load blog manager content.");
     } finally {
       setLoading(false);
     }
-  }, [admin.authorized, admin.refreshAccess]);
+  }, [admin.authorized]);
 
   React.useEffect(() => {
     if (!admin.checkingAccess && admin.authorized) {
@@ -463,9 +460,6 @@ function AdminBlogManagerPage() {
     try {
       await action();
     } catch (actionError) {
-      if (isAdminSessionError(actionError)) {
-        await admin.refreshAccess(false);
-      }
       setError(actionError?.message || "Blog manager action failed.");
     } finally {
       setActionLoading("");

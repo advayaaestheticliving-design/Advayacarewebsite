@@ -74,14 +74,11 @@ function BlogWriterPage() {
       const rows = await listBlogDrafts(40);
       setDrafts(rows);
     } catch (loadError) {
-      if (isAdminSessionError(loadError)) {
-        await admin.refreshAccess(false);
-      }
       setError(loadError?.message || "Could not load drafts.");
     } finally {
       setLoadingDrafts(false);
     }
-  }, [admin.authorized, admin.refreshAccess]);
+  }, [admin.authorized]);
 
   React.useEffect(() => {
     if (!admin.checkingAccess && admin.authorized) {
@@ -101,9 +98,6 @@ function BlogWriterPage() {
     try {
       await action();
     } catch (actionError) {
-      if (isAdminSessionError(actionError)) {
-        await admin.refreshAccess(false);
-      }
       setError(actionError?.message || "Blog action failed.");
     } finally {
       setLoadingAction("");

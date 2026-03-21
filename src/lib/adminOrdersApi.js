@@ -181,7 +181,6 @@ async function forceRefreshAdminAccessToken() {
   } = await adminSupabase.auth.getSession();
 
   if (!session?.refresh_token) {
-    await clearLocalAdminSession();
     return "";
   }
 
@@ -203,18 +202,15 @@ async function forceRefreshAdminAccessToken() {
     if (isNetworkError(refreshError)) {
       throw new Error(NETWORK_ERROR_MESSAGE);
     }
-    await clearLocalAdminSession();
     return "";
   }
 
   const refreshedAccessToken = String(refreshData?.session?.access_token || "").trim();
   if (!refreshedAccessToken) {
-    await clearLocalAdminSession();
     return "";
   }
 
   if (!(await isAdminAccessTokenValid(refreshedAccessToken))) {
-    await clearLocalAdminSession();
     return "";
   }
 
@@ -265,8 +261,6 @@ export async function authorizedAdminFetch(url, options = {}) {
 
     const finalBody = await response.clone().json().catch(() => null);
     const finalDetails = getAuthErrorDetails(finalBody);
-
-    await clearLocalAdminSession();
 
     throw new Error(
       finalDetails
