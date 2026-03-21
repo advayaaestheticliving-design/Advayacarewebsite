@@ -30,6 +30,7 @@ function MembershipRecommendationsPanel({
   onOpenEditor,
 }) {
   const hasRecommendations = Array.isArray(recommendations) && recommendations.length > 0;
+  const showCompactCarousel = hasProfile;
   const statusTone = !hasProfile
     ? "border-dashed border-neutral-600 bg-black/40 text-white/80"
     : !hasAiConsent
@@ -65,7 +66,7 @@ function MembershipRecommendationsPanel({
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-white">Saved AI Recommendations</h2>
-          <p className="text-sm text-white/70 mt-1">
+          <p className="mt-1 text-sm text-white">
             We reuse your last saved recommendations until you update your profile.
           </p>
         </div>
@@ -107,6 +108,55 @@ function MembershipRecommendationsPanel({
         <div className="rounded-xl border border-neutral-700 bg-black/40 p-5 text-sm text-white/80 space-y-2">
           <p>Your profile is saved, but there are no stored AI recommendations yet.</p>
           <p>Open the editor and save your profile to generate and store your recommendations.</p>
+        </div>
+      ) : showCompactCarousel ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-white/75">Swipe or scroll sideways to review your saved recommendation set.</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/45">{recommendations.length} products</p>
+          </div>
+
+          <div className="-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {recommendations.map((item) => (
+              <article
+                key={item.id}
+                className="min-w-[280px] max-w-[320px] flex-1 snap-start space-y-3 rounded-[24px] border border-neutral-700 bg-black/35 p-4"
+              >
+                <div className="rounded-xl border border-neutral-700 bg-black/45 p-3">
+                  <p className="text-sm text-white">
+                    <span className="font-semibold">Why this match:</span> {item.reason}
+                  </p>
+                  {item.caution ? (
+                    <p className="mt-1 text-xs text-amber-300">
+                      <span className="font-semibold">Caution:</span> {item.caution}
+                    </p>
+                  ) : null}
+                </div>
+
+                {item.product ? (
+                  <ProductCard product={item.product} />
+                ) : (
+                  <div className="rounded-2xl border border-[#D4AF37]/25 bg-[#D4AF37]/10 p-4 text-white">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-base font-semibold text-[#f3d987]">{item.name || "Recommended product"}</p>
+                        <p className="mt-1 text-sm text-white/75">
+                          This recommendation was returned by the AI service, but the storefront catalog entry is not available in the current page bundle.
+                        </p>
+                      </div>
+                      <p className="text-sm font-medium text-white/85">
+                        {Number(item.price_inr || 0).toLocaleString("en-IN", {
+                          style: "currency",
+                          currency: "INR",
+                          maximumFractionDigits: 0,
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="space-y-6">

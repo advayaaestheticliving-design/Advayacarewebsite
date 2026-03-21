@@ -4,7 +4,6 @@ import { getMyCoupons, getMyGiftCards } from "../lib/walletApi";
 import { getMyOrdersWithTimeline } from "../lib/ordersApi";
 import productsData from "../data/products.json";
 import MembershipProfileEditor from "../components/MembershipProfileEditor";
-import MembershipProfileSummary from "../components/MembershipProfileSummary";
 import MembershipRecommendationsPanel from "../components/MembershipRecommendationsPanel";
 import { useMemberSession } from "../context/MemberSessionContext";
 import {
@@ -124,6 +123,19 @@ function AccountPage() {
         : membershipRecommendations.length > 0
           ? "Saved and current"
           : "Ready to generate";
+
+  React.useEffect(() => {
+    if (!membershipEditing) {
+      return undefined;
+    }
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [membershipEditing]);
 
   const resetMembershipState = React.useCallback(() => {
     setMembershipProfile(null);
@@ -329,79 +341,33 @@ function AccountPage() {
           {membershipStatus && <p className="text-sm text-emerald-300">{membershipStatus}</p>}
           {membershipError && <p className="text-sm text-red-400">{membershipError}</p>}
 
-          <section className="rounded-[32px] border border-[#D4AF37]/20 bg-[radial-gradient(circle_at_top_left,_rgba(212,175,55,0.2),_rgba(0,0,0,0.15)_35%,_rgba(0,0,0,0.82)_72%)] p-5 sm:p-6 lg:p-7 space-y-5 overflow-hidden">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div className="max-w-2xl space-y-2">
-                <p className="text-[11px] uppercase tracking-[0.28em] text-[#f0d682]">AI Recommendation Studio</p>
-                <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">
-                  Keep one saved profile and refresh recommendations only when your skin story changes.
-                </h2>
-                <p className="text-sm text-white/72">
-                  Your account now stores the latest successful recommendation run so returning visits reuse saved results instead of triggering AI again.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={openMembershipEditor}
-                  className="rounded-full bg-[#D4AF37] px-4 py-2 text-xs font-semibold text-black hover:bg-[#e3c458]"
-                >
-                  {membershipProfile ? "Update AI Profile" : "Create AI Profile"}
-                </button>
-                {membershipProfile ? (
+          {membershipProfile ? (
+            <section className="rounded-[32px] border border-[#D4AF37]/20 bg-[radial-gradient(circle_at_top_left,_rgba(212,175,55,0.18),_rgba(0,0,0,0.2)_34%,_rgba(0,0,0,0.84)_74%)] p-5 sm:p-6 lg:p-7 space-y-5 overflow-hidden">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="max-w-2xl space-y-2">
+                  <p className="text-[11px] uppercase tracking-[0.28em] text-[#f0d682]">AI Recommendation Studio</p>
+                  <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">
+                    Your saved recommendations, ready to review.
+                  </h2>
+                  <p className="text-sm text-white">
+                    Your account now stores the latest successful recommendation run so returning visits reuse saved results instead of triggering AI again.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-medium text-white/80">
                     Recommendation status: {recommendationStatusLabel}
                   </span>
-                ) : null}
+                  <button
+                    type="button"
+                    onClick={openMembershipEditor}
+                    className="rounded-full bg-[#D4AF37] px-4 py-2 text-xs font-semibold text-black hover:bg-[#e3c458]"
+                  >
+                    Update Profile
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-white/45">Profile coverage</p>
-                <p className="mt-3 text-3xl font-semibold text-white">{membershipProfile ? `${profileProgress}%` : "0%"}</p>
-                <p className="mt-2 text-sm text-white/70">
-                  {membershipProfile
-                    ? "A richer profile usually produces more useful saved recommendations."
-                    : "Start once, then update only when your routine or concerns change."}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-white/45">Last refreshed</p>
-                <p className="mt-3 text-xl font-semibold text-white">
-                  {membershipRecommendationSavedAt ? formatDateTime(membershipRecommendationSavedAt) : "Not saved yet"}
-                </p>
-                <p className="mt-2 text-sm text-white/70">
-                  {membershipRecommendationsStale
-                    ? "The current recommendation set is older than the latest profile update."
-                    : "Returning visits reuse the most recent saved recommendation set."}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-white/45">AI refresh policy</p>
-                <p className="mt-3 text-xl font-semibold text-white">
-                  {membershipProfile?.consent_to_ai ? "On profile save" : "Paused"}
-                </p>
-                <p className="mt-2 text-sm text-white/70">
-                  {membershipProfile?.consent_to_ai
-                    ? "We do not regenerate recommendations on page load."
-                    : "Enable AI consent to refresh and store a new recommendation set."}
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {membershipEditing ? (
-            <MembershipProfileEditor
-              form={membershipForm}
-              onChange={handleMembershipChange}
-              onSubmit={handleMembershipSubmit}
-              onCancel={membershipProfile ? handleMembershipCancel : null}
-              loading={membershipSaving}
-            />
-          ) : (
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] items-start">
-              <MembershipProfileSummary profile={membershipProfile} onEdit={openMembershipEditor} />
               <MembershipRecommendationsPanel
                 hasProfile={Boolean(membershipProfile)}
                 hasAiConsent={Boolean(membershipProfile?.consent_to_ai)}
@@ -411,8 +377,87 @@ function AccountPage() {
                 profileUpdatedAt={membershipProfile?.updated_at}
                 onOpenEditor={openMembershipEditor}
               />
-            </div>
+            </section>
+          ) : (
+            <>
+              <section className="rounded-[32px] border border-[#D4AF37]/20 bg-[radial-gradient(circle_at_top_left,_rgba(212,175,55,0.2),_rgba(0,0,0,0.15)_35%,_rgba(0,0,0,0.82)_72%)] p-5 sm:p-6 lg:p-7 space-y-5 overflow-hidden">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                  <div className="max-w-2xl space-y-2">
+                    <p className="text-[11px] uppercase tracking-[0.28em] text-[#f0d682]">AI Recommendation Studio</p>
+                    <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">
+                      Keep one saved profile and refresh recommendations only when your skin story changes.
+                    </h2>
+                    <p className="text-sm text-white">
+                      Your account now stores the latest successful recommendation run so returning visits reuse saved results instead of triggering AI again.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={openMembershipEditor}
+                      className="rounded-full bg-[#D4AF37] px-4 py-2 text-xs font-semibold text-black hover:bg-[#e3c458]"
+                    >
+                      Create AI Profile
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/45">Profile coverage</p>
+                    <p className="mt-3 text-3xl font-semibold text-white">{profileProgress}%</p>
+                    <p className="mt-2 text-sm text-white/70">
+                      Start once, then update only when your routine or concerns change.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/45">Last refreshed</p>
+                    <p className="mt-3 text-xl font-semibold text-white">Not saved yet</p>
+                    <p className="mt-2 text-sm text-white/70">
+                      Returning visits reuse the most recent saved recommendation set.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/45">AI refresh policy</p>
+                    <p className="mt-3 text-xl font-semibold text-white">On profile save</p>
+                    <p className="mt-2 text-sm text-white/70">
+                      We do not regenerate recommendations on page load.
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              <MembershipRecommendationsPanel
+                hasProfile={Boolean(membershipProfile)}
+                hasAiConsent={Boolean(membershipProfile?.consent_to_ai)}
+                recommendations={membershipRecommendations}
+                stale={membershipRecommendationsStale}
+                generatedAt={membershipRecommendationSavedAt}
+                profileUpdatedAt={membershipProfile?.updated_at}
+                onOpenEditor={openMembershipEditor}
+              />
+            </>
           )}
+
+          {membershipEditing ? (
+            <div
+              className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 py-5 sm:items-center sm:px-6"
+              role="dialog"
+              aria-modal="true"
+              aria-label={membershipProfile ? "Update AI recommendation profile" : "Create AI recommendation profile"}
+              onClick={handleMembershipCancel}
+            >
+              <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>
+                <MembershipProfileEditor
+                  form={membershipForm}
+                  onChange={handleMembershipChange}
+                  onSubmit={handleMembershipSubmit}
+                  onCancel={handleMembershipCancel}
+                  loading={membershipSaving}
+                />
+              </div>
+            </div>
+          ) : null}
 
           <section className="rounded-2xl border border-neutral-700 bg-black/50 p-5 sm:p-6 space-y-3">
             <h2 className="text-lg font-semibold text-white">My Orders</h2>
