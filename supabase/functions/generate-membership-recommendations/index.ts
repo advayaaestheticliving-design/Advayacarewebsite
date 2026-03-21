@@ -106,7 +106,7 @@ serve(async (req) => {
 
     const modelName = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.0-flash";
 
-    await supabase.from("membership_recommendation_runs").insert({
+    const { error: recommendationRunError } = await supabase.from("membership_recommendation_runs").insert({
       profile_id: profile.id,
       auth_user_id: profile.auth_user_id,
       guest_session_id: profile.guest_session_id,
@@ -126,6 +126,10 @@ serve(async (req) => {
       },
       recommendations: finalRecommendations,
     });
+
+    if (recommendationRunError) {
+      throw recommendationRunError;
+    }
 
     return new Response(
       JSON.stringify({

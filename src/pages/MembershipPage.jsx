@@ -1,11 +1,6 @@
 import React from "react";
-import { useSearchParams } from "react-router-dom";
-import ProductCard from "../components/ProductCard";
-import productsData from "../data/products.json";
+import { Link, useSearchParams } from "react-router-dom";
 import {
-  getMembershipProfile,
-  getMembershipRecommendations,
-  saveMembershipProfile,
   signUpWithEmailPassword,
   signInWithEmailPassword,
   signInWithGoogle,
@@ -15,21 +10,6 @@ import {
 import { supabase } from "../lib/supabaseClient";
 import { ensureSignupCouponIssued } from "../lib/walletApi";
 
-const initialForm = {
-  skin_type: "",
-  concerns: "",
-  allergies: "",
-  avoid_ingredients: "",
-  sun_exposure: "",
-  sleep_hours: "",
-  stress_level: "",
-  water_intake: "",
-  routine_steps: "",
-  current_products: "",
-  consent_to_process: false,
-  consent_to_ai: false,
-};
-
 function isValidIndianPhone(phone) {
   const digits = String(phone || "").replace(/\D/g, "");
   return /^[6-9]\d{9}$/.test(digits) || /^91[6-9]\d{9}$/.test(digits);
@@ -37,9 +17,6 @@ function isValidIndianPhone(phone) {
 
 function MembershipPage() {
   const [searchParams] = useSearchParams();
-  const [form, setForm] = React.useState(initialForm);
-  const [profileId, setProfileId] = React.useState(null);
-  const [recommendations, setRecommendations] = React.useState([]);
   const [authEmail, setAuthEmail] = React.useState("");
   const [authPassword, setAuthPassword] = React.useState("");
   const [authPhone, setAuthPhone] = React.useState("");
@@ -47,42 +24,12 @@ function MembershipPage() {
     searchParams.get("mode") === "sign-up" ? "sign-up" : "sign-in",
   );
   const [memberEmail, setMemberEmail] = React.useState("");
-  const [showProfileForm, setShowProfileForm] = React.useState(false);
   const [status, setStatus] = React.useState("");
   const [error, setError] = React.useState("");
-  const [loading, setLoading] = React.useState(false);
 
-  const loadProfileAndRecommendations = React.useCallback(async () => {
+  const loadMemberIdentity = React.useCallback(async () => {
     const identity = await getMembershipIdentity();
     setMemberEmail(identity.user?.email || "");
-
-    const profile = await getMembershipProfile();
-    if (!profile) {
-      setProfileId(null);
-      setRecommendations([]);
-      setShowProfileForm(false);
-      return;
-    }
-
-    setProfileId(profile.id);
-    setShowProfileForm(true);
-    setForm({
-      skin_type: profile.skin_type || "",
-      concerns: (profile.concerns || []).join(", "),
-      allergies: (profile.allergies || []).join(", "),
-      avoid_ingredients: (profile.avoid_ingredients || []).join(", "),
-      sun_exposure: profile.sun_exposure || "",
-      sleep_hours: profile.sleep_hours || "",
-      stress_level: profile.stress_level || "",
-      water_intake: profile.water_intake || "",
-      routine_steps: profile.routine_steps || "",
-      current_products: profile.current_products || "",
-      consent_to_process: Boolean(profile.consent_to_process),
-      consent_to_ai: Boolean(profile.consent_to_ai),
-    });
-
-    const recs = await getMembershipRecommendations(profile.id, productsData);
-    setRecommendations(recs);
   }, []);
 
   React.useEffect(() => {
@@ -90,10 +37,10 @@ function MembershipPage() {
 
     const boot = async () => {
       try {
-        await loadProfileAndRecommendations();
+        await loadMemberIdentity();
       } catch (bootError) {
         if (!mounted) return;
-        setError(bootError.message || "Failed to load membership profile.");
+        setError(bootError.message || "Failed to load membership state.");
       }
     };
 
@@ -123,10 +70,10 @@ function MembershipPage() {
       }
 
       try {
-        await loadProfileAndRecommendations();
+        await loadMemberIdentity();
       } catch (reloadError) {
         if (!mounted) return;
-        setError(reloadError.message || "Failed to refresh member profile.");
+        setError(reloadError.message || "Failed to refresh membership state.");
       }
     });
 
@@ -134,7 +81,7 @@ function MembershipPage() {
       mounted = false;
       subscription?.unsubscribe();
     };
-  }, [loadProfileAndRecommendations]);
+  }, [loadMemberIdentity]);
 
   React.useEffect(() => {
     const queryMode = searchParams.get("mode");
@@ -142,14 +89,6 @@ function MembershipPage() {
       setAuthMode(queryMode);
     }
   }, [searchParams]);
-
-  const handleChange = (event) => {
-    const { name, type, value, checked } = event.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
 
   const handleEmailAuth = async (event) => {
     event.preventDefault();
@@ -174,15 +113,14 @@ function MembershipPage() {
 
         if (isConfirmed) {
           setMemberEmail(signedUpEmail);
-          setShowProfileForm(false);
-          setStatus("Account created. Your ₹100 member coupon is active. You can now fill your skin profile.");
+          setStatus("Account created. Your ₹100 member coupon is active. Continue to My Account to set up your AI recommendation profile.");
         } else {
-          setStatus("Account created. Please confirm your email first, then sign in to fill your skin profile.");
+          setStatus("Account created. Please confirm your email first, then sign in to manage your AI recommendation profile.");
         }
       } else {
         const data = await signInWithEmailPassword(authEmail, authPassword);
         setMemberEmail(data?.user?.email || authEmail);
-        setStatus("Signed in successfully. You can now fill your skin profile.");
+        setStatus("Signed in successfully. Your AI recommendation profile is available in My Account.");
       }
     } catch (authError) {
       setError(authError.message || "Authentication failed.");
@@ -208,43 +146,11 @@ function MembershipPage() {
     try {
       await signOutMembership();
       setMemberEmail("");
-      setProfileId(null);
-      setRecommendations([]);
-      setStatus("Signed out. Your guest profile is still available on this device.");
+      setStatus("Signed out.");
     } catch (authError) {
       setError(authError.message || "Could not sign out.");
     }
   };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setLoading(true);
-    setError("");
-    setStatus("");
-
-    try {
-      const profile = await saveMembershipProfile(form);
-      setProfileId(profile.id);
-      const recs = await getMembershipRecommendations(profile.id, productsData);
-      setRecommendations(recs);
-      setStatus("Profile saved. Your personalized recommendations are ready.");
-    } catch (saveError) {
-      setError(saveError.message || "Could not save profile.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const recommendedProducts = recommendations
-    .map((item) => {
-      const product = productsData.find((p) => p.id === item.id);
-      if (!product) return null;
-      return {
-        ...item,
-        product,
-      };
-    })
-    .filter(Boolean);
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
@@ -253,9 +159,8 @@ function MembershipPage() {
           Log In / Sign Up
         </h1>
         <p className="text-sm sm:text-base text-white">
-          Create your account or log in, then optionally fill your skin profile to get personalized recommendations.
+          Create your account or log in to access member pricing, coupons, orders, and your saved AI recommendation profile.
         </p>
-        {profileId && <p className="text-xs text-white/70">Profile ID: {profileId}</p>}
       </div>
 
       <section className="rounded-2xl border border-neutral-700 bg-black/50 p-5 sm:p-6 space-y-4">
@@ -264,13 +169,12 @@ function MembershipPage() {
           <div className="space-y-3">
             <p className="text-sm text-white/90">Signed in as {memberEmail}</p>
             <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setShowProfileForm((prev) => !prev)}
+              <Link
+                to="/account"
                 className="rounded-full border border-[#D4AF37] px-4 py-2 text-sm font-medium text-[#D4AF37] hover:bg-[#D4AF37]/10"
               >
-                {showProfileForm ? "Hide Profile Form" : profileId ? "Edit Skin Profile" : "Fill Skin Profile"}
-              </button>
+                Go to My Account
+              </Link>
               <button
                 type="button"
                 onClick={handleSignOut}
@@ -279,6 +183,9 @@ function MembershipPage() {
                 Sign Out
               </button>
             </div>
+            <p className="text-sm text-white/70">
+              Manage your AI recommendation profile and saved recommendations from My Account.
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -555,34 +462,7 @@ function MembershipPage() {
       {error && <p className="text-sm text-red-400">{error}</p>}
 
       {!memberEmail && (
-        <p className="text-sm text-white/80">Sign in or create an account to access your skin profile form.</p>
-      )}
-
-      {memberEmail && (
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold text-[#D4AF37]">Recommended for You</h2>
-        {recommendedProducts.length === 0 ? (
-          <p className="text-sm text-white/80">Complete your profile to get personalized recommendations.</p>
-        ) : (
-          <div className="space-y-6">
-            {recommendedProducts.map((item) => (
-              <div key={item.id} className="space-y-2">
-                <div className="rounded-xl border border-neutral-700 bg-black/40 p-3">
-                  <p className="text-sm text-white">
-                    <span className="font-semibold">Why this match:</span> {item.reason}
-                  </p>
-                  {item.caution ? (
-                    <p className="text-xs text-amber-300 mt-1">
-                      <span className="font-semibold">Caution:</span> {item.caution}
-                    </p>
-                  ) : null}
-                </div>
-                <ProductCard product={item.product} />
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+        <p className="text-sm text-white/80">Sign in or create an account to access your account dashboard and AI recommendation profile.</p>
       )}
     </div>
   );

@@ -2,6 +2,21 @@ import { supabase } from "./supabaseClient";
 import { getOrCreateSessionId } from "./cartApi";
 import { ensureSupabaseGuestSession } from "./authSession";
 
+export const initialMembershipProfileForm = {
+  skin_type: "",
+  concerns: "",
+  allergies: "",
+  avoid_ingredients: "",
+  sun_exposure: "",
+  sleep_hours: "",
+  stress_level: "",
+  water_intake: "",
+  routine_steps: "",
+  current_products: "",
+  consent_to_process: false,
+  consent_to_ai: false,
+};
+
 function toArray(value) {
   if (Array.isArray(value)) {
     return value.map((item) => String(item).trim()).filter(Boolean);
@@ -26,6 +41,40 @@ function normalizeIndianPhone(phone) {
   }
 
   return null;
+}
+
+function toTimestamp(value) {
+  const timestamp = new Date(value || 0).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+export function mapMembershipProfileToForm(profile) {
+  if (!profile) {
+    return { ...initialMembershipProfileForm };
+  }
+
+  return {
+    skin_type: profile.skin_type || "",
+    concerns: (profile.concerns || []).join(", "),
+    allergies: (profile.allergies || []).join(", "),
+    avoid_ingredients: (profile.avoid_ingredients || []).join(", "),
+    sun_exposure: profile.sun_exposure || "",
+    sleep_hours: profile.sleep_hours || "",
+    stress_level: profile.stress_level || "",
+    water_intake: profile.water_intake || "",
+    routine_steps: profile.routine_steps || "",
+    current_products: profile.current_products || "",
+    consent_to_process: Boolean(profile.consent_to_process),
+    consent_to_ai: Boolean(profile.consent_to_ai),
+  };
+}
+
+export function isRecommendationRunFresh(profile, recommendationRun) {
+  if (!profile?.updated_at || !recommendationRun?.created_at) {
+    return false;
+  }
+
+  return toTimestamp(recommendationRun.created_at) >= toTimestamp(profile.updated_at);
 }
 
 export async function getMembershipIdentity() {
@@ -158,8 +207,8 @@ export async function saveMembershipProfile(payload) {
   if (!record.skin_type) {
     throw new Error("Skin type is required");
   }
-  if (!record.consent_to_process || !record.consent_to_ai) {
-    throw new Error("Consent is required to continue");
+  if (!record.consent_to_process) {
+    throw new Error("Consent to process your profile is required");
   }
 
   const conflictColumn = user?.id ? "auth_user_id" : "guest_session_id";
@@ -179,6 +228,29 @@ export async function saveMembershipProfile(payload) {
   }
 
   return data;
+}
+
+export async function getLatestMembershipRecommendationRun(profileId) {
+  if (!profileId) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("membership_recommendation_runs")
+    .select("id, recommendations, created_at")
+    .eq("profile_id", profileId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      return null;
+    }
+    throw error;
+  }
+
+  return data || null;
 }
 
 export async function linkGuestProfileToUser(userId, guestSessionId) {
