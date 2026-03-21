@@ -9,7 +9,7 @@ export function getAdminEmail() {
   return ADMIN_EMAIL;
 }
 
-function getFunctionUrl(functionName) {
+export function getAdminFunctionUrl(functionName) {
   return `${SUPABASE_URL}/functions/v1/${functionName}`;
 }
 
@@ -171,7 +171,7 @@ async function getAuthToken() {
   throw new Error("Admin session expired. Please sign in again from /admin.");
 }
 
-async function authorizedFetch(url, options = {}) {
+export async function authorizedAdminFetch(url, options = {}) {
   const execute = async (authTokenOverride = "") => {
     const authToken = String(authTokenOverride || "").trim() || (await getAuthToken());
     try {
@@ -321,7 +321,7 @@ export async function signOutAdmin() {
 }
 
 export async function getAdminOrders(limit = 120) {
-  const response = await authorizedFetch(`${getFunctionUrl("admin-orders")}?limit=${Number(limit) || 120}`, {
+  const response = await authorizedAdminFetch(`${getAdminFunctionUrl("admin-orders")}?limit=${Number(limit) || 120}`, {
     method: "GET",
   });
 
@@ -335,7 +335,7 @@ export async function getAdminOrders(limit = 120) {
 }
 
 export async function updateAdminOrderStatus(orderId, fulfillmentStatus, notes = "") {
-  const response = await authorizedFetch(getFunctionUrl("admin-orders"), {
+  const response = await authorizedAdminFetch(getAdminFunctionUrl("admin-orders"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
