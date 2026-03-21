@@ -16,6 +16,17 @@ import {
   saveMembershipProfile,
 } from "../lib/membershipApi";
 
+const ACCOUNT_REQUEST_TIMEOUT_MS = 10000;
+
+function withTimeout(promise, fallbackMessage) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      window.setTimeout(() => reject(new Error(fallbackMessage)), ACCOUNT_REQUEST_TIMEOUT_MS);
+    }),
+  ]);
+}
+
 function formatCurrency(value) {
   return Number(value || 0).toLocaleString("en-IN", {
     style: "currency",
@@ -150,7 +161,7 @@ function AccountPage() {
   }, []);
 
   const loadMembershipData = React.useCallback(async (catalog = []) => {
-    const profile = await getMembershipProfile();
+    const profile = await withTimeout(getMembershipProfile(), "Timed out while loading your AI profile.");
     setMembershipProfile(profile);
     setMembershipForm(mapMembershipProfileToForm(profile));
 
@@ -168,7 +179,10 @@ function AccountPage() {
       return;
     }
 
-    const latestRun = await getLatestMembershipRecommendationRun(profile.id);
+    const latestRun = await withTimeout(
+      getLatestMembershipRecommendationRun(profile.id),
+      "Timed out while loading saved recommendations.",
+    );
     setMembershipRecommendationSavedAt(latestRun?.created_at || "");
     setMembershipRecommendations(mapRecommendationsToProducts(latestRun?.recommendations, catalog));
     setMembershipRecommendationsStale(Boolean(latestRun) && !isRecommendationRunFresh(profile, latestRun));
@@ -194,10 +208,10 @@ function AccountPage() {
       }
 
       const [productRows, couponRows, giftCardRows, orderRows] = await Promise.allSettled([
-        fetchProducts(),
-        getMyCoupons(),
-        getMyGiftCards(),
-        getMyOrdersWithTimeline(),
+        withTimeout(fetchProducts(), "Timed out while loading products."),
+        withTimeout(getMyCoupons(), "Timed out while loading coupons."),
+        withTimeout(getMyGiftCards(), "Timed out while loading gift cards."),
+        withTimeout(getMyOrdersWithTimeline(), "Timed out while loading orders."),
       ]);
 
       const resolvedCatalog = productRows.status === "fulfilled" ? productRows.value : [];
@@ -206,6 +220,18 @@ function AccountPage() {
       setCoupons(couponRows.status === "fulfilled" ? couponRows.value : []);
       setGiftCards(giftCardRows.status === "fulfilled" ? giftCardRows.value : []);
       setOrders(orderRows.status === "fulfilled" ? orderRows.value : []);
+
+      if (productRows.status === "rejected") {
+        setError((prev) => prev || productRows.reason?.message || "Could not load products right now.");
+      }
+
+      if (couponRows.status === "rejected") {
+        setError((prev) => prev || couponRows.reason?.message || "Could not load coupons right now.");
+      }
+
+      if (giftCardRows.status === "rejected") {
+        setError((prev) => prev || giftCardRows.reason?.message || "Could not load gift cards right now.");
+      }
 
       if (orderRows.status === "rejected") {
         const orderErrorMessage = String(orderRows.reason?.message || "").toLowerCase();
@@ -222,7 +248,7 @@ function AccountPage() {
         }
       }
 
-      await loadMembershipData(resolvedCatalog);
+      await withTimeout(loadMembershipData(resolvedCatalog), "Timed out while loading your AI recommendation data.");
     } catch (loadError) {
       if (loadRequestIdRef.current !== requestId) {
         return;

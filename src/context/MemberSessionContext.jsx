@@ -1,6 +1,17 @@
 import React from "react";
 import { supabase } from "../lib/supabaseClient";
 
+const AUTH_BOOTSTRAP_TIMEOUT_MS = 8000;
+
+function withTimeout(promise, timeoutMs) {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => {
+      window.setTimeout(() => resolve({ data: { session: null } }), timeoutMs);
+    }),
+  ]);
+}
+
 const MemberSessionContext = React.createContext({
   authReady: false,
   user: null,
@@ -49,9 +60,13 @@ export function MemberSessionProvider({ children }) {
       });
     };
 
-    supabase.auth.getSession().then(({ data }) => {
-      applySession(data?.session || null, "INITIAL_SESSION");
-    });
+    withTimeout(supabase.auth.getSession(), AUTH_BOOTSTRAP_TIMEOUT_MS)
+      .then(({ data }) => {
+        applySession(data?.session || null, "INITIAL_SESSION");
+      })
+      .catch(() => {
+        applySession(null, "INITIAL_SESSION");
+      });
 
     const {
       data: { subscription },
