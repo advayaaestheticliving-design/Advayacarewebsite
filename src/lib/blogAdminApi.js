@@ -174,7 +174,8 @@ async function authorizedFetch(url, options = {}) {
     response = await execute();
 
     if (response.status === 401) {
-      throw new Error("Admin authorization failed (401). Please retry once from /admin/blogwriter.");
+      await clearInvalidAdminSession();
+      throw new Error("Admin session expired. Please sign in again from /admin.");
     }
   }
 
@@ -250,6 +251,30 @@ export async function publishBlog(payload) {
 export async function listBlogDrafts(limit = 20) {
   const body = await invokeAdminBlog({ action: "list_drafts", limit });
   return Array.isArray(body?.drafts) ? body.drafts : [];
+}
+
+export async function listBlogPosts({ limit = 60, includeArchived = true } = {}) {
+  const body = await invokeAdminBlog({ action: "list_posts", limit, includeArchived });
+  return Array.isArray(body?.posts) ? body.posts : [];
+}
+
+export async function updatePublishedBlog(payload) {
+  const body = await invokeAdminBlog({ action: "update_post", ...payload });
+  return body?.post || null;
+}
+
+export async function archivePublishedBlog(postId) {
+  const body = await invokeAdminBlog({ action: "archive_post", postId });
+  return body?.post || null;
+}
+
+export async function restorePublishedBlog(postId) {
+  const body = await invokeAdminBlog({ action: "restore_post", postId });
+  return body?.post || null;
+}
+
+export async function deletePublishedBlog(postId) {
+  await invokeAdminBlog({ action: "delete_post", postId });
 }
 
 export async function deleteBlogDraft(draftId) {

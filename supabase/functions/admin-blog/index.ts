@@ -30,17 +30,24 @@ async function getRequestUser(req: Request, supabaseUrl: string, anonKey: string
     return { user: null, error: "Missing authorization token" };
   }
 
-  const authClient = createClient(supabaseUrl, anonKey);
-  const {
-    data: { user },
-    error,
-  } = await authClient.auth.getUser(token);
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const authClients = [serviceKey, anonKey]
+    .map((key) => String(key || "").trim())
+    .filter(Boolean)
+    .map((key) => createClient(supabaseUrl, key));
 
-  if (error || !user) {
-    return { user: null, error: "Invalid or expired authorization token" };
+  for (const authClient of authClients) {
+    const {
+      data: { user },
+      error,
+    } = await authClient.auth.getUser(token);
+
+    if (!error && user) {
+      return { user, error: null };
+    }
   }
 
-  return { user, error: null };
+  return { user: null, error: "Invalid or expired authorization token" };
 }
 
 function normalizeCsvArray(value: unknown) {
@@ -88,6 +95,19 @@ function normalizeBlogPayload(body: Record<string, unknown>) {
     seo_title: seoTitle,
     seo_description: seoDescription,
   };
+}
+
+function normalizeBoolean(value: unknown, fallback = false) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) {
+    return fallback;
+  }
+
+  return normalized === "true" || normalized === "1" || normalized === "yes";
 }
 
 async function callGeminiJson(prompt: string) {
@@ -160,6 +180,35 @@ async function ensureUniqueSlug(
   }
 
   return `${candidate}-${Date.now().toString().slice(-6)}`;
+}
+
+async function listPosts(
+  supabase: ReturnType<typeof createClient>,
+  {
+    includeArchived,
+    limit,
+  }: {
+    includeArchived: boolean;
+    limit: number;
+  }
+) {
+  let query = supabase
+    .from("blog_posts")
+    .select("*")
+    .order("published_at", { ascending: false })
+    .limit(limit);
+
+  if (!includeArchived) {
+    query = query.eq("is_archived", false);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    return { posts: null, error };
+  }
+
+  return { posts: Array.isArray(data) ? data : [], error: null };
 }
 
 serve(async (req) => {
@@ -361,6 +410,19 @@ serve(async (req) => {
       return jsonResponse({ drafts: Array.isArray(data) ? data : [] });
     }
 
+    if (action === "list_posts") {
+      const parsedLimit = Number(body.limit || 40);
+      const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 200) : 40;
+      const includeArchived = normalizeBoolean(body.includeArchived, true);
+
+      const { posts, error } = await listPosts(supabase, { includeArchived, limit });
+      if (error) {
+        return jsonResponse({ error: "Could not load posts", details: error.message }, 500);
+      }
+
+      return jsonResponse({ posts });
+    }
+
     if (action === "delete_draft") {
       const draftId = String(body.draftId || "").trim();
       if (!draftId) {
@@ -408,6 +470,99 @@ serve(async (req) => {
       }
 
       return jsonResponse({ success: true, post });
+    }
+
+    if (action === "update_post") {
+      const postId = String(body.postId || "").trim();
+      if (!postId) {
+        return jsonResponse({ error: "postId is required" }, 400);
+      }
+
+      const postPayload = normalizeBlogPayload(body);
+      if (!postPayload.title) {
+        return jsonResponse({ error: "Title is required to update a post" }, 400);
+      }
+
+      if (!postPayload.content) {
+        return jsonResponse({ error: "Content is required to update a post" }, 400);
+      }
+
+      const uniqueSlug = await ensureUniqueSlug(supabase, postPayload.slug, postId);
+      const { data, error } = await supabase
+        .from("blog_posts")
+        .update({
+          ...postPayload,
+          slug: uniqueSlug,
+        })
+        .eq("id", postId)
+        .select("*")
+        .single();
+
+      if (error || !data) {
+        return jsonResponse({ error: "Could not update post", details: error?.message }, 500);
+      }
+
+      return jsonResponse({ success: true, post: data });
+    }
+
+    if (action === "archive_post") {
+      const postId = String(body.postId || "").trim();
+      if (!postId) {
+        return jsonResponse({ error: "postId is required" }, 400);
+      }
+
+      const { data, error } = await supabase
+        .from("blog_posts")
+        .update({
+          is_archived: true,
+          archived_at: new Date().toISOString(),
+        })
+        .eq("id", postId)
+        .select("*")
+        .single();
+
+      if (error || !data) {
+        return jsonResponse({ error: "Could not archive post", details: error?.message }, 500);
+      }
+
+      return jsonResponse({ success: true, post: data });
+    }
+
+    if (action === "restore_post") {
+      const postId = String(body.postId || "").trim();
+      if (!postId) {
+        return jsonResponse({ error: "postId is required" }, 400);
+      }
+
+      const { data, error } = await supabase
+        .from("blog_posts")
+        .update({
+          is_archived: false,
+          archived_at: null,
+        })
+        .eq("id", postId)
+        .select("*")
+        .single();
+
+      if (error || !data) {
+        return jsonResponse({ error: "Could not restore post", details: error?.message }, 500);
+      }
+
+      return jsonResponse({ success: true, post: data });
+    }
+
+    if (action === "delete_post") {
+      const postId = String(body.postId || "").trim();
+      if (!postId) {
+        return jsonResponse({ error: "postId is required" }, 400);
+      }
+
+      const { error } = await supabase.from("blog_posts").delete().eq("id", postId);
+      if (error) {
+        return jsonResponse({ error: "Could not delete post", details: error.message }, 500);
+      }
+
+      return jsonResponse({ success: true });
     }
 
     return jsonResponse({ error: "Unsupported action" }, 400);

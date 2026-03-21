@@ -11,6 +11,7 @@ export async function getPublishedBlogs(limit = 30) {
   const { data, error } = await supabase
     .from("blog_posts")
     .select(POST_SELECT)
+    .eq("is_archived", false)
     .order("published_at", { ascending: false })
     .limit(Math.min(Math.max(Number(limit) || 30, 1), 100));
 
@@ -34,6 +35,7 @@ export async function getPublishedBlogBySlug(slug) {
   const { data, error } = await supabase
     .from("blog_posts")
     .select(POST_SELECT)
+    .eq("is_archived", false)
     .eq("slug", normalizedSlug)
     .single();
 
