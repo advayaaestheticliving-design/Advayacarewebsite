@@ -2,13 +2,23 @@ import { supabase, isSupabaseConfigured } from "./supabaseClient";
 import { getOrCreateSessionId } from "./cartApi";
 
 const TOKEN_KEY = "ac_guest_access_token";
+let guestBootstrapPromise = null;
 
 export function getStoredGuestAccessToken() {
   return localStorage.getItem(TOKEN_KEY) || "";
 }
 
+function hasAuthenticatedMemberSession(session) {
+  return Boolean(session?.user?.id && String(session?.refresh_token || "").trim());
+}
+
+function hasGuestLikeSession(session) {
+  return Boolean(session?.access_token && !hasAuthenticatedMemberSession(session));
+}
+
 export async function clearLegacyGuestAuthState() {
   localStorage.removeItem(TOKEN_KEY);
+  guestBootstrapPromise = null;
 
   if (!isSupabaseConfigured || !supabase) {
     return;
@@ -18,10 +28,7 @@ export async function clearLegacyGuestAuthState() {
     data: { session },
   } = await supabase.auth.getSession();
 
-  const hasEmail = Boolean(String(session?.user?.email || "").trim());
-  const hasRefreshToken = Boolean(String(session?.refresh_token || "").trim());
-
-  if (!hasEmail && !hasRefreshToken && session?.access_token) {
+  if (hasGuestLikeSession(session)) {
     await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
   }
 }
@@ -31,9 +38,23 @@ export async function ensureSupabaseGuestSession() {
     return;
   }
 
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (hasAuthenticatedMemberSession(session)) {
+    localStorage.removeItem(TOKEN_KEY);
+    guestBootstrapPromise = null;
+    return;
+  }
+
   const existingToken = localStorage.getItem(TOKEN_KEY);
   if (existingToken) {
-    return;
+    return existingToken;
+  }
+
+  if (guestBootstrapPromise) {
+    return guestBootstrapPromise;
   }
 
   const sessionId = getOrCreateSessionId();
@@ -41,41 +62,47 @@ export async function ensureSupabaseGuestSession() {
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   const url = `${baseUrl}/functions/v1/mint-guest-token`;
 
-  let res;
-  let body;
+  guestBootstrapPromise = (async () => {
+    let res;
+    let body;
+
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: anonKey,
+          Authorization: `Bearer ${anonKey}`,
+        },
+        body: JSON.stringify({ sessionId }),
+      });
+
+      body = await res.json().catch(() => null);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("ensureSupabaseGuestSession network error", err);
+      throw err;
+    }
+
+    if (!res.ok) {
+      const msg =
+        (body && (body.error || body.message)) ||
+        `Failed to fetch guest token (status ${res.status})`;
+      throw new Error(msg);
+    }
+
+    const accessToken = body?.access_token;
+    if (!accessToken) {
+      throw new Error("No access_token in mint-guest-token response");
+    }
+
+    localStorage.setItem(TOKEN_KEY, accessToken);
+    return accessToken;
+  })();
 
   try {
-    res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`,
-      },
-      body: JSON.stringify({ sessionId }),
-    });
-
-    body = await res.json().catch(() => null);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error("ensureSupabaseGuestSession network error", err);
-    throw err;
+    return await guestBootstrapPromise;
+  } finally {
+    guestBootstrapPromise = null;
   }
-
-  // eslint-disable-next-line no-console
-  console.log("mint-guest-token status", res.status, "body", body);
-
-  if (!res.ok) {
-    const msg =
-      (body && (body.error || body.message)) ||
-      `Failed to fetch guest token (status ${res.status})`;
-    throw new Error(msg);
-  }
-
-  const accessToken = body?.access_token;
-  if (!accessToken) {
-    throw new Error("No access_token in mint-guest-token response");
-  }
-
-  localStorage.setItem(TOKEN_KEY, accessToken);
 }

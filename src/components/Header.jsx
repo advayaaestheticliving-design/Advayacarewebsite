@@ -34,13 +34,17 @@ const Header = () => {
       setIsAdmin(Boolean(adminEmail && email.toLowerCase() === adminEmail));
     };
 
-    supabase.auth.getUser().then(({ data }) => {
-      applyUser(data?.user || null);
+    supabase.auth.getSession().then(({ data }) => {
+      applyUser(data?.session?.user || null);
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
+        return;
+      }
+
       applyUser(session?.user || null);
     });
 

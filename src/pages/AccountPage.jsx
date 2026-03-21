@@ -112,6 +112,7 @@ function AccountPage() {
   const [membershipError, setMembershipError] = React.useState("");
   const [membershipSaving, setMembershipSaving] = React.useState(false);
   const [membershipEditing, setMembershipEditing] = React.useState(false);
+  const loadRequestIdRef = React.useRef(0);
   const profileProgress = getProfileProgress(membershipProfile);
   const recommendationStatusLabel = !membershipProfile
     ? "Set up needed"
@@ -160,6 +161,8 @@ function AccountPage() {
   }, []);
 
   const loadData = React.useCallback(async () => {
+    const requestId = loadRequestIdRef.current + 1;
+    loadRequestIdRef.current = requestId;
     setLoading(true);
     setError("");
 
@@ -167,6 +170,10 @@ function AccountPage() {
       const {
         data: { user: activeUser },
       } = await supabase.auth.getUser();
+
+      if (loadRequestIdRef.current !== requestId) {
+        return;
+      }
 
       setUser(activeUser || null);
 
@@ -188,9 +195,14 @@ function AccountPage() {
       setOrders(orderRows);
       await loadMembershipData();
     } catch (loadError) {
+      if (loadRequestIdRef.current !== requestId) {
+        return;
+      }
       setError(loadError?.message || "Could not load account data.");
     } finally {
-      setLoading(false);
+      if (loadRequestIdRef.current === requestId) {
+        setLoading(false);
+      }
     }
   }, [loadMembershipData, resetMembershipState]);
 
@@ -199,7 +211,11 @@ function AccountPage() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
+        return;
+      }
+
       loadData().catch(() => undefined);
     });
 

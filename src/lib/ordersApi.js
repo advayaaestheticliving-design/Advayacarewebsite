@@ -28,7 +28,6 @@ async function getAuthToken({ forceRefresh = false } = {}) {
     }
 
     if (forceRefresh) {
-      await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
       throw new Error(MEMBER_SESSION_EXPIRED_MESSAGE);
     }
   }
@@ -68,7 +67,6 @@ export async function getMyOrdersWithTimeline() {
         details.includes("authorization");
 
       if (tokenRejected) {
-        await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
         throw new Error(MEMBER_SESSION_EXPIRED_MESSAGE);
       }
     }
