@@ -252,6 +252,11 @@ function sanitizeArticleHtml(value) {
   return doc.body.innerHTML;
 }
 
+function isAdminSessionError(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+  return message.includes("admin session expired") || message.includes("authorization failed (401)");
+}
+
 function AdminBlogManagerPage() {
   const admin = useAdminAccess();
   const [loading, setLoading] = React.useState(false);
@@ -351,11 +356,14 @@ function AdminBlogManagerPage() {
       setDrafts(Array.isArray(draftRows) ? draftRows : []);
       setPosts(Array.isArray(postRows) ? postRows : []);
     } catch (loadError) {
+      if (isAdminSessionError(loadError)) {
+        await admin.refreshAccess(false);
+      }
       setError(loadError?.message || "Could not load blog manager content.");
     } finally {
       setLoading(false);
     }
-  }, [admin.authorized]);
+  }, [admin.authorized, admin.refreshAccess]);
 
   React.useEffect(() => {
     if (!admin.checkingAccess && admin.authorized) {
@@ -455,6 +463,9 @@ function AdminBlogManagerPage() {
     try {
       await action();
     } catch (actionError) {
+      if (isAdminSessionError(actionError)) {
+        await admin.refreshAccess(false);
+      }
       setError(actionError?.message || "Blog manager action failed.");
     } finally {
       setActionLoading("");

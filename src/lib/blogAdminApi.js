@@ -239,6 +239,7 @@ async function authorizedFetch(url, options = {}) {
     } = await adminSupabase.auth.getSession();
 
     if (!session?.refresh_token) {
+      await clearInvalidAdminSession();
       throw new Error("Admin session expired. Please sign in again from /admin.");
     }
 
@@ -269,6 +270,11 @@ async function authorizedFetch(url, options = {}) {
     if (response.status === 401) {
       const finalBody = await response.clone().json().catch(() => null);
       const finalDetails = getAuthErrorDetails(finalBody);
+
+      if (isJwtRejected(finalDetails)) {
+        await clearInvalidAdminSession();
+        throw new Error("Admin session expired. Please sign in again from /admin.");
+      }
 
       throw new Error(
         finalDetails
