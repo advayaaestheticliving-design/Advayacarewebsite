@@ -1,12 +1,12 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../lib/supabaseClient";
 import { getMyCoupons, getMyGiftCards } from "../lib/walletApi";
 import { getMyOrdersWithTimeline } from "../lib/ordersApi";
 import productsData from "../data/products.json";
 import MembershipProfileEditor from "../components/MembershipProfileEditor";
 import MembershipProfileSummary from "../components/MembershipProfileSummary";
 import MembershipRecommendationsPanel from "../components/MembershipRecommendationsPanel";
+import { useMemberSession } from "../context/MemberSessionContext";
 import {
   getLatestMembershipRecommendationRun,
   getMembershipProfile,
@@ -99,7 +99,6 @@ function getProfileProgress(profile) {
 function AccountPage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
-  const [user, setUser] = React.useState(null);
   const [coupons, setCoupons] = React.useState([]);
   const [giftCards, setGiftCards] = React.useState([]);
   const [orders, setOrders] = React.useState([]);
@@ -113,6 +112,7 @@ function AccountPage() {
   const [membershipSaving, setMembershipSaving] = React.useState(false);
   const [membershipEditing, setMembershipEditing] = React.useState(false);
   const loadRequestIdRef = React.useRef(0);
+  const { authReady, user } = useMemberSession();
   const profileProgress = getProfileProgress(membershipProfile);
   const recommendationStatusLabel = !membershipProfile
     ? "Set up needed"
@@ -167,15 +167,11 @@ function AccountPage() {
     setError("");
 
     try {
-      const {
-        data: { user: activeUser },
-      } = await supabase.auth.getUser();
+      const activeUser = user || null;
 
       if (loadRequestIdRef.current !== requestId) {
         return;
       }
-
-      setUser(activeUser || null);
 
       if (!activeUser?.id) {
         setCoupons([]);
@@ -204,25 +200,15 @@ function AccountPage() {
         setLoading(false);
       }
     }
-  }, [loadMembershipData, resetMembershipState]);
+  }, [loadMembershipData, resetMembershipState, user]);
 
   React.useEffect(() => {
-    loadData();
+    if (!authReady) {
+      return;
+    }
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
-        return;
-      }
-
-      loadData().catch(() => undefined);
-    });
-
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, [loadData]);
+    loadData().catch(() => undefined);
+  }, [authReady, loadData]);
 
   const handleMembershipChange = (event) => {
     const { name, type, value, checked } = event.target;

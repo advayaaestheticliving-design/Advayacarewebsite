@@ -80,11 +80,11 @@ export function isRecommendationRunFresh(profile, recommendationRun) {
 export async function getMembershipIdentity() {
   await ensureSupabaseGuestSession().catch(() => undefined);
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
   return {
-    user,
+    user: session?.user || null,
     guestSessionId: getOrCreateSessionId(),
   };
 }

@@ -5,10 +5,9 @@ import {
   signInWithEmailPassword,
   signInWithGoogle,
   signOutMembership,
-  getMembershipIdentity,
 } from "../lib/membershipApi";
-import { supabase } from "../lib/supabaseClient";
 import { ensureSignupCouponIssued } from "../lib/walletApi";
+import { useMemberSession } from "../context/MemberSessionContext";
 
 function isValidIndianPhone(phone) {
   const digits = String(phone || "").replace(/\D/g, "");
@@ -26,66 +25,37 @@ function MembershipPage() {
   const [memberEmail, setMemberEmail] = React.useState("");
   const [status, setStatus] = React.useState("");
   const [error, setError] = React.useState("");
-
-  const loadMemberIdentity = React.useCallback(async () => {
-    const identity = await getMembershipIdentity();
-    setMemberEmail(identity.user?.email || "");
-  }, []);
+  const { authReady, user, lastAuthEvent } = useMemberSession();
 
   React.useEffect(() => {
-    let mounted = true;
+    if (!authReady) {
+      return;
+    }
 
-    const boot = async () => {
-      try {
-        await loadMemberIdentity();
-      } catch (bootError) {
-        if (!mounted) return;
-        setError(bootError.message || "Failed to load membership state.");
-      }
-    };
+    setMemberEmail(user?.email || "");
+    setError("");
+  }, [authReady, user]);
 
-    boot();
+  React.useEffect(() => {
+    if (!authReady || !user?.id || lastAuthEvent !== "SIGNED_IN") {
+      return;
+    }
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
+    const createdAtMs = new Date(user?.created_at || 0).getTime();
+    const isRecentlyCreated = Number.isFinite(createdAtMs) && Date.now() - createdAtMs < 10 * 60 * 1000;
 
-      if (event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
-        return;
-      }
+    if (!isRecentlyCreated) {
+      return;
+    }
 
-      setMemberEmail(session?.user?.email || "");
-      setError("");
-
-      const createdAtMs = new Date(session?.user?.created_at || 0).getTime();
-      const isRecentlyCreated =
-        Number.isFinite(createdAtMs) && Date.now() - createdAtMs < 10 * 60 * 1000;
-
-      if (session?.user?.id && event === "SIGNED_IN" && isRecentlyCreated) {
-        try {
-          const couponResult = await ensureSignupCouponIssued();
-          if (couponResult?.issued) {
-            setStatus("Welcome! Your ₹100 member coupon is now active.");
-          }
-        } catch {
-          // silent: coupon issuance should not block auth refresh
+    ensureSignupCouponIssued()
+      .then((couponResult) => {
+        if (couponResult?.issued) {
+          setStatus("Welcome! Your ₹100 member coupon is now active.");
         }
-      }
-
-      try {
-        await loadMemberIdentity();
-      } catch (reloadError) {
-        if (!mounted) return;
-        setError(reloadError.message || "Failed to refresh membership state.");
-      }
-    });
-
-    return () => {
-      mounted = false;
-      subscription?.unsubscribe();
-    };
-  }, [loadMemberIdentity]);
+      })
+      .catch(() => undefined);
+  }, [authReady, lastAuthEvent, user]);
 
   React.useEffect(() => {
     const queryMode = searchParams.get("mode");

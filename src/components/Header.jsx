@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { supabase } from "../lib/supabaseClient";
+import { useMemberSession } from "../context/MemberSessionContext";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,13 +9,10 @@ const Header = () => {
   const [authTarget, setAuthTarget] = useState("/membership");
   const [isAdmin, setIsAdmin] = useState(false);
   const adminEmail = "advaya.aestheticliving@gmail.com";
+  const { user } = useMemberSession();
 
   React.useEffect(() => {
-    let mounted = true;
-
     const applyUser = (user) => {
-      if (!mounted) return;
-
       if (!user) {
         setAuthLabel("Log In/Sign up");
         setAuthTarget("/membership");
@@ -34,25 +31,8 @@ const Header = () => {
       setIsAdmin(Boolean(adminEmail && email.toLowerCase() === adminEmail));
     };
 
-    supabase.auth.getSession().then(({ data }) => {
-      applyUser(data?.session?.user || null);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
-        return;
-      }
-
-      applyUser(session?.user || null);
-    });
-
-    return () => {
-      mounted = false;
-      subscription?.unsubscribe();
-    };
-  }, []);
+    applyUser(user || null);
+  }, [adminEmail, user]);
 
   const isMoreActive = ["/contact", "/terms", "/gift-card", "/privacy"].includes(
     location.pathname

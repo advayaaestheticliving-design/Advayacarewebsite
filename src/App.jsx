@@ -23,10 +23,12 @@ import AdminOrdersPage from "./pages/AdminOrdersPage";
 import BlogWriterPage from "./pages/BlogWriterPage";
 import AdminProductsPage from "./pages/AdminProductsPage";
 import { clearLegacyGuestAuthState, ensureSupabaseGuestSession } from "./lib/authSession";
+import { useMemberSession } from "./context/MemberSessionContext";
 
 function App() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith("/admin");
+  const { authReady, isAuthenticated } = useMemberSession();
 
   React.useEffect(() => {
     if (isAdminRoute) {
@@ -34,11 +36,15 @@ function App() {
       return;
     }
 
+    if (!authReady || isAuthenticated) {
+      return;
+    }
+
     ensureSupabaseGuestSession().catch((error) => {
       // eslint-disable-next-line no-console
       console.warn("Guest session bootstrap failed", error);
     });
-  }, [isAdminRoute]);
+  }, [authReady, isAdminRoute, isAuthenticated]);
 
   return (
     <CartProvider>

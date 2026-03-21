@@ -15,8 +15,9 @@ export async function createOrder(totalAmountInr, items, customerDetails = {}, d
   }
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user || null;
 
   const normalizedCouponCode = String(discountDetails?.couponCode || "").trim().toUpperCase();
   const normalizedGiftCardCode = String(discountDetails?.giftCardCode || "").trim().toUpperCase();
