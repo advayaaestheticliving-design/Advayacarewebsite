@@ -22,26 +22,32 @@ function MembershipPage() {
   const [authMode, setAuthMode] = React.useState(
     searchParams.get("mode") === "sign-up" ? "sign-up" : "sign-in",
   );
-  const [memberEmail, setMemberEmail] = React.useState("");
   const [status, setStatus] = React.useState("");
   const [error, setError] = React.useState("");
   const { authReady, user, lastAuthEvent } = useMemberSession();
+  const memberEmail = user?.email || "";
+
+  React.useEffect(() => {
+    const queryMode = searchParams.get("mode");
+    if (queryMode === "sign-up" || queryMode === "sign-in") {
+      setAuthMode(queryMode);
+    }
+  }, [searchParams]);
 
   React.useEffect(() => {
     if (!authReady) {
       return;
     }
 
-    setMemberEmail(user?.email || "");
     setError("");
-  }, [authReady, user]);
+  }, [authReady, memberEmail]);
 
   React.useEffect(() => {
     if (!authReady || !user?.id || lastAuthEvent !== "SIGNED_IN") {
       return;
     }
 
-    const createdAtMs = new Date(user?.created_at || 0).getTime();
+    const createdAtMs = new Date(user.created_at || 0).getTime();
     const isRecentlyCreated = Number.isFinite(createdAtMs) && Date.now() - createdAtMs < 10 * 60 * 1000;
 
     if (!isRecentlyCreated) {
@@ -57,13 +63,6 @@ function MembershipPage() {
       .catch(() => undefined);
   }, [authReady, lastAuthEvent, user]);
 
-  React.useEffect(() => {
-    const queryMode = searchParams.get("mode");
-    if (queryMode === "sign-up" || queryMode === "sign-in") {
-      setAuthMode(queryMode);
-    }
-  }, [searchParams]);
-
   const handleEmailAuth = async (event) => {
     event.preventDefault();
     setError("");
@@ -77,23 +76,22 @@ function MembershipPage() {
         }
 
         const data = await signUpWithEmailPassword(authEmail, authPassword, authPhone);
+
         try {
           await ensureSignupCouponIssued();
         } catch {
-          // silent: auth listener will retry if session propagation is delayed
+          // silent: coupon issuance should not block auth completion
         }
-        const signedUpEmail = data?.user?.email || authEmail;
+
         const isConfirmed = Boolean(data?.session || data?.user?.email_confirmed_at);
 
         if (isConfirmed) {
-          setMemberEmail(signedUpEmail);
           setStatus("Account created. Your ₹100 member coupon is active. Continue to My Account to set up your AI recommendation profile.");
         } else {
           setStatus("Account created. Please confirm your email first, then sign in to manage your AI recommendation profile.");
         }
       } else {
-        const data = await signInWithEmailPassword(authEmail, authPassword);
-        setMemberEmail(data?.user?.email || authEmail);
+        await signInWithEmailPassword(authEmail, authPassword);
         setStatus("Signed in successfully. Your AI recommendation profile is available in My Account.");
       }
     } catch (authError) {
@@ -119,7 +117,6 @@ function MembershipPage() {
 
     try {
       await signOutMembership();
-      setMemberEmail("");
       setStatus("Signed out.");
     } catch (authError) {
       setError(authError.message || "Could not sign out.");
@@ -210,27 +207,15 @@ function MembershipPage() {
                   title="Enter a valid Indian mobile number"
                 />
               )}
-              {authMode === "sign-up" ? (
-                <input
-                  type="password"
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                  placeholder="Password"
-                  className="w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white placeholder:text-white/40 sm:col-span-1"
-                  required
-                  minLength={6}
-                />
-              ) : (
-                <input
-                  type="password"
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                  placeholder="Password"
-                  className="w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white placeholder:text-white/40 sm:col-span-1"
-                  required
-                  minLength={6}
-                />
-              )}
+              <input
+                type="password"
+                value={authPassword}
+                onChange={(e) => setAuthPassword(e.target.value)}
+                placeholder="Password"
+                className="sm:col-span-1 w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white placeholder:text-white/40"
+                required
+                minLength={6}
+              />
               <button
                 type="submit"
                 className="sm:col-span-1 rounded-full bg-[#D4AF37] px-4 py-2 text-sm font-medium text-black hover:bg-[#e3c458]"
@@ -250,193 +235,13 @@ function MembershipPage() {
         )}
       </section>
 
-      {memberEmail && showProfileForm && (
-      <form onSubmit={handleSubmit} className="rounded-2xl border border-neutral-700 bg-black/50 p-5 sm:p-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <label className="text-sm text-white space-y-2">
-            <span>Skin Type *</span>
-            <select
-              name="skin_type"
-              value={form.skin_type}
-              onChange={handleChange}
-              className="w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white"
-              required
-            >
-              <option value="">Select skin type</option>
-              <option value="Oily">Oily</option>
-              <option value="Dry">Dry</option>
-              <option value="Combination">Combination</option>
-              <option value="Sensitive">Sensitive</option>
-              <option value="Normal">Normal</option>
-            </select>
-          </label>
-
-          <label className="text-sm text-white space-y-2">
-            <span>Main Concerns (comma separated) *</span>
-            <input
-              name="concerns"
-              value={form.concerns}
-              onChange={handleChange}
-              placeholder="acne, pigmentation, sensitivity"
-              className="w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white placeholder:text-white/40"
-              required
-            />
-          </label>
-
-          <label className="text-sm text-white space-y-2">
-            <span>Allergies (comma separated)</span>
-            <input
-              name="allergies"
-              value={form.allergies}
-              onChange={handleChange}
-              placeholder="rose oil, peppermint oil"
-              className="w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white placeholder:text-white/40"
-            />
-          </label>
-
-          <label className="text-sm text-white space-y-2">
-            <span>Avoid Ingredients (comma separated)</span>
-            <input
-              name="avoid_ingredients"
-              value={form.avoid_ingredients}
-              onChange={handleChange}
-              placeholder="fragrance, essential oil"
-              className="w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white placeholder:text-white/40"
-            />
-          </label>
-
-          <label className="text-sm text-white space-y-2">
-            <span>Sun Exposure</span>
-            <select
-              name="sun_exposure"
-              value={form.sun_exposure}
-              onChange={handleChange}
-              className="w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white"
-            >
-              <option value="">Select</option>
-              <option value="Low">Low (mostly indoors)</option>
-              <option value="Medium">Medium (some outdoor time)</option>
-              <option value="High">High (daily strong sun exposure)</option>
-            </select>
-          </label>
-
-          <label className="text-sm text-white space-y-2">
-            <span>Sleep</span>
-            <select
-              name="sleep_hours"
-              value={form.sleep_hours}
-              onChange={handleChange}
-              className="w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white"
-            >
-              <option value="">Select</option>
-              <option value="Less than 6">Less than 6 hours</option>
-              <option value="6 to 8">6 to 8 hours</option>
-              <option value="More than 8">More than 8 hours</option>
-            </select>
-          </label>
-
-          <label className="text-sm text-white space-y-2">
-            <span>Stress Level</span>
-            <select
-              name="stress_level"
-              value={form.stress_level}
-              onChange={handleChange}
-              className="w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white"
-            >
-              <option value="">Select</option>
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-            </select>
-          </label>
-
-          <label className="text-sm text-white space-y-2">
-            <span>Water Intake</span>
-            <select
-              name="water_intake"
-              value={form.water_intake}
-              onChange={handleChange}
-              className="w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white"
-            >
-              <option value="">Select</option>
-              <option value="Less than 1L">Less than 1L/day</option>
-              <option value="1 to 2L">1–2L/day</option>
-              <option value="More than 2L">More than 2L/day</option>
-            </select>
-          </label>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <label className="text-sm text-white space-y-2">
-            <span>Current Routine</span>
-            <textarea
-              name="routine_steps"
-              value={form.routine_steps}
-              onChange={handleChange}
-              rows={4}
-              placeholder="AM cleanser + SPF, PM cleanser + serum..."
-              className="w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white placeholder:text-white/40"
-            />
-          </label>
-
-          <label className="text-sm text-white space-y-2">
-            <span>Products You Already Use</span>
-            <textarea
-              name="current_products"
-              value={form.current_products}
-              onChange={handleChange}
-              rows={4}
-              placeholder="Any products currently in your routine"
-              className="w-full rounded-xl border border-neutral-600 bg-black px-4 py-2 text-sm text-white placeholder:text-white/40"
-            />
-          </label>
-        </div>
-
-        <div className="space-y-3 rounded-xl border border-neutral-700 bg-black/40 p-4">
-          <label className="flex items-start gap-3 text-sm text-white">
-            <input
-              type="checkbox"
-              name="consent_to_process"
-              checked={form.consent_to_process}
-              onChange={handleChange}
-              className="mt-1"
-              required
-            />
-            <span>
-              I consent to Advayacare processing my skin profile data to personalize product recommendations.
-            </span>
-          </label>
-          <label className="flex items-start gap-3 text-sm text-white">
-            <input
-              type="checkbox"
-              name="consent_to_ai"
-              checked={form.consent_to_ai}
-              onChange={handleChange}
-              className="mt-1"
-              required
-            />
-            <span>
-              I consent to AI-assisted recommendation generation and understand it is informational, not medical advice.
-            </span>
-          </label>
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-full bg-[#D4AF37] px-5 py-2.5 text-sm font-medium text-black hover:bg-[#e3c458] disabled:opacity-60"
-        >
-          {loading ? "Saving..." : "Save Profile & Generate Recommendations"}
-        </button>
-
-      </form>
-      )}
-
       {status && <p className="text-sm text-emerald-300">{status}</p>}
       {error && <p className="text-sm text-red-400">{error}</p>}
 
       {!memberEmail && (
-        <p className="text-sm text-white/80">Sign in or create an account to access your account dashboard and AI recommendation profile.</p>
+        <p className="text-sm text-white/80">
+          Sign in or create an account to access your account dashboard and AI recommendation profile.
+        </p>
       )}
     </div>
   );

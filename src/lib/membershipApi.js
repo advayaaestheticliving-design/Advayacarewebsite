@@ -1,6 +1,5 @@
 import { supabase } from "./supabaseClient";
 import { getOrCreateSessionId } from "./cartApi";
-import { ensureSupabaseGuestSession } from "./authSession";
 
 export const initialMembershipProfileForm = {
   skin_type: "",
@@ -78,7 +77,6 @@ export function isRecommendationRunFresh(profile, recommendationRun) {
 }
 
 export async function getMembershipIdentity() {
-  await ensureSupabaseGuestSession().catch(() => undefined);
   const {
     data: { session },
   } = await supabase.auth.getSession();

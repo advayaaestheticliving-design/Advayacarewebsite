@@ -181,14 +181,20 @@ function AccountPage() {
         return;
       }
 
-      const [couponRows, giftCardRows, orderRows] = await Promise.all([
+      const [couponRows, giftCardRows, orderRows] = await Promise.allSettled([
         getMyCoupons(),
         getMyGiftCards(),
         getMyOrdersWithTimeline(),
       ]);
-      setCoupons(couponRows);
-      setGiftCards(giftCardRows);
-      setOrders(orderRows);
+
+      setCoupons(couponRows.status === "fulfilled" ? couponRows.value : []);
+      setGiftCards(giftCardRows.status === "fulfilled" ? giftCardRows.value : []);
+      setOrders(orderRows.status === "fulfilled" ? orderRows.value : []);
+
+      if (orderRows.status === "rejected") {
+        setError(orderRows.reason?.message || "Could not load member orders right now.");
+      }
+
       await loadMembershipData();
     } catch (loadError) {
       if (loadRequestIdRef.current !== requestId) {

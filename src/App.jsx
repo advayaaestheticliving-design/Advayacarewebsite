@@ -22,7 +22,7 @@ import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminOrdersPage from "./pages/AdminOrdersPage";
 import BlogWriterPage from "./pages/BlogWriterPage";
 import AdminProductsPage from "./pages/AdminProductsPage";
-import { clearLegacyGuestAuthState, ensureSupabaseGuestSession } from "./lib/authSession";
+import { clearLegacyGuestAuthState } from "./lib/authSession";
 import { useMemberSession } from "./context/MemberSessionContext";
 
 function App() {
@@ -35,15 +35,6 @@ function App() {
       clearLegacyGuestAuthState().catch(() => undefined);
       return;
     }
-
-    if (!authReady || isAuthenticated) {
-      return;
-    }
-
-    ensureSupabaseGuestSession().catch((error) => {
-      // eslint-disable-next-line no-console
-      console.warn("Guest session bootstrap failed", error);
-    });
   }, [authReady, isAdminRoute, isAuthenticated]);
 
   return (

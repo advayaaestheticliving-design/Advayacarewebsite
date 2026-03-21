@@ -3,6 +3,7 @@ import { getOrCreateSessionId } from "./cartApi";
 
 const TOKEN_KEY = "ac_guest_access_token";
 let guestBootstrapPromise = null;
+let guestBootstrapDisabled = false;
 
 export function getStoredGuestAccessToken() {
   return localStorage.getItem(TOKEN_KEY) || "";
@@ -19,6 +20,7 @@ function hasGuestLikeSession(session) {
 export async function clearLegacyGuestAuthState() {
   localStorage.removeItem(TOKEN_KEY);
   guestBootstrapPromise = null;
+  guestBootstrapDisabled = false;
 
   if (!isSupabaseConfigured || !supabase) {
     return;
@@ -36,6 +38,10 @@ export async function clearLegacyGuestAuthState() {
 export async function ensureSupabaseGuestSession() {
   if (!isSupabaseConfigured || !supabase) {
     return;
+  }
+
+  if (guestBootstrapDisabled) {
+    return null;
   }
 
   const {
@@ -85,10 +91,18 @@ export async function ensureSupabaseGuestSession() {
     }
 
     if (!res.ok) {
-      const msg =
+      const errorMessage =
         (body && (body.error || body.message)) ||
         `Failed to fetch guest token (status ${res.status})`;
-      throw new Error(msg);
+
+      if (res.status >= 500 && errorMessage.toLowerCase().includes("jwt secret")) {
+        guestBootstrapDisabled = true;
+        // eslint-disable-next-line no-console
+        console.warn("Guest session bootstrap disabled because mint-guest-token is misconfigured.");
+        return null;
+      }
+
+      throw new Error(errorMessage);
     }
 
     const accessToken = body?.access_token;

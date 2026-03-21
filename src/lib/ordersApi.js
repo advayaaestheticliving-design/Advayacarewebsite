@@ -3,12 +3,18 @@ import { supabase } from "./supabaseClient";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const MEMBER_SESSION_EXPIRED_MESSAGE = "Member session expired. Please sign in again from /membership.";
+const AUTH_RETRY_COOLDOWN_MS = 30000;
+let lastMemberOrdersAuthFailureAt = 0;
 
 function getFunctionUrl(functionName) {
   return `${SUPABASE_URL}/functions/v1/${functionName}`;
 }
 
 async function getAuthToken({ forceRefresh = false } = {}) {
+  if (forceRefresh && Date.now() - lastMemberOrdersAuthFailureAt < AUTH_RETRY_COOLDOWN_MS) {
+    throw new Error(MEMBER_SESSION_EXPIRED_MESSAGE);
+  }
+
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -28,6 +34,7 @@ async function getAuthToken({ forceRefresh = false } = {}) {
     }
 
     if (forceRefresh) {
+      lastMemberOrdersAuthFailureAt = Date.now();
       throw new Error(MEMBER_SESSION_EXPIRED_MESSAGE);
     }
   }
@@ -67,6 +74,7 @@ export async function getMyOrdersWithTimeline() {
         details.includes("authorization");
 
       if (tokenRejected) {
+        lastMemberOrdersAuthFailureAt = Date.now();
         throw new Error(MEMBER_SESSION_EXPIRED_MESSAGE);
       }
     }

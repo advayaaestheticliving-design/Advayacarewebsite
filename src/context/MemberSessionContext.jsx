@@ -26,15 +26,21 @@ export function MemberSessionProvider({ children }) {
 
       const user = session?.user || null;
 
-      setState((prev) => ({
-        authReady: true,
-        user,
-        isAuthenticated: Boolean(user?.id),
-        lastAuthEvent:
-          event === "TOKEN_REFRESHED" && prev.lastAuthEvent
-            ? prev.lastAuthEvent
-            : event,
-      }));
+      setState((prev) => {
+        if (event === "TOKEN_REFRESHED" && prev.authReady && prev.user?.id === user?.id) {
+          return prev;
+        }
+
+        return {
+          authReady: true,
+          user,
+          isAuthenticated: Boolean(user?.id),
+          lastAuthEvent:
+            event === "TOKEN_REFRESHED" && prev.lastAuthEvent
+              ? prev.lastAuthEvent
+              : event,
+        };
+      });
     };
 
     supabase.auth.getSession().then(({ data }) => {
