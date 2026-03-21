@@ -21,6 +21,50 @@ function parseBearerToken(req: Request) {
   return authHeader.slice("Bearer ".length).trim();
 }
 
+async function getRequestUser(
+  req: Request,
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  anonKey: string
+) {
+  const token = parseBearerToken(req);
+  if (!token || token === "undefined" || token === "null") {
+    return { user: null, error: "Missing authorization token" };
+  }
+
+  const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+  const {
+    data: serviceData,
+    error: serviceError,
+  } = await serviceClient.auth.getUser(token);
+
+  if (!serviceError && serviceData?.user) {
+    return { user: serviceData.user, error: null };
+  }
+
+  if (anonKey) {
+    const anonClient = createClient(supabaseUrl, anonKey);
+    const {
+      data: anonData,
+      error: anonError,
+    } = await anonClient.auth.getUser(token);
+
+    if (!anonError && anonData?.user) {
+      return { user: anonData.user, error: null };
+    }
+
+    return {
+      user: null,
+      error: anonError?.message || serviceError?.message || "Invalid or expired authorization token",
+    };
+  }
+
+  return {
+    user: null,
+    error: serviceError?.message || "Invalid or expired authorization token",
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -34,23 +78,18 @@ serve(async (req) => {
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
-  if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+  if (!supabaseUrl || !supabaseServiceKey) {
     return jsonResponse({ error: "Server configuration error: Supabase credentials missing" }, 500);
   }
 
-  const token = parseBearerToken(req);
-  if (!token) {
-    return jsonResponse({ error: "Missing authorization token" }, 401);
-  }
-
-  const authClient = createClient(supabaseUrl, supabaseAnonKey);
-  const {
-    data: { user },
-    error: userError,
-  } = await authClient.auth.getUser(token);
-
-  if (userError || !user) {
-    return jsonResponse({ error: "Invalid or expired authorization token" }, 401);
+  const { user, error: authError } = await getRequestUser(
+    req,
+    supabaseUrl,
+    supabaseServiceKey,
+    supabaseAnonKey
+  );
+  if (authError || !user) {
+    return jsonResponse({ error: authError || "Unauthorized" }, 401);
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);

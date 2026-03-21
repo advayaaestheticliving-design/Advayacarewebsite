@@ -2,29 +2,58 @@ import { supabase } from "./supabaseClient";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const MEMBER_SESSION_EXPIRED_MESSAGE = "Member session expired. Please sign in again from /membership.";
 
 function getFunctionUrl(functionName) {
   return `${SUPABASE_URL}/functions/v1/${functionName}`;
 }
 
-async function getAuthToken() {
+async function getAuthToken({ forceRefresh = false } = {}) {
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
-  return session?.access_token || SUPABASE_ANON_KEY;
+  const currentToken = String(session?.access_token || "").trim();
+
+  if (currentToken && !forceRefresh) {
+    return currentToken;
+  }
+
+  if (session?.refresh_token) {
+    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+    const refreshedToken = String(refreshData?.session?.access_token || "").trim();
+
+    if (!refreshError && refreshedToken) {
+      return refreshedToken;
+    }
+  }
+
+  if (currentToken) {
+    return currentToken;
+  }
+
+  throw new Error(MEMBER_SESSION_EXPIRED_MESSAGE);
 }
 
 export async function getMyOrdersWithTimeline() {
-  const authToken = await getAuthToken();
-  const response = await fetch(getFunctionUrl("member-orders"), {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${authToken}`,
-    },
-  });
+  const executeFetch = async (authToken) =>
+    fetch(getFunctionUrl("member-orders"), {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        apikey: SUPABASE_ANON_KEY,
+      },
+    });
 
-  const body = await response.json().catch(() => null);
+  let authToken = await getAuthToken();
+  let response = await executeFetch(authToken);
+  let body = await response.clone().json().catch(() => null);
+
+  if (response.status === 401) {
+    authToken = await getAuthToken({ forceRefresh: true });
+    response = await executeFetch(authToken);
+    body = await response.clone().json().catch(() => null);
+  }
 
   if (!response.ok) {
     throw new Error(body?.error || `Failed to fetch member orders (${response.status})`);
