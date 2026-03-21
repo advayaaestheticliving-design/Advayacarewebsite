@@ -145,7 +145,7 @@ const Header = () => {
             </div>
           </nav>
 
-          <div className="hidden md:flex items-center gap-4 ml-3 pl-4 border-l border-neutral-700/80 text-[11px] font-medium tracking-wide uppercase">
+          <div className="hidden md:flex items-center gap-4 ml-auto pl-4 border-l border-neutral-700/80 text-[11px] font-medium tracking-wide uppercase">
             <NavLink to={authTarget} className={getNavLinkClass}>
               {authLabel}
             </NavLink>
