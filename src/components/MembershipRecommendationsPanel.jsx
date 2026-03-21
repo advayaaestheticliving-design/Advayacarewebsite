@@ -75,6 +75,86 @@ function MembershipRecommendationsPanel({
     });
   };
 
+  if (showCompactCarousel && hasProfile && hasAiConsent && hasRecommendations) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="space-y-1">
+            <p className="text-sm text-white/75">Browse your saved recommendation set below.</p>
+            <p className="text-xs text-white/50">
+              {generatedAt ? `Last saved ${formatDateTime(generatedAt)}` : "No saved run yet"}
+              {profileUpdatedAt ? ` • Profile updated ${formatDateTime(profileUpdatedAt)}` : ""}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <p className="hidden text-xs uppercase tracking-[0.2em] text-white/45 sm:block">{recommendations.length} products</p>
+            <button
+              type="button"
+              onClick={() => scrollCarousel(-1)}
+              className="hidden h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-lg text-white transition hover:border-[#D4AF37] hover:text-[#D4AF37] md:inline-flex"
+              aria-label="Scroll recommendations left"
+            >
+              &lt;
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollCarousel(1)}
+              className="hidden h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-lg text-white transition hover:border-[#D4AF37] hover:text-[#D4AF37] md:inline-flex"
+              aria-label="Scroll recommendations right"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+
+        <div
+          ref={carouselRef}
+          className="-mx-1 space-y-4 px-1 md:flex md:snap-x md:snap-mandatory md:gap-4 md:space-y-0 md:overflow-x-auto md:pb-3 md:[scrollbar-width:none] md:[&::-webkit-scrollbar]:hidden"
+        >
+          {recommendations.map((item) => (
+            <article
+              key={item.id}
+              className="space-y-3 md:min-w-[280px] md:max-w-[320px] md:flex-1 md:snap-start"
+            >
+              <div className="rounded-xl border border-neutral-700 bg-black/45 p-3">
+                <p className="text-sm text-white">
+                  <span className="font-semibold">Why this match:</span> {item.reason}
+                </p>
+                {item.caution ? (
+                  <p className="mt-1 text-xs text-amber-300">
+                    <span className="font-semibold">Caution:</span> {item.caution}
+                  </p>
+                ) : null}
+              </div>
+
+              {item.product ? (
+                <ProductCard product={item.product} />
+              ) : (
+                <div className="rounded-2xl border border-[#D4AF37]/25 bg-[#D4AF37]/10 p-4 text-white">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-base font-semibold text-[#f3d987]">{item.name || "Recommended product"}</p>
+                      <p className="mt-1 text-sm text-white/75">
+                        This recommendation was returned by the AI service, but the storefront catalog entry is not available in the current page bundle.
+                      </p>
+                    </div>
+                    <p className="text-sm font-medium text-white/85">
+                      {Number(item.price_inr || 0).toLocaleString("en-IN", {
+                        style: "currency",
+                        currency: "INR",
+                        maximumFractionDigits: 0,
+                      })}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <section className="rounded-[28px] border border-neutral-700 bg-gradient-to-br from-black/70 via-black/55 to-[#14191c]/70 p-5 sm:p-6 space-y-5 shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
       {!hasProfile ? (
@@ -142,82 +222,6 @@ function MembershipRecommendationsPanel({
             <p>Open the editor and save your profile to generate and store your recommendations.</p>
           </div>
         </>
-      ) : showCompactCarousel ? (
-        <div className="space-y-4 rounded-[24px] border border-white/10 bg-black/25 p-4 sm:p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="space-y-1">
-              <p className="text-sm text-white/75">Browse your saved recommendation set below.</p>
-              <p className="text-xs text-white/50">
-                {generatedAt ? `Last saved ${formatDateTime(generatedAt)}` : "No saved run yet"}
-                {profileUpdatedAt ? ` • Profile updated ${formatDateTime(profileUpdatedAt)}` : ""}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <p className="hidden text-xs uppercase tracking-[0.2em] text-white/45 sm:block">{recommendations.length} products</p>
-              <button
-                type="button"
-                onClick={() => scrollCarousel(-1)}
-                className="hidden h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-lg text-white transition hover:border-[#D4AF37] hover:text-[#D4AF37] md:inline-flex"
-                aria-label="Scroll recommendations left"
-              >
-                &lt;
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollCarousel(1)}
-                className="hidden h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-lg text-white transition hover:border-[#D4AF37] hover:text-[#D4AF37] md:inline-flex"
-                aria-label="Scroll recommendations right"
-              >
-                &gt;
-              </button>
-            </div>
-          </div>
-
-          <div
-            ref={carouselRef}
-            className="-mx-1 space-y-4 px-1 md:flex md:snap-x md:snap-mandatory md:gap-4 md:space-y-0 md:overflow-x-auto md:pb-3 md:[scrollbar-width:none] md:[&::-webkit-scrollbar]:hidden"
-          >
-            {recommendations.map((item) => (
-              <article
-                key={item.id}
-                className="space-y-3 rounded-[24px] border border-neutral-700 bg-black/35 p-4 md:min-w-[280px] md:max-w-[320px] md:flex-1 md:snap-start"
-              >
-                <div className="rounded-xl border border-neutral-700 bg-black/45 p-3">
-                  <p className="text-sm text-white">
-                    <span className="font-semibold">Why this match:</span> {item.reason}
-                  </p>
-                  {item.caution ? (
-                    <p className="mt-1 text-xs text-amber-300">
-                      <span className="font-semibold">Caution:</span> {item.caution}
-                    </p>
-                  ) : null}
-                </div>
-
-                {item.product ? (
-                  <ProductCard product={item.product} />
-                ) : (
-                  <div className="rounded-2xl border border-[#D4AF37]/25 bg-[#D4AF37]/10 p-4 text-white">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-base font-semibold text-[#f3d987]">{item.name || "Recommended product"}</p>
-                        <p className="mt-1 text-sm text-white/75">
-                          This recommendation was returned by the AI service, but the storefront catalog entry is not available in the current page bundle.
-                        </p>
-                      </div>
-                      <p className="text-sm font-medium text-white/85">
-                        {Number(item.price_inr || 0).toLocaleString("en-IN", {
-                          style: "currency",
-                          currency: "INR",
-                          maximumFractionDigits: 0,
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </article>
-            ))}
-          </div>
-        </div>
       ) : (
         <div className="space-y-6">
           {recommendations.map((item) => (
