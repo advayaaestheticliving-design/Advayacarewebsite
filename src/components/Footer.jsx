@@ -65,7 +65,7 @@ function Footer() {
             </nav>
           </div>
         </div>
-        <p className="mt-8 text-xs text-white text-center">© Advayacare.</p>
+        <p className="mt-8 text-xs text-white text-center">© Advayacare2026</p>
       </div>
     </footer>
   );
