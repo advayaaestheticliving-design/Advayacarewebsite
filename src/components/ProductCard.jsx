@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { getAvailableStock, isProductPurchasable, normalizeProduct } from "../lib/productsApi";
 
-function ProductCard({ product }) {
+function ProductCard({ product, className = "" }) {
   const navigate = useNavigate();
   const { addToCart } = useCart();
 
@@ -71,7 +71,7 @@ function ProductCard({ product }) {
   return (
     <Link
       to={`/product/${id}`}
-      className="group flex flex-col rounded-2xl border border-black bg-[#D4AF37] shadow-sm/40 hover:shadow-md transition-shadow overflow-hidden"
+      className={`group flex flex-col rounded-2xl border border-black bg-[#D4AF37] shadow-sm/40 hover:shadow-md transition-shadow overflow-hidden ${className}`.trim()}
     >
       {imageSrc && (
         <div className="aspect-[4/3] overflow-hidden bg-slate-100">

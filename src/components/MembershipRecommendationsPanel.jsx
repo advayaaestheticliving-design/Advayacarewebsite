@@ -114,12 +114,12 @@ function MembershipRecommendationsPanel({
           {recommendations.map((item) => (
             <article
               key={item.id}
-              className="space-y-3 md:min-w-[280px] md:max-w-[320px] md:flex-1 md:snap-start"
+              className="flex flex-col space-y-3 md:min-w-[280px] md:max-w-[320px] md:flex-1 md:snap-start"
             >
               {item.product ? (
-                <ProductCard product={item.product} />
+                <ProductCard product={item.product} className="h-full min-h-[31rem]" />
               ) : (
-                <div className="rounded-2xl border border-[#D4AF37]/25 bg-[#D4AF37]/10 p-4 text-white">
+                <div className="min-h-[31rem] rounded-2xl border border-[#D4AF37]/25 bg-[#D4AF37]/10 p-4 text-white">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-base font-semibold text-[#f3d987]">{item.name || "Recommended product"}</p>
@@ -227,9 +227,9 @@ function MembershipRecommendationsPanel({
           {recommendations.map((item) => (
             <div key={item.id} className="space-y-2">
               {item.product ? (
-                <ProductCard product={item.product} />
+                <ProductCard product={item.product} className="min-h-[31rem]" />
               ) : (
-                <div className="rounded-2xl border border-[#D4AF37]/25 bg-[#D4AF37]/10 p-4 text-white">
+                <div className="min-h-[31rem] rounded-2xl border border-[#D4AF37]/25 bg-[#D4AF37]/10 p-4 text-white">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-base font-semibold text-[#f3d987]">{item.name || "Recommended product"}</p>
