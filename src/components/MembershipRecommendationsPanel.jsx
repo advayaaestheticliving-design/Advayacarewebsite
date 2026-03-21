@@ -122,7 +122,27 @@ function MembershipRecommendationsPanel({
                   </p>
                 ) : null}
               </div>
-              <ProductCard product={item.product} />
+              {item.product ? (
+                <ProductCard product={item.product} />
+              ) : (
+                <div className="rounded-2xl border border-[#D4AF37]/25 bg-[#D4AF37]/10 p-4 text-white">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-base font-semibold text-[#f3d987]">{item.name || "Recommended product"}</p>
+                      <p className="mt-1 text-sm text-white/75">
+                        This recommendation was returned by the AI service, but the storefront catalog entry is not available in the current page bundle.
+                      </p>
+                    </div>
+                    <p className="text-sm font-medium text-white/85">
+                      {Number(item.price_inr || 0).toLocaleString("en-IN", {
+                        style: "currency",
+                        currency: "INR",
+                        maximumFractionDigits: 0,
+                      })}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

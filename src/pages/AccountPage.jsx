@@ -61,18 +61,18 @@ function mapRecommendationsToProducts(recommendations) {
   }
 
   return recommendations
-    .map((item) => {
+    .map((item, index) => {
       const product = productsData.find((entry) => entry.id === item.id);
-      if (!product) {
-        return null;
-      }
 
       return {
         ...item,
-        product,
+        id: String(item?.id || `membership-recommendation-${index}`),
+        name: String(item?.name || product?.name || "Recommended product").trim(),
+        price_inr: Number(item?.price_inr || product?.price_inr || 0),
+        product: product || null,
       };
     })
-    .filter(Boolean);
+    .filter((item) => Boolean(item?.id));
 }
 
 function getProfileProgress(profile) {
@@ -113,6 +113,7 @@ function AccountPage() {
   const [membershipEditing, setMembershipEditing] = React.useState(false);
   const loadRequestIdRef = React.useRef(0);
   const { authReady, user } = useMemberSession();
+  const userId = user?.id || "";
   const profileProgress = getProfileProgress(membershipProfile);
   const recommendationStatusLabel = !membershipProfile
     ? "Set up needed"
@@ -167,13 +168,11 @@ function AccountPage() {
     setError("");
 
     try {
-      const activeUser = user || null;
-
       if (loadRequestIdRef.current !== requestId) {
         return;
       }
 
-      if (!activeUser?.id) {
+      if (!userId) {
         setCoupons([]);
         setGiftCards([]);
         setOrders([]);
@@ -217,7 +216,7 @@ function AccountPage() {
         setLoading(false);
       }
     }
-  }, [loadMembershipData, resetMembershipState, user]);
+  }, [loadMembershipData, resetMembershipState, userId]);
 
   React.useEffect(() => {
     if (!authReady) {
@@ -313,7 +312,7 @@ function AccountPage() {
 
       {loading ? (
         <p className="text-sm text-white/80">Loading account wallet...</p>
-      ) : !user ? (
+      ) : !userId ? (
         <div className="rounded-2xl border border-neutral-700 bg-black/50 p-5 text-sm text-white/90 space-y-3">
           <p>Sign in to view your AI recommendation profile, order timeline, coupons, and purchased gift cards.</p>
           <Link

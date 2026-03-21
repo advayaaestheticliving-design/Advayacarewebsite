@@ -27,7 +27,13 @@ export function MemberSessionProvider({ children }) {
       const user = session?.user || null;
 
       setState((prev) => {
-        if (event === "TOKEN_REFRESHED" && prev.authReady && prev.user?.id === user?.id) {
+        const sameUser = prev.user?.id && user?.id && prev.user.id === user.id;
+        const isRepeatedSameUserEvent =
+          sameUser &&
+          prev.authReady &&
+          (event === "TOKEN_REFRESHED" || event === "SIGNED_IN" || event === "INITIAL_SESSION");
+
+        if (isRepeatedSameUserEvent) {
           return prev;
         }
 
