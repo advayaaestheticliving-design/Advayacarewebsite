@@ -47,6 +47,42 @@ function toTimestamp(value) {
   return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
+async function findMembershipProfileByIdentity({ authUserId = null, guestSessionId = null, allowGuestFallback = false }) {
+  if (authUserId) {
+    const { data, error } = await supabase
+      .from("membership_profiles")
+      .select("*")
+      .eq("auth_user_id", authUserId)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    if (data) {
+      return data;
+    }
+  }
+
+  if (guestSessionId && (!authUserId || allowGuestFallback)) {
+    const { data, error } = await supabase
+      .from("membership_profiles")
+      .select("*")
+      .eq("guest_session_id", guestSessionId)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    if (data) {
+      return data;
+    }
+  }
+
+  return null;
+}
+
 export function mapMembershipProfileToForm(profile) {
   if (!profile) {
     return { ...initialMembershipProfileForm };
@@ -162,23 +198,10 @@ export async function signOutMembership() {
 export async function getMembershipProfile() {
   const { user, guestSessionId } = await getMembershipIdentity();
 
-  let query = supabase.from("membership_profiles").select("*").limit(1);
-  if (user?.id) {
-    query = query.eq("auth_user_id", user.id);
-  } else {
-    query = query.eq("guest_session_id", guestSessionId);
-  }
-
-  const { data, error } = await query.single();
-
-  if (error) {
-    if (error.code === "PGRST116") {
-      return null;
-    }
-    throw error;
-  }
-
-  return data;
+  return findMembershipProfileByIdentity({
+    authUserId: user?.id ?? null,
+    guestSessionId: user?.id ? null : guestSessionId,
+  });
 }
 
 export async function saveMembershipProfile(payload) {
@@ -209,20 +232,28 @@ export async function saveMembershipProfile(payload) {
     throw new Error("Consent to process your profile is required");
   }
 
-  const conflictColumn = user?.id ? "auth_user_id" : "guest_session_id";
+  const existingProfile = await findMembershipProfileByIdentity({
+    authUserId: user?.id ?? null,
+    guestSessionId,
+    allowGuestFallback: Boolean(user?.id),
+  });
 
-  const { data, error } = await supabase
-    .from("membership_profiles")
-    .upsert(record, { onConflict: conflictColumn })
-    .select("*")
-    .single();
+  const writePayload = existingProfile?.id
+    ? {
+        ...record,
+        auth_user_id: user?.id ?? existingProfile.auth_user_id ?? null,
+        guest_session_id: user?.id ? null : guestSessionId,
+      }
+    : record;
+
+  const query = existingProfile?.id
+    ? supabase.from("membership_profiles").update(writePayload).eq("id", existingProfile.id)
+    : supabase.from("membership_profiles").insert(writePayload);
+
+  const { data, error } = await query.select("*").single();
 
   if (error) {
     throw error;
-  }
-
-  if (user?.id) {
-    await linkGuestProfileToUser(user.id, guestSessionId);
   }
 
   return data;
