@@ -96,7 +96,7 @@ const Header = () => {
           </Link>
 
           {/* Nav (desktop only) */}
-          <nav className="hidden md:flex items-center gap-6 ml-2 text-[11px] font-medium tracking-wide uppercase">
+          <nav className="hidden md:flex flex-1 items-center gap-6 ml-2 text-[11px] font-medium tracking-wide uppercase">
             <NavLink to="/" className={getNavLinkClass} end>
               Home
             </NavLink>
