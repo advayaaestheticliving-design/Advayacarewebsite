@@ -1,15 +1,21 @@
 import React, { useState } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useMemberSession } from "../context/MemberSessionContext";
+import { signOutMembership } from "../lib/membershipApi";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const profileMenuRef = React.useRef(null);
   const [authLabel, setAuthLabel] = useState("Log In/Sign up");
   const [authTarget, setAuthTarget] = useState("/membership");
   const [isAdmin, setIsAdmin] = useState(false);
   const adminEmail = "advaya.aestheticliving@gmail.com";
   const { user } = useMemberSession();
+  const isMemberAuthenticated = Boolean(user?.id);
 
   React.useEffect(() => {
     const applyUser = (user) => {
@@ -33,6 +39,60 @@ const Header = () => {
 
     applyUser(user || null);
   }, [adminEmail, user]);
+
+  React.useEffect(() => {
+    setIsProfileMenuOpen(false);
+    setIsOpen(false);
+  }, [location.pathname]);
+
+  React.useEffect(() => {
+    if (!isProfileMenuOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      if (!profileMenuRef.current?.contains(event.target)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isProfileMenuOpen]);
+
+  const handleProfileMenuToggle = () => {
+    setIsProfileMenuOpen((prev) => !prev);
+  };
+
+  const handleSignOut = async () => {
+    if (isSigningOut) {
+      return;
+    }
+
+    setIsSigningOut(true);
+
+    try {
+      await signOutMembership();
+      setIsProfileMenuOpen(false);
+      setIsOpen(false);
+      navigate("/membership");
+    } catch {
+      // Keep the menu usable even if sign-out fails.
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
 
   const isMoreActive = ["/contact", "/terms", "/gift-card", "/privacy"].includes(
     location.pathname
@@ -130,9 +190,54 @@ const Header = () => {
           </nav>
 
           <div className="hidden md:flex items-center gap-4 ml-auto pl-4 border-l border-neutral-700/80 text-[11px] font-medium tracking-wide uppercase">
-            <NavLink to={authTarget} className={getNavLinkClass}>
-              {authLabel}
-            </NavLink>
+            {isMemberAuthenticated ? (
+              <div className="relative" ref={profileMenuRef}>
+                <button
+                  type="button"
+                  onClick={handleProfileMenuToggle}
+                  className={`${navLinkDesktop} inline-flex items-center gap-1 ${isProfileMenuOpen ? "border-b border-amber-700 pb-1" : ""}`}
+                  aria-haspopup="menu"
+                  aria-expanded={isProfileMenuOpen}
+                >
+                  {authLabel}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="h-3 w-3"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+                {isProfileMenuOpen ? (
+                  <div className="absolute right-0 top-full mt-2 min-w-[12rem] rounded border border-neutral-700 bg-black/95 py-2 shadow-xl">
+                    <Link
+                      to="/account"
+                      className="block px-3 py-2 text-left text-white transition hover:text-[#b58b2f]"
+                    >
+                      My Profile
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      disabled={isSigningOut}
+                      className="block w-full px-3 py-2 text-left text-white transition hover:text-[#b58b2f] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isSigningOut ? "Logging Out..." : "Log Out"}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <NavLink to={authTarget} className={getNavLinkClass}>
+                {authLabel}
+              </NavLink>
+            )}
             {isAdmin ? (
               <NavLink to="/admin" className={getNavLinkClass}>
                 Admin
@@ -224,9 +329,30 @@ const Header = () => {
                 </NavLink>
               </div>
             </details>
-            <NavLink to={authTarget} className={getMobileNavLinkClass}>
-              {authLabel}
-            </NavLink>
+            {isMemberAuthenticated ? (
+              <details className="group">
+                <summary className={`${navLinkBase} cursor-pointer list-none`}>
+                  {authLabel}
+                </summary>
+                <div className="mt-1 space-y-1 border-l border-neutral-700 pl-3">
+                  <NavLink to="/account" className={getMobileNavLinkClass}>
+                    My Profile
+                  </NavLink>
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    disabled={isSigningOut}
+                    className="block w-full px-1 text-left text-white transition hover:text-[#b58b2f] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSigningOut ? "Logging Out..." : "Log Out"}
+                  </button>
+                </div>
+              </details>
+            ) : (
+              <NavLink to={authTarget} className={getMobileNavLinkClass}>
+                {authLabel}
+              </NavLink>
+            )}
             {isAdmin ? (
               <NavLink to="/admin" className={getMobileNavLinkClass}>
                 Admin
