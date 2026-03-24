@@ -33,7 +33,7 @@ function HomeTestimonialsSection() {
     <section className="space-y-6">
       <div className="space-y-2 text-center max-w-2xl mx-auto">
         <h2 className="text-2xl sm:text-3xl font-semibold text-[#D4AF37]">What Members Are Saying</h2>
-        <p className="text-sm sm:text-base leading-relaxed text-white/82">
+        <p className="text-sm sm:text-base leading-relaxed text-white/80">
           Real notes from members who keep Advaya Care in their routines. Every testimonial is reviewed before it goes live.
         </p>
       </div>
@@ -51,7 +51,7 @@ function HomeTestimonialsSection() {
       {!loading && testimonials.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-neutral-700 bg-black/40 px-5 py-8 text-center max-w-3xl mx-auto space-y-2">
           <p className="text-base font-medium text-white">This section starts with real member stories only.</p>
-          <p className="text-sm text-white/72">
+          <p className="text-sm text-white/70">
             No filler quotes, no invented social proof. The first approved testimonial from a member will appear here.
           </p>
         </div>

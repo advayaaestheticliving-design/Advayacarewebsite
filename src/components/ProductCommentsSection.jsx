@@ -35,7 +35,7 @@ function ProductCommentsSection({ productId, productName }) {
     <section className="space-y-6 pt-8">
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold text-[#D4AF37]">Member Reviews</h2>
-        <p className="text-sm text-white/78">
+        <p className="text-sm text-white/80">
           Reviews are published only after moderation so this section stays useful and credible.
         </p>
       </div>
@@ -53,7 +53,7 @@ function ProductCommentsSection({ productId, productName }) {
       {!loading && comments.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-neutral-700 bg-black/40 px-5 py-7 space-y-2">
           <p className="text-base font-medium text-white">Be the first member to review this ritual.</p>
-          <p className="text-sm text-white/72">
+          <p className="text-sm text-white/70">
             Your experience with {productName || "this product"} can help the next customer decide more confidently.
           </p>
         </div>

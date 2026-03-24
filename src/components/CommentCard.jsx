@@ -49,7 +49,7 @@ function CommentCard({ comment, variant = "product" }) {
         <h3 className="text-lg font-semibold text-[#D4AF37]">{comment.headline}</h3>
       ) : null}
 
-      <p className="text-sm leading-relaxed text-white/88 whitespace-pre-line">{comment?.body}</p>
+      <p className="text-sm leading-relaxed text-white/90 whitespace-pre-line">{comment?.body}</p>
     </article>
   );
 }

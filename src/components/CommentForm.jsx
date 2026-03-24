@@ -71,14 +71,14 @@ function CommentForm({
     <section className="rounded-2xl border border-neutral-700 bg-black/50 p-5 sm:p-6 space-y-4">
       <div className="space-y-2">
         <h3 className="text-xl font-semibold text-[#D4AF37]">{title}</h3>
-        <p className="text-sm text-white/78">{description}</p>
+        <p className="text-sm text-white/80">{description}</p>
       </div>
 
       {!authReady ? <p className="text-sm text-white/70">Checking member session...</p> : null}
 
       {authReady && !isAuthenticated ? (
         <div className="space-y-3">
-          <p className="text-sm text-white/85">
+          <p className="text-sm text-white/80">
             Sign in with your member account to leave a testimonial or review.
           </p>
           <Link
