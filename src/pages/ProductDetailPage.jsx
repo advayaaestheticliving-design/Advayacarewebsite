@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import ProductCommentsSection from "../components/ProductCommentsSection";
 import { useCart } from "../context/CartContext";
 import { fetchProductById, getAvailableStock, isProductPurchasable, normalizeProduct } from "../lib/productsApi";
 
@@ -279,6 +280,8 @@ function ProductDetailPage() {
               </p>
             </section>
           )}
+
+          <ProductCommentsSection productId={normalizedProduct.id} productName={name} />
         </div>
       </div>
     </div>

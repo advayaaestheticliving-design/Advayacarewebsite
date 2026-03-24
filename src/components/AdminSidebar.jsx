@@ -39,6 +39,9 @@ function AdminSidebar({ onSignOut, authLoading, onBeforeNavigate }) {
         <NavLink to="/admin/orders" className={getNavClass} onClick={handleBeforeNavigate}>
           Orders
         </NavLink>
+        <NavLink to="/admin/comments" className={getNavClass} onClick={handleBeforeNavigate}>
+          Comments
+        </NavLink>
         <NavLink to="/admin/products" className={getNavClass} onClick={handleBeforeNavigate}>
           Products
         </NavLink>

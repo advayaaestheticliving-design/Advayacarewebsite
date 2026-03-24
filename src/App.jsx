@@ -23,6 +23,7 @@ import AdminOrdersPage from "./pages/AdminOrdersPage";
 import AdminBlogManagerPage from "./pages/AdminBlogManagerPage";
 import BlogWriterPage from "./pages/BlogWriterPage";
 import AdminProductsPage from "./pages/AdminProductsPage";
+import AdminCommentsPage from "./pages/AdminCommentsPage";
 import { clearLegacyGuestAuthState } from "./lib/authSession";
 import { useMemberSession } from "./context/MemberSessionContext";
 
@@ -49,6 +50,7 @@ function App() {
               <Routes>
                 <Route path="/admin" element={<AdminLoginPage />} />
                 <Route path="/admin/orders" element={<AdminOrdersPage />} />
+                <Route path="/admin/comments" element={<AdminCommentsPage />} />
                 <Route path="/admin/blog-manager" element={<AdminBlogManagerPage />} />
                 <Route path="/admin/blogwriter" element={<BlogWriterPage />} />
                 <Route path="/admin/products" element={<AdminProductsPage />} />

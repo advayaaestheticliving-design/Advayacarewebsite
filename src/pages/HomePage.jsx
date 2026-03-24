@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
+import HomeTestimonialsSection from "../components/HomeTestimonialsSection";
 import { fetchProducts } from "../lib/productsApi";
 
 function HomePage() {
@@ -166,6 +167,8 @@ function HomePage() {
 					{error}
 				</p>
 			)}
+
+			<HomeTestimonialsSection />
 		</div>
 	);
 }
