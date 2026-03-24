@@ -244,14 +244,14 @@ function ProductDetailPage() {
             <button
               onClick={handleAddToCart}
               disabled={!canPurchase}
-              className="w-full sm:w-auto inline-flex items-center justify-center rounded-full bg-[#b58b2f] px-5 py-2.5 text-sm font-medium tracking-wide text-black shadow-sm hover:bg-[#d4af37] transition-colors disabled:cursor-not-allowed disabled:bg-neutral-500"
+              className="w-full sm:w-auto inline-flex items-center justify-center rounded-full bg-[#b58b2f] px-5 py-2.5 text-sm font-medium tracking-wide text-white shadow-sm hover:bg-[#d4af37] transition-colors disabled:cursor-not-allowed disabled:bg-neutral-500"
             >
               Add to Cart
             </button>
             <button
               onClick={handleBuyNow}
               disabled={!canPurchase}
-              className="w-full sm:w-auto inline-flex items-center justify-center rounded-full bg-[#b58b2f] px-5 py-2.5 text-sm font-medium tracking-wide text-black shadow-sm hover:bg-[#d4af37] transition-colors disabled:cursor-not-allowed disabled:bg-neutral-500"
+              className="w-full sm:w-auto inline-flex items-center justify-center rounded-full bg-[#b58b2f] px-5 py-2.5 text-sm font-medium tracking-wide text-white shadow-sm hover:bg-[#d4af37] transition-colors disabled:cursor-not-allowed disabled:bg-neutral-500"
             >
               Buy Now
             </button>

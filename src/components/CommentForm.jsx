@@ -83,7 +83,7 @@ function CommentForm({
           </p>
           <Link
             to="/membership?mode=sign-in"
-            className="inline-flex items-center rounded-full bg-[#D4AF37] px-5 py-2 text-sm font-medium text-black hover:bg-[#e3c458]"
+            className="inline-flex items-center rounded-full bg-[#D4AF37] px-5 py-2 text-sm font-medium text-white hover:bg-[#e3c458]"
           >
             Sign In to Comment
           </Link>
@@ -134,7 +134,7 @@ function CommentForm({
                       onClick={() => updateField("rating", value)}
                       className={`rounded-full px-4 py-2 text-sm transition ${
                         active
-                          ? "bg-[#D4AF37] text-black"
+                          ? "bg-[#D4AF37] text-white"
                           : "border border-neutral-600 text-white hover:border-[#D4AF37]"
                       }`}
                     >
@@ -165,7 +165,7 @@ function CommentForm({
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-full bg-[#D4AF37] px-5 py-2 text-sm font-medium text-black hover:bg-[#e3c458] disabled:opacity-60"
+            className="rounded-full bg-[#D4AF37] px-5 py-2 text-sm font-medium text-white hover:bg-[#e3c458] disabled:opacity-60"
           >
             {submitting ? "Submitting..." : submitLabel}
           </button>

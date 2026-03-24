@@ -54,7 +54,7 @@ function HomePage() {
 					<div className="flex flex-wrap gap-3 pt-2 justify-center">
 						<Link
 							to="/shop"
-							className="inline-flex items-center rounded-full bg-[#D4AF37] px-7 py-3 text-sm font-medium text-neutral-900 hover:bg-[#c8a031] transition shadow-md"
+							className="inline-flex items-center rounded-full bg-[#D4AF37] px-7 py-3 text-sm font-medium text-white hover:bg-[#c8a031] transition shadow-md"
 						>
 							Shop Now
 						</Link>
@@ -145,7 +145,7 @@ function HomePage() {
 						</h2>
 						<Link
 							to="/shop"
-							className="inline-flex items-center rounded-full bg-[#D4AF37] px-5 py-2 text-xs sm:text-sm font-medium text-black hover:bg-[#c8a031] transition shadow-md"
+							className="inline-flex items-center rounded-full bg-[#D4AF37] px-5 py-2 text-xs sm:text-sm font-medium text-white hover:bg-[#c8a031] transition shadow-md"
 						>
 							View all
 						</Link>

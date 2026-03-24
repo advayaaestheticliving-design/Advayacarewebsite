@@ -257,7 +257,7 @@ function AdminCommentsPage() {
                           type="button"
                           onClick={() => handleUpdate(comment)}
                           disabled={updatingCommentId === comment.id}
-                          className="rounded-full bg-[#D4AF37] px-4 py-2 text-xs font-semibold text-black hover:bg-[#e3c458] disabled:opacity-60"
+                          className="rounded-full bg-[#D4AF37] px-4 py-2 text-xs font-semibold text-white hover:bg-[#e3c458] disabled:opacity-60"
                         >
                           {updatingCommentId === comment.id ? "Updating..." : "Update"}
                         </button>

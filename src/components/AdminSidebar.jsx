@@ -5,7 +5,7 @@ function AdminSidebar({ onSignOut, authLoading, onBeforeNavigate }) {
   const getNavClass = ({ isActive }) =>
     `block rounded-xl px-3 py-2 text-sm transition ${
       isActive
-        ? "bg-[#D4AF37] text-black font-semibold"
+        ? "bg-[#D4AF37] text-white font-semibold"
         : "border border-neutral-700 text-white hover:border-[#D4AF37]"
     }`;
 
