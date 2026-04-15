@@ -47,12 +47,18 @@ export async function initializeRazorpayPayment(
     // eslint-disable-next-line no-console
     console.log("   Full Payload:", JSON.stringify(payload));
     
+    const createHeaders = {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
+    };
+
+    if (authToken) {
+      createHeaders.Authorization = `Bearer ${authToken}`;
+    }
+
     const response = await fetch(functionUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${authToken}`,
-      },
+      headers: createHeaders,
       body: JSON.stringify(payload),
     });
 
@@ -85,12 +91,18 @@ export async function handlePaymentSuccess(paymentData) {
       data: { session },
     } = await supabase.auth.getSession();
     const authToken = session?.access_token || SUPABASE_ANON_KEY;
+    const verifyHeaders = {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
+    };
+
+    if (authToken) {
+      verifyHeaders.Authorization = `Bearer ${authToken}`;
+    }
+
     const response = await fetch(functionUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${authToken}`,
-      },
+      headers: verifyHeaders,
       body: JSON.stringify({
         razorpayPaymentId: paymentData.razorpay_payment_id,
         razorpayOrderId: paymentData.razorpay_order_id,
