@@ -24,7 +24,7 @@ export async function initializeRazorpayPayment(
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    const authToken = session?.access_token || SUPABASE_ANON_KEY;
+    const accessToken = session?.access_token;
     const amountInPaise = Math.round((Number(amount) || 0) * 100);
     
     const payload = {
@@ -52,8 +52,8 @@ export async function initializeRazorpayPayment(
       apikey: SUPABASE_ANON_KEY,
     };
 
-    if (authToken) {
-      createHeaders.Authorization = `Bearer ${authToken}`;
+    if (accessToken) {
+      createHeaders.Authorization = `Bearer ${accessToken}`;
     }
 
     const response = await fetch(functionUrl, {
@@ -90,14 +90,14 @@ export async function handlePaymentSuccess(paymentData) {
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    const authToken = session?.access_token || SUPABASE_ANON_KEY;
+    const accessToken = session?.access_token;
     const verifyHeaders = {
       "Content-Type": "application/json",
       apikey: SUPABASE_ANON_KEY,
     };
 
-    if (authToken) {
-      verifyHeaders.Authorization = `Bearer ${authToken}`;
+    if (accessToken) {
+      verifyHeaders.Authorization = `Bearer ${accessToken}`;
     }
 
     const response = await fetch(functionUrl, {
