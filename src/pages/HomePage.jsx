@@ -2,12 +2,18 @@ import React from "react";
 import { Link } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 import HomeTestimonialsSection from "../components/HomeTestimonialsSection";
+import ScrollTriggerAIRecommendationsPopup, { POPUP_DISMISSED_KEY } from "../components/ScrollTriggerAIRecommendationsPopup";
 import { fetchProducts } from "../lib/productsApi";
+import { useMemberSession } from "../context/MemberSessionContext";
+
+const SCROLL_TRIGGER_MS = 60000; // 1 minute
 
 function HomePage() {
 	const [featured, setFeatured] = React.useState([]);
 	const [loading, setLoading] = React.useState(true);
 	const [error, setError] = React.useState(null);
+	const [popupOpen, setPopupOpen] = React.useState(false);
+	const { authReady, isAuthenticated } = useMemberSession();
 
 	React.useEffect(() => {
 		let mounted = true;
@@ -39,9 +45,39 @@ function HomePage() {
 		};
 	}, []);
 
+	// Scroll trigger popup logic
+	React.useEffect(() => {
+		if (!authReady || isAuthenticated) {
+			return;
+		}
+
+		const isDismissed = sessionStorage.getItem(POPUP_DISMISSED_KEY) === "true";
+		if (isDismissed) {
+			return;
+		}
+
+		const timer = window.setTimeout(() => {
+			if (mounted) {
+				setPopupOpen(true);
+			}
+		}, SCROLL_TRIGGER_MS);
+
+		let mounted = true;
+
+		return () => {
+			mounted = false;
+			window.clearTimeout(timer);
+		};
+	}, [authReady, isAuthenticated]);
+
 
 	return (
-		<div className="space-y-12 lg:space-y-16">
+		<>
+			<ScrollTriggerAIRecommendationsPopup 
+				isOpen={popupOpen} 
+				onClose={() => setPopupOpen(false)} 
+			/>
+			<div className="space-y-12 lg:space-y-16">
 			{/* STATEMENT HERO (simplified, no container) */}
 			<section className="pt-4 sm:pt-6 lg:pt-8">
 				<div className="space-y-5 max-w-3xl mx-auto text-center">
@@ -169,7 +205,8 @@ function HomePage() {
 			)}
 
 			<HomeTestimonialsSection />
-		</div>
+			</div>
+		</>
 	);
 }
 
