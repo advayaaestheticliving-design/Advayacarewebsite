@@ -204,12 +204,15 @@ export async function getMembershipProfile() {
   });
 }
 
-export async function saveMembershipProfile(payload) {
+export async function saveMembershipProfile(payload, { userId = null } = {}) {
   const { user, guestSessionId } = await getMembershipIdentity();
+  
+  // Use provided userId from signup, or fall back to session user
+  const effectiveUserId = userId || user?.id || null;
 
   const record = {
-    auth_user_id: user?.id ?? null,
-    guest_session_id: user?.id ? null : guestSessionId,
+    auth_user_id: effectiveUserId,
+    guest_session_id: effectiveUserId ? null : guestSessionId,
     skin_type: String(payload.skin_type || "").trim(),
     concerns: toArray(payload.concerns),
     allergies: toArray(payload.allergies),
@@ -233,16 +236,16 @@ export async function saveMembershipProfile(payload) {
   }
 
   const existingProfile = await findMembershipProfileByIdentity({
-    authUserId: user?.id ?? null,
+    authUserId: effectiveUserId,
     guestSessionId,
-    allowGuestFallback: Boolean(user?.id),
+    allowGuestFallback: Boolean(effectiveUserId),
   });
 
   const writePayload = existingProfile?.id
     ? {
         ...record,
-        auth_user_id: user?.id ?? existingProfile.auth_user_id ?? null,
-        guest_session_id: user?.id ? null : guestSessionId,
+        auth_user_id: effectiveUserId ?? existingProfile.auth_user_id ?? null,
+        guest_session_id: effectiveUserId ? null : guestSessionId,
       }
     : record;
 

@@ -111,7 +111,8 @@ function ScrollTriggerAIRecommendationsPopup({ isOpen, onClose }) {
 
     setLoading(true);
     try {
-      await saveMembershipProfile(profile);
+      // Pass the user ID from signup to avoid session timing issues
+      await saveMembershipProfile(profile, { userId: createdUser?.id });
       
       try {
         await ensureSignupCouponIssued();
