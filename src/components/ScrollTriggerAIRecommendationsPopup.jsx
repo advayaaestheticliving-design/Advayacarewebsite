@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import {
   signUpWithEmailPassword,
+  signInWithEmailPassword,
   saveMembershipProfile,
   initialMembershipProfileForm,
 } from "../lib/membershipApi";
@@ -81,6 +82,15 @@ function ScrollTriggerAIRecommendationsPopup({ isOpen, onClose }) {
     setLoading(true);
     try {
       const data = await signUpWithEmailPassword(email, password, phone);
+      
+      // Sign in to establish session for profile creation
+      try {
+        await signInWithEmailPassword(email, password);
+      } catch (signInError) {
+        setError("Account created. Please check your email for confirmation and sign in to continue.");
+        return;
+      }
+      
       setCreatedUser(data?.user);
       setStep("profile");
     } catch (err) {
