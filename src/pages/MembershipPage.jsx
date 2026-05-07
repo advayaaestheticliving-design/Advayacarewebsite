@@ -86,13 +86,13 @@ function MembershipPage() {
         const isConfirmed = Boolean(data?.session || data?.user?.email_confirmed_at);
 
         if (isConfirmed) {
-          setStatus("Account created. Your ₹100 member coupon is active. Continue to My Account to set up your AI recommendation profile.");
+          setStatus("Account created. Your ₹100 member coupon is active. Continue to My Account to set up your personalized profile.");
         } else {
-          setStatus("Account created. Please confirm your email first, then sign in to manage your AI recommendation profile.");
+          setStatus("Account created. Please confirm your email first, then sign in to manage your personalized profile.");
         }
       } else {
         await signInWithEmailPassword(authEmail, authPassword);
-        setStatus("Signed in successfully. Your AI recommendation profile is available in My Account.");
+        setStatus("Signed in successfully. Your personalized profile is available in My Account.");
       }
     } catch (authError) {
       setError(authError.message || "Authentication failed.");
@@ -130,7 +130,7 @@ function MembershipPage() {
           Log In / Sign Up
         </h1>
         <p className="text-sm sm:text-base text-white">
-          Create your account or log in to access member pricing, coupons, orders, and your saved AI recommendation profile.
+          Create your account or log in to access member pricing, coupons, orders, and your saved personalized profile.
         </p>
       </div>
 
@@ -155,7 +155,7 @@ function MembershipPage() {
               </button>
             </div>
             <p className="text-sm text-white/70">
-              Manage your AI recommendation profile and saved recommendations from My Account.
+              Manage your personalized profile and saved recommendations from My Account.
             </p>
           </div>
         ) : (
@@ -240,7 +240,7 @@ function MembershipPage() {
 
       {!memberEmail && (
         <p className="text-sm text-white/80">
-          Sign in or create an account to access your account dashboard and AI recommendation profile.
+          Sign in or create an account to access your account dashboard and personalized profile.
         </p>
       )}
     </div>

@@ -45,7 +45,7 @@ function MembershipRecommendationsPanel({
   const statusLabel = !hasProfile
     ? "Profile needed"
     : !hasAiConsent
-      ? "AI consent paused"
+      ? "Personalization paused"
       : stale
         ? "Recommendations out of date"
         : hasRecommendations
@@ -55,12 +55,12 @@ function MembershipRecommendationsPanel({
   const statusCopy = !hasProfile
     ? "Create your profile once and we will keep reusing the saved recommendation set until you change it."
     : !hasAiConsent
-      ? "Your profile is saved, but AI refresh is disabled until consent is enabled again."
+      ? "Your profile is saved, but personalized recommendations refresh is paused until consent is enabled again."
       : stale
         ? "Your profile was updated after these recommendations were saved. Save the profile again to refresh the set."
         : hasRecommendations
-          ? "These recommendations are being served from the latest saved run. No new AI request is made on page load."
-          : "No saved AI recommendation run exists yet for this profile.";
+          ? "These recommendations are being served from the latest saved run. No new request is made on page load."
+          : "No saved personalized recommendation run exists yet for this profile.";
 
   const scrollCarousel = (direction) => {
     const node = carouselRef.current;
@@ -161,7 +161,7 @@ function MembershipRecommendationsPanel({
         <>
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-white">Saved AI Recommendations</h2>
+              <h2 className="text-lg font-semibold text-white">Saved Personalized Recommendations</h2>
               <p className="mt-1 text-sm text-white">
                 We reuse your last saved recommendations until you update your profile.
               </p>
@@ -174,13 +174,13 @@ function MembershipRecommendationsPanel({
           </div>
 
         <div className="rounded-xl border border-dashed border-neutral-600 bg-black/40 p-5 text-sm text-white/80 space-y-3">
-          <p>Create your AI recommendation profile to unlock a saved routine match for your skin needs.</p>
+          <p>Create your personalized profile to unlock a saved routine match for your skin needs.</p>
           <button
             type="button"
             onClick={onOpenEditor}
             className="rounded-full bg-[#D4AF37] px-4 py-2 text-xs font-semibold text-black hover:bg-[#e3c458]"
           >
-            Create AI Profile
+            Create Personalized Profile
           </button>
         </div>
         </>
@@ -188,7 +188,7 @@ function MembershipRecommendationsPanel({
         <>
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-white">Saved AI Recommendations</h2>
+              <h2 className="text-lg font-semibold text-white">Saved Personalized Recommendations</h2>
               <p className="mt-1 text-sm text-white">
                 We reuse your last saved recommendations until you update your profile.
               </p>
@@ -196,13 +196,13 @@ function MembershipRecommendationsPanel({
           </div>
 
           <div className="rounded-xl border border-neutral-700 bg-black/40 p-5 text-sm text-white/80 space-y-2">
-            <p>AI recommendations are paused because AI consent is currently disabled on your profile.</p>
+            <p>Personalized recommendations are paused because consent is currently disabled on your profile.</p>
             <button
               type="button"
               onClick={onOpenEditor}
               className="rounded-full border border-[#D4AF37] px-4 py-2 text-xs font-medium text-[#D4AF37] hover:bg-[#D4AF37]/10"
             >
-              Enable AI Consent
+              Enable Personalization
             </button>
           </div>
         </>
@@ -210,7 +210,7 @@ function MembershipRecommendationsPanel({
         <>
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-white">Saved AI Recommendations</h2>
+              <h2 className="text-lg font-semibold text-white">Saved Personalized Recommendations</h2>
               <p className="mt-1 text-sm text-white">
                 We reuse your last saved recommendations until you update your profile.
               </p>
@@ -218,7 +218,7 @@ function MembershipRecommendationsPanel({
           </div>
 
           <div className="rounded-xl border border-neutral-700 bg-black/40 p-5 text-sm text-white/80 space-y-2">
-            <p>Your profile is saved, but there are no stored AI recommendations yet.</p>
+            <p>Your profile is saved, but there are no stored personalized recommendations yet.</p>
             <p>Open the editor and save your profile to generate and store your recommendations.</p>
           </div>
         </>

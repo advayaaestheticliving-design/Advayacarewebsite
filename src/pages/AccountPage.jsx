@@ -129,7 +129,7 @@ function AccountPage() {
   const recommendationStatusLabel = !membershipProfile
     ? "Set up needed"
     : !membershipProfile?.consent_to_ai
-      ? "AI paused"
+      ? "Paused"
       : membershipRecommendationsStale
         ? "Out of date"
         : membershipRecommendations.length > 0
@@ -161,7 +161,7 @@ function AccountPage() {
   }, []);
 
   const loadMembershipData = React.useCallback(async (catalog = []) => {
-    const profile = await withTimeout(getMembershipProfile(), "Timed out while loading your AI profile.");
+    const profile = await withTimeout(getMembershipProfile(), "Timed out while loading your personalized profile.");
     setMembershipProfile(profile);
     setMembershipForm(mapMembershipProfileToForm(profile));
 
@@ -248,7 +248,7 @@ function AccountPage() {
         }
       }
 
-      await withTimeout(loadMembershipData(resolvedCatalog), "Timed out while loading your AI recommendation data.");
+      await withTimeout(loadMembershipData(resolvedCatalog), "Timed out while loading your personalized profile data.");
     } catch (loadError) {
       if (loadRequestIdRef.current !== requestId) {
         return;
@@ -307,7 +307,7 @@ function AccountPage() {
         setMembershipRecommendationSavedAt("");
         setMembershipRecommendationsStale(false);
         setMembershipEditing(false);
-        setMembershipStatus("Profile saved. Enable AI consent whenever you want recommendations refreshed.");
+        setMembershipStatus("Profile saved. Enable personalization consent whenever you want recommendations refreshed.");
         return;
       }
 
@@ -326,7 +326,7 @@ function AccountPage() {
         setMembershipRecommendations(mapRecommendationsToProducts(savedRecommendations, currentCatalog));
         setMembershipRecommendationsStale(Boolean(latestRun) && !isRecommendationRunFresh(savedProfile, latestRun));
         setMembershipEditing(false);
-        setMembershipStatus("Profile saved. Your latest AI recommendations were refreshed and stored.");
+        setMembershipStatus("Profile saved. Your personalized recommendations were refreshed and stored.");
       } catch (recommendationError) {
         setMembershipRecommendationsStale(true);
         setMembershipEditing(false);
@@ -335,7 +335,7 @@ function AccountPage() {
         return;
       }
     } catch (saveError) {
-      setMembershipError(saveError?.message || "Could not save your AI recommendation profile.");
+      setMembershipError(saveError?.message || "Could not save your personalized profile.");
     } finally {
       setMembershipSaving(false);
     }
@@ -347,7 +347,7 @@ function AccountPage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#D4AF37]">My Account</h1>
           <p className="text-sm text-white/80 mt-1">
-            View your AI recommendation profile, order status timeline, linked coupons, and purchased gift cards.
+            View your personalized profile, order status timeline, linked coupons, and purchased gift cards.
           </p>
         </div>
         <button
@@ -363,7 +363,7 @@ function AccountPage() {
         <p className="text-sm text-white/80">Loading account wallet...</p>
       ) : !userId ? (
         <div className="rounded-2xl border border-neutral-700 bg-black/50 p-5 text-sm text-white/90 space-y-3">
-          <p>Sign in to view your AI recommendation profile, order timeline, coupons, and purchased gift cards.</p>
+          <p>Sign in to view your personalized profile, order timeline, coupons, and purchased gift cards.</p>
           <Link
             to="/membership"
             className="inline-flex rounded-full bg-[#D4AF37] px-4 py-2 text-xs font-semibold text-black hover:bg-[#e3c458]"
@@ -382,12 +382,12 @@ function AccountPage() {
             <section className="rounded-[32px] border border-[#D4AF37]/20 bg-[radial-gradient(circle_at_top_left,_rgba(212,175,55,0.18),_rgba(0,0,0,0.2)_34%,_rgba(0,0,0,0.84)_74%)] p-5 sm:p-6 lg:p-7 space-y-5 overflow-hidden">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="max-w-2xl space-y-2">
-                  <p className="text-[11px] uppercase tracking-[0.28em] text-[#f0d682]">AI Recommendation Studio</p>
+                  <p className="text-[11px] uppercase tracking-[0.28em] text-[#f0d682]">Your Personalized Profile Studio</p>
                   <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">
                     Your saved recommendations, ready to review.
                   </h2>
                   <p className="text-sm text-white">
-                    Your account now stores the latest successful recommendation run so returning visits reuse saved results instead of triggering AI again.
+                    Your account now stores the latest successful personalized recommendation set so returning visits reuse saved results without regenerating.
                   </p>
                 </div>
 
@@ -420,12 +420,12 @@ function AccountPage() {
               <section className="rounded-[32px] border border-[#D4AF37]/20 bg-[radial-gradient(circle_at_top_left,_rgba(212,175,55,0.2),_rgba(0,0,0,0.15)_35%,_rgba(0,0,0,0.82)_72%)] p-5 sm:p-6 lg:p-7 space-y-5 overflow-hidden">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                   <div className="max-w-2xl space-y-2">
-                    <p className="text-[11px] uppercase tracking-[0.28em] text-[#f0d682]">AI Recommendation Studio</p>
+                    <p className="text-[11px] uppercase tracking-[0.28em] text-[#f0d682]">Your Personalized Profile Studio</p>
                     <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">
                       Keep one saved profile and refresh recommendations only when your skin story changes.
                     </h2>
                     <p className="text-sm text-white">
-                      Your account now stores the latest successful recommendation run so returning visits reuse saved results instead of triggering AI again.
+                      Your account now stores the latest successful personalized recommendation set so returning visits reuse saved results without regenerating.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -434,7 +434,7 @@ function AccountPage() {
                       onClick={openMembershipEditor}
                       className="rounded-full bg-[#D4AF37] px-4 py-2 text-xs font-semibold text-black hover:bg-[#e3c458]"
                     >
-                      Create AI Profile
+                      Create Personalized Profile
                     </button>
                   </div>
                 </div>
@@ -481,7 +481,7 @@ function AccountPage() {
               className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 py-5 sm:items-center sm:px-6"
               role="dialog"
               aria-modal="true"
-              aria-label={membershipProfile ? "Update AI recommendation profile" : "Create AI recommendation profile"}
+              aria-label={membershipProfile ? "Update personalized profile" : "Create personalized profile"}
               onClick={handleMembershipCancel}
             >
               <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>

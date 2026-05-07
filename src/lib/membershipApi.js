@@ -317,10 +317,10 @@ async function getRecommendationAccessToken({ forceRefresh = false } = {}) {
   }
 
   if (session?.user) {
-    throw new Error("Your member session expired. Sign in again to refresh AI recommendations.");
+    throw new Error("Your member session expired. Sign in again to refresh personalized recommendations.");
   }
 
-  throw new Error("Sign in to refresh AI recommendations.");
+  throw new Error("Sign in to refresh personalized recommendations.");
 }
 
 export async function getMembershipRecommendations(profileId, products = []) {

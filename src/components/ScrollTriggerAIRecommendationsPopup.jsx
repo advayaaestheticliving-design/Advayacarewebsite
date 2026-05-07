@@ -177,14 +177,14 @@ function ScrollTriggerAIRecommendationsPopup({ isOpen, onClose }) {
           {/* Header */}
           <div className="space-y-2 pb-2">
             <div className="inline-flex items-center rounded-full border border-[#D4AF37]/70 bg-[#D4AF37]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f2d690]">
-              {step === "auth" ? "Personalized AI Skincare" : "Your Skin Profile"}
+              {step === "auth" ? "Personalized Skincare Profile" : "Your Skin Profile"}
             </div>
             <h2
               id="recommendation-popup-title"
               className="text-2xl font-semibold leading-tight text-[#f4d88f] sm:text-3xl"
             >
               {step === "auth"
-                ? "Create Your Free AI Recommendation"
+                ? "Create Your Personalized Skincare Profile"
                 : "Tell Us About Your Skin"}
             </h2>
           </div>
@@ -200,7 +200,7 @@ function ScrollTriggerAIRecommendationsPopup({ isOpen, onClose }) {
           {step === "auth" && (
             <form onSubmit={handleAuthSubmit} className="space-y-4">
               <p className="text-sm text-white/80">
-                Sign up in minutes to get your personalized skincare routine powered by AI.
+                Sign up in minutes to get your personalized skincare routine tailored just for you.
               </p>
 
               <label className="block text-sm text-white space-y-2">
@@ -440,7 +440,7 @@ function ScrollTriggerAIRecommendationsPopup({ isOpen, onClose }) {
                     disabled={loading}
                   />
                   <span>
-                    I consent to AI-assisted recommendation generation and understand it is informational, not medical advice.
+                    I consent to personalized recommendation generation and understand it is informational, not medical advice.
                   </span>
                 </label>
               </div>

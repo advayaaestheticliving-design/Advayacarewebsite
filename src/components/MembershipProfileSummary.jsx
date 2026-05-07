@@ -45,7 +45,7 @@ function MembershipProfileSummary({ profile, onEdit }) {
     <section className="rounded-[28px] border border-neutral-700 bg-gradient-to-br from-black/70 via-black/55 to-[#201407]/70 p-5 sm:p-6 space-y-5 shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-white">AI Recommendation Profile</h2>
+          <h2 className="text-lg font-semibold text-white">Personalized Skincare Profile</h2>
           <p className="text-sm text-white/70 mt-1">
             Your recommendations stay saved until you update this profile again.
           </p>
@@ -73,7 +73,7 @@ function MembershipProfileSummary({ profile, onEdit }) {
               : "border-neutral-500/40 bg-neutral-500/10 text-white/70"
           }`}
         >
-          {profile.consent_to_ai ? "AI refresh enabled" : "AI refresh paused"}
+          {profile.consent_to_ai ? "Refresh enabled" : "Refresh paused"}
         </span>
       </div>
 
@@ -87,7 +87,7 @@ function MembershipProfileSummary({ profile, onEdit }) {
         <SummaryRow label="Stress Level" value={profile.stress_level} />
         <SummaryRow label="Water Intake" value={profile.water_intake} />
         <SummaryRow
-          label="AI Consent"
+          label="Personalization Consent"
           value={profile.consent_to_ai ? "Enabled for saved recommendations" : "Disabled"}
         />
       </div>

@@ -5,7 +5,7 @@ function MembershipProfileEditor({ form, onChange, onSubmit, onCancel, loading }
     <form onSubmit={onSubmit} className="rounded-2xl border border-neutral-700 bg-black/50 p-5 sm:p-6 space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <h3 className="text-lg font-semibold text-white">AI Recommendation Profile</h3>
+          <h3 className="text-lg font-semibold text-white">Personalized Skincare Profile</h3>
           <p className="text-sm text-white/70">
             Update your skin profile when your routine changes. Recommendations refresh only after you save.
           </p>
@@ -184,7 +184,7 @@ function MembershipProfileEditor({ form, onChange, onSubmit, onCancel, loading }
             className="mt-1"
           />
           <span>
-            I consent to AI-assisted recommendation generation and understand it is informational, not medical advice.
+            I consent to personalized recommendation generation and understand it is informational, not medical advice.
           </span>
         </label>
       </div>

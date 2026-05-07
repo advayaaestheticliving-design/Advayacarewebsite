@@ -6,7 +6,7 @@ const copyByVariant = {
     badge: "New Member Welcome",
     title: "Unlock your free AI skincare recommendation",
     body:
-      "Join as a member in minutes and get your personalized product match powered by AI.",
+      "Join as a member in minutes and get your personalized product match tailored for you.",
     timerLabel: "Offer window on this page:",
     cta: "Register As Member",
     secondary: "Maybe Later",
