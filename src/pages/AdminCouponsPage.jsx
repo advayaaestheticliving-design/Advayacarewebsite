@@ -11,7 +11,7 @@ import {
 
 function AdminCouponsPage() {
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading: authLoading } = useAdminAccess();
+  const { authorized: isAuthenticated, checkingAccess, authLoading } = useAdminAccess();
 
   // Form states
   const [memberEmails, setMemberEmails] = useState("");
@@ -139,8 +139,16 @@ function AdminCouponsPage() {
     navigate("/admin");
   }
 
-  if (!isAuthenticated && !authLoading) {
-    return <div className="text-white">Unauthorized</div>;
+  if (checkingAccess) {
+    return (
+      <div className="min-h-screen bg-black/80 text-white flex items-center justify-center">
+        <div>Checking access...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <div className="min-h-screen bg-black/80 text-white flex items-center justify-center">Unauthorized</div>;
   }
 
   return (
