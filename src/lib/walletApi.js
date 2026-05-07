@@ -3,12 +3,43 @@ import { supabase, isSupabaseConfigured } from "./supabaseClient";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+/**
+ * Get auth token from session or fallback to anon key
+ */
 async function getAuthTokenOrAnon() {
+  try {
+    // Refresh session to ensure token is current
+    const { data: refreshData } = await supabase.auth.refreshSession();
+    const token = refreshData?.session?.access_token;
+    if (token) return token;
+  } catch {
+    // Continue to fallback
+  }
+
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
   return session?.access_token || SUPABASE_ANON_KEY;
+}
+
+/**
+ * Ensure user is authenticated and session is valid
+ * Throws error if not authenticated
+ */
+async function ensureAuthenticated() {
+  try {
+    const { data: refreshData } = await supabase.auth.refreshSession();
+    const session = refreshData?.session;
+    
+    if (!session?.user?.id) {
+      throw new Error("User not authenticated");
+    }
+    
+    return session.access_token;
+  } catch (error) {
+    throw new Error("Authentication required: " + (error instanceof Error ? error.message : "Unknown error"));
+  }
 }
 
 export async function validateDiscounts({ subtotal = 0, couponCode = "", giftCardCode = "" }) {
@@ -52,31 +83,31 @@ export async function ensureSignupCouponIssued() {
     return { success: false, issued: false };
   }
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  try {
+    const token = await ensureAuthenticated();
 
-  if (!session?.access_token) {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/issue-signup-coupon`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({}),
+    });
+
+    const body = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      console.error("❌ Issue coupon error:", body?.error);
+      return { success: false, issued: false, error: body?.error };
+    }
+
+    return body || { success: false, issued: false };
+  } catch (error) {
+    console.warn("⚠️ Signup coupon issue:", error instanceof Error ? error.message : "Unknown error");
     return { success: false, issued: false };
   }
-
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/issue-signup-coupon`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify({}),
-  });
-
-  const body = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    throw new Error(body?.error || `Could not issue signup coupon (${response.status})`);
-  }
-
-  return body;
 }
 
 export async function getMyCoupons() {
@@ -84,16 +115,25 @@ export async function getMyCoupons() {
     return [];
   }
 
-  const { data, error } = await supabase
-    .from("member_coupons")
-    .select("id, code, amount_inr, status, issued_reason, expires_at, issued_at, consumed_at")
-    .order("issued_at", { ascending: false });
+  try {
+    // Ensure session is fresh before querying
+    await supabase.auth.refreshSession();
 
-  if (error) {
+    const { data, error } = await supabase
+      .from("member_coupons")
+      .select("id, code, amount_inr, status, issued_reason, expires_at, issued_at, consumed_at")
+      .order("issued_at", { ascending: false });
+
+    if (error) {
+      console.error("❌ Error fetching coupons:", error.message);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("❌ getMyCoupons error:", error instanceof Error ? error.message : "Unknown error");
     throw error;
   }
-
-  return data || [];
 }
 
 export async function getMyGiftCards() {
@@ -101,14 +141,23 @@ export async function getMyGiftCards() {
     return [];
   }
 
-  const { data, error } = await supabase
-    .from("gift_cards")
-    .select("id, code, initial_amount_inr, balance_amount_inr, status, owner_email, issued_to_name, expires_at, created_at")
-    .order("created_at", { ascending: false });
+  try {
+    // Ensure session is fresh before querying
+    await supabase.auth.refreshSession();
 
-  if (error) {
+    const { data, error } = await supabase
+      .from("gift_cards")
+      .select("id, code, initial_amount_inr, balance_amount_inr, status, owner_email, issued_to_name, expires_at, created_at")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("❌ Error fetching gift cards:", error.message);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("❌ getMyGiftCards error:", error instanceof Error ? error.message : "Unknown error");
     throw error;
   }
-
-  return data || [];
 }
