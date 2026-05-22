@@ -45,7 +45,8 @@ serve(async (req: Request) => {
       );
     }
 
-    if (user.email !== ADMIN_EMAIL) {
+    const requesterEmail = String(user.email || "").trim().toLowerCase();
+    if (!requesterEmail || requesterEmail !== ADMIN_EMAIL) {
       return new Response(
         JSON.stringify({ error: "Not authorized - admin access required" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -1,12 +1,85 @@
 import { adminSupabase } from "./adminSupabaseClient";
-import {
-  createGeneralCoupon,
-  updateGeneralCoupon,
-  listAllGeneralCoupons,
-} from "./generalCouponsApi";
 
-// Re-export general coupon admin functions
-export { createGeneralCoupon, updateGeneralCoupon, listAllGeneralCoupons };
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Admin: Create general coupon
+export async function createGeneralCoupon(couponData) {
+  if (!adminSupabase) throw new Error("Supabase is not configured.");
+
+  const { data: { session } } = await adminSupabase.auth.getSession();
+  if (!session?.access_token) throw new Error("Admin authentication required.");
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-manage-general-coupons`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({
+      action: "create",
+      coupon: couponData,
+    }),
+  });
+
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(body?.error || "Failed to create coupon");
+  }
+
+  return body;
+}
+
+// Admin: Update general coupon
+export async function updateGeneralCoupon(couponId, updates) {
+  if (!adminSupabase) throw new Error("Supabase is not configured.");
+
+  const { data: { session } } = await adminSupabase.auth.getSession();
+  if (!session?.access_token) throw new Error("Admin authentication required.");
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-manage-general-coupons`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({
+      action: "update",
+      couponId,
+      updates,
+    }),
+  });
+
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(body?.error || "Failed to update coupon");
+  }
+
+  return body;
+}
+
+// Admin: List all general coupons
+export async function listAllGeneralCoupons({ limit = 50, offset = 0 } = {}) {
+  if (!adminSupabase) throw new Error("Supabase is not configured.");
+
+  const { data, error, count } = await adminSupabase
+    .from("general_coupons")
+    .select("*", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    coupons: data || [],
+    total: count || 0,
+  };
+}
+
 
 /**
  * Issue a member_coupon to a specific user identified by email.
