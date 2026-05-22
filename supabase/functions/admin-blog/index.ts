@@ -329,10 +329,21 @@ serve(async (req) => {
 
       const generated = await callGeminiJson(
         [
-          "Write a detailed skincare blog post.",
+          "Write a detailed skincare blog post in HTML format.",
           "Audience: Indian skincare consumers.",
-          "Use practical structure with headings and concise paragraphs.",
           "Return JSON only: {\"content\":\"...\"}",
+          "Formatting & Structure Rules:",
+          "- Generate the ENTIRE blog post using valid, semantic HTML tags. Do NOT use markdown. Do not include markdown code block backticks (like ```html ... ```) inside the content JSON string.",
+          "- Use the following ALLOWED HTML tags for rich layout structure:",
+          "  - <p> for paragraphs (2-4 sentences max per paragraph).",
+          "  - <h2>, <h3>, <h4> for section headings (never use <h1> as it is reserved for the main article title).",
+          "  - <strong> and <em> for highlighting/bolding/italics.",
+          "  - <ul> or <ol> with <li> for well-structured bullet or numbered lists.",
+          "  - <blockquote> for special tips, quotes, or routine advice.",
+          "  - <hr> for thematic dividers.",
+          "  - <a> with href for external references (use target=\"_blank\").",
+          "- Do not use any tag outside the allowed list: a, blockquote, br, code, em, h2, h3, h4, hr, img, li, ol, p, pre, strong, ul.",
+          "- Ensure the generated HTML is clean, syntactically correct, and all tags are properly closed.",
           `Title: ${title}`,
           `Plan: ${contentPlan || "No explicit plan provided. Create a helpful educational flow."}`,
         ].join("\n")
