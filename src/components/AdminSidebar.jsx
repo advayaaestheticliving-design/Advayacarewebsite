@@ -46,7 +46,7 @@ function AdminSidebar({ onSignOut, authLoading, onBeforeNavigate }) {
           Products
         </NavLink>
         <NavLink to="/admin/coupons" className={getNavClass} onClick={handleBeforeNavigate}>
-          Generate Coupon Code
+          Coupons
         </NavLink>
         <NavLink to="/admin/blog-manager" className={getNavClass} onClick={handleBeforeNavigate}>
           Blog Manager
