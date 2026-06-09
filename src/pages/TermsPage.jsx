@@ -46,9 +46,15 @@ function TermsPage() {
       </section>
       <section className="space-y-4 text-sm sm:text-base leading-relaxed">
         <h2 className="text-xl font-semibold">Accuracy of Billing and Account Information</h2>
-        <p>We reserve the right to refuse any order you place with us. We may, in our sole discretion, limit or cancel quantities purchased per person, per household or per order. These restrictions may include orders placed by or under the same customer account, the same credit card, and/or orders that use the same billing and/or shipping address. In the event that we make a change to or cancel an order, we may attempt to notify you by contacting the e-mail and/or billing address/phone number provided at the time the order was made. We reserve the right to limit or prohibit orders that, in our sole judgment, appear to be placed by dealers, resellers or distributors.</p>
+        <p>We reserve the right to refuse any order you place with us. We may, in our sole discretion, limit or cancel quantities purchased per person, per household or per order. These restrictions may include orders placed by or under the same customer account, the same credit card, and/or orders that use the same billing and/or shipping address. In the event that we make a change to or cancel an order, we may attempt to notify you by contacting the e-mail and/or billing address/phone number provided at the time the order was made. Resale is permitted only for businesses expressly approved by Advaya under current written trade terms; unapproved dealer, marketplace, distributor, or reseller orders may be limited or cancelled.</p>
         <p>You agree to provide current, complete and accurate purchase and account information for all purchases made at our store. You agree to promptly update your account and other information, including your email address and credit card numbers and expiration dates, so that we can complete your transactions and contact you as needed.</p>
         <p>For more detail, please review our Returns Policy.</p>
+      </section>
+      <section className="space-y-4 text-sm sm:text-base leading-relaxed">
+        <h2 className="text-xl font-semibold">Approved Trade Accounts</h2>
+        <p>Approved salons, spas, and other trade partners may purchase selected products for resale under an accepted Advaya trade quote or written trade agreement. Approval is discretionary, non-transferable, and may be withdrawn where account, payment, brand, compliance, or customer-service standards are not met.</p>
+        <p>Trade prices are confidential and may change with product cost, availability, or programme terms. Opening orders, reorders, sample credits, delivery charges, payment requirements, permitted sales channels, and product selection are governed by the applicable approved quote.</p>
+        <p>Trade partners must use accurate cosmetic product information supplied or approved by Advaya. Partners may not add medical, therapeutic, antibacterial, disease-treatment, guaranteed-result, or other unsupported claims to product listings, consultations, or promotional materials.</p>
       </section>
       <section className="space-y-4 text-sm sm:text-base leading-relaxed">
         <h2 className="text-xl font-semibold">Optional Tools</h2>

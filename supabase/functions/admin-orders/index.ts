@@ -115,7 +115,7 @@ serve(async (req) => {
     const { data: orders, error: listError } = await supabase
       .from("orders")
       .select(
-        "id, created_at, updated_at, amount, currency, status, fulfillment_status, fulfillment_updated_at, customer_name, customer_email, customer_phone, razorpay_order_id, razorpay_payment_id, items"
+        "id, created_at, updated_at, amount, currency, status, fulfillment_status, fulfillment_updated_at, customer_name, customer_email, customer_phone, razorpay_order_id, razorpay_payment_id, items, order_type, b2b_quote_id, b2b_account_id"
       )
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -198,7 +198,7 @@ serve(async (req) => {
       })
       .eq("id", orderId)
       .select(
-        "id, created_at, updated_at, amount, currency, status, fulfillment_status, fulfillment_updated_at, customer_name, customer_email, customer_phone, razorpay_order_id, razorpay_payment_id, items"
+        "id, created_at, updated_at, amount, currency, status, fulfillment_status, fulfillment_updated_at, customer_name, customer_email, customer_phone, razorpay_order_id, razorpay_payment_id, items, order_type, b2b_quote_id, b2b_account_id"
       )
       .single();
 

@@ -1,0 +1,61 @@
+
+[functions.submit-b2b-lead]
+enabled = true
+verify_jwt = true
+import_map = "./functions/submit-b2b-lead/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/submit-b2b-lead/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/submit-b2b-lead/*.html" ]
+
+[functions.admin-b2b]
+enabled = true
+verify_jwt = true
+import_map = "./functions/admin-b2b/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/admin-b2b/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/admin-b2b/*.html" ]
+
+[functions.send-b2b-email]
+enabled = true
+verify_jwt = true
+import_map = "./functions/send-b2b-email/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/send-b2b-email/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/send-b2b-email/*.html" ]
+
+[functions.create-b2b-order]
+enabled = true
+verify_jwt = true
+import_map = "./functions/create-b2b-order/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/create-b2b-order/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/create-b2b-order/*.html" ]
+
+[functions.run-b2b-followups]
+enabled = true
+verify_jwt = false
+import_map = "./functions/run-b2b-followups/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/run-b2b-followups/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/run-b2b-followups/*.html" ]
+
+[functions.b2b-email-events]
+enabled = true
+verify_jwt = false
+import_map = "./functions/b2b-email-events/deno.json"
+entrypoint = "./functions/b2b-email-events/index.ts"

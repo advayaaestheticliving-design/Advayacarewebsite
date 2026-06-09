@@ -94,8 +94,8 @@ const Header = () => {
     }
   };
 
-  const isMoreActive = ["/contact", "/terms", "/gift-card", "/privacy"].includes(
-    location.pathname
+  const isMoreActive = ["/contact", "/terms", "/gift-card", "/privacy", "/trade"].some(
+    (path) => location.pathname === path || location.pathname.startsWith(`${path}/`)
   );
 
   // Update nav link base styles for dark header
@@ -175,6 +175,9 @@ const Header = () => {
               <div className="invisible absolute left-0 top-full mt-2 min-w-[13rem] rounded border border-neutral-700 bg-black/95 py-2 opacity-0 transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
                 <NavLink to="/contact" className="block px-3 py-1 text-white hover:text-[#b58b2f] transition">
                   Contact Us
+                </NavLink>
+                <NavLink to="/trade" className="block px-3 py-1 text-white hover:text-[#b58b2f] transition">
+                  Salon &amp; Spa Trade
                 </NavLink>
                 <NavLink to="/terms" className="block px-3 py-1 text-white hover:text-[#b58b2f] transition">
                   Terms and Conditions
@@ -317,6 +320,9 @@ const Header = () => {
               <div className="mt-1 space-y-1 border-l border-neutral-700 pl-3">
                 <NavLink to="/contact" className={getMobileNavLinkClass}>
                   Contact Us
+                </NavLink>
+                <NavLink to="/trade" className={getMobileNavLinkClass}>
+                  Salon &amp; Spa Trade
                 </NavLink>
                 <NavLink to="/terms" className={getMobileNavLinkClass}>
                   Terms and Conditions

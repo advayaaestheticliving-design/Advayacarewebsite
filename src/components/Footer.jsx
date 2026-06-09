@@ -10,6 +10,7 @@ const navItems = [
   { label: "Privacy Policy", to: "/privacy" },
   { label: "Gift Card", to: "/gift-card" },
   { label: "Membership", to: "/membership" },
+  { label: "Salon & Spa Trade", to: "/trade" },
   { label: "Cart", to: "/cart" },
 ];
 

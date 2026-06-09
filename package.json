@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview --port 4173",
     "deploy": "gh-pages -d dist",
-    "seed:products": "node scripts/seed-products.mjs"
+    "seed:products": "node scripts/seed-products.mjs",
+    "test:b2b": "node scripts/test-b2b-rules.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.84.0",

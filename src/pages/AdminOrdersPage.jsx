@@ -170,6 +170,9 @@ function AdminOrdersPage() {
                         <p>
                           <span className="text-white/70">Fulfillment:</span> {toLabel(order.fulfillment_status)}
                         </p>
+                        {order.order_type && order.order_type !== "consumer" ? (
+                          <p className="text-[#D4AF37]">{toLabel(order.order_type)}</p>
+                        ) : null}
                         <p className="sm:col-span-2">
                           <span className="text-white/70">Email:</span> {order.customer_email || "—"}
                         </p>

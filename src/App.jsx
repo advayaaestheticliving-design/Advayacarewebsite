@@ -25,6 +25,9 @@ import BlogWriterPage from "./pages/BlogWriterPage";
 import AdminProductsPage from "./pages/AdminProductsPage";
 import AdminCommentsPage from "./pages/AdminCommentsPage";
 import AdminCouponsPage from "./pages/AdminCouponsPage";
+import TradePage from "./pages/TradePage";
+import TradeOrderPage from "./pages/TradeOrderPage";
+import AdminB2BPage from "./pages/AdminB2BPage";
 import { clearLegacyGuestAuthState } from "./lib/authSession";
 import { useMemberSession } from "./context/MemberSessionContext";
 
@@ -56,6 +59,7 @@ function App() {
                 <Route path="/admin/blogwriter" element={<BlogWriterPage />} />
                 <Route path="/admin/products" element={<AdminProductsPage />} />
                 <Route path="/admin/coupons" element={<AdminCouponsPage />} />
+                <Route path="/admin/b2b" element={<AdminB2BPage />} />
               </Routes>
             ) : (
               <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
@@ -72,6 +76,8 @@ function App() {
                   <Route path="/gift-card" element={<GiftCardPage />} />
                   <Route path="/membership" element={<MembershipPage />} />
                   <Route path="/account" element={<AccountPage />} />
+                  <Route path="/trade" element={<TradePage />} />
+                  <Route path="/trade/order/:token" element={<TradeOrderPage />} />
                 </Routes>
               </div>
             )}

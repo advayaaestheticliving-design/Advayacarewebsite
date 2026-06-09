@@ -1,16 +1,32 @@
 import React, { useState } from "react";
+import { submitGeneralInquiry } from "../lib/b2bApi";
 
 function ContactPage() {
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", message: "", companyWebsite: "" });
+  const [startedAt] = useState(() => Date.now());
+  const [submitting, setSubmitting] = useState(false);
+  const [status, setStatus] = useState("");
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Contact form submitted", form);
+    setSubmitting(true);
+    setStatus("");
+    setError("");
+    try {
+      const result = await submitGeneralInquiry({ ...form, startedAt, consentToContact: true });
+      setStatus(result.message || "Thanks. We received your message.");
+      setForm({ name: "", email: "", message: "", companyWebsite: "" });
+    } catch (submitError) {
+      setError(submitError?.message || "Could not send your message.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -24,6 +40,14 @@ function ContactPage() {
           love, or feedback on your Advayacare experience.
         </p>
         <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">
+          <input
+            className="hidden"
+            name="companyWebsite"
+            value={form.companyWebsite}
+            onChange={handleChange}
+            tabIndex="-1"
+            autoComplete="off"
+          />
           <div className="space-y-1.5">
             <label className="block text-xs font-medium text-white" htmlFor="name">
               Name
@@ -71,10 +95,16 @@ function ContactPage() {
 
           <button
             type="submit"
-            className="mt-2 rounded-full px-5 py-2 text-sm font-semibold bg-[#b58b2f] text-black hover:bg-[#d4aa3b] transition"
+            disabled={submitting}
+            className="mt-2 rounded-full px-5 py-2 text-sm font-semibold bg-[#b58b2f] text-black hover:bg-[#d4aa3b] transition disabled:opacity-60"
           >
-            Send Message
+            {submitting ? "Sending..." : "Send Message"}
           </button>
+          {status ? <p className="text-sm text-emerald-300">{status}</p> : null}
+          {error ? <p className="text-sm text-red-300">{error}</p> : null}
+          <p className="text-xs text-white/50">
+            By submitting, you consent to Advaya Care using these details to respond to your inquiry.
+          </p>
         </form>
       </section>
 

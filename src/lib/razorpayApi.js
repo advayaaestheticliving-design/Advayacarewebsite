@@ -50,11 +50,8 @@ export async function initializeRazorpayPayment(
     const createHeaders = {
       "Content-Type": "application/json",
       apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${accessToken || SUPABASE_ANON_KEY}`,
     };
-
-    if (accessToken) {
-      createHeaders.Authorization = `Bearer ${accessToken}`;
-    }
 
     const response = await fetch(functionUrl, {
       method: "POST",
@@ -94,11 +91,8 @@ export async function handlePaymentSuccess(paymentData) {
     const verifyHeaders = {
       "Content-Type": "application/json",
       apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${accessToken || SUPABASE_ANON_KEY}`,
     };
-
-    if (accessToken) {
-      verifyHeaders.Authorization = `Bearer ${accessToken}`;
-    }
 
     const response = await fetch(functionUrl, {
       method: "POST",

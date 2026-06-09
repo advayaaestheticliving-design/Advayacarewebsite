@@ -36,6 +36,9 @@ function AdminSidebar({ onSignOut, authLoading, onBeforeNavigate }) {
       <p className="text-xs uppercase tracking-wide text-white/60">Admin Panel</p>
 
       <nav className="space-y-2" aria-label="Admin sections">
+        <NavLink to="/admin/b2b" className={getNavClass} onClick={handleBeforeNavigate}>
+          B2B Sales
+        </NavLink>
         <NavLink to="/admin/orders" className={getNavClass} onClick={handleBeforeNavigate}>
           Orders
         </NavLink>

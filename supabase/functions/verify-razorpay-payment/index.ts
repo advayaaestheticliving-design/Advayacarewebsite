@@ -309,6 +309,106 @@ serve(async (req) => {
       });
     }
 
+    if (updatedOrder.b2b_quote_id && updatedOrder.b2b_account_id) {
+      try {
+        const paidAt = new Date().toISOString();
+        const { data: quote, error: quoteError } = await supabase
+          .from("b2b_quotes")
+          .select("*")
+          .eq("id", updatedOrder.b2b_quote_id)
+          .single();
+
+        if (quoteError || !quote) {
+          throw quoteError || new Error("B2B quote not found");
+        }
+
+        await supabase.from("b2b_quotes").update({
+          status: "paid",
+          paid_at: paidAt,
+          order_id: updatedOrder.id,
+        }).eq("id", quote.id);
+
+        const accountStage = quote.quote_type === "sample_kit" ? "sample_paid" : "won";
+        await supabase.from("b2b_accounts").update({
+          stage: accountStage,
+          won_at: accountStage === "won" ? paidAt : null,
+          next_action_at: null,
+        }).eq("id", quote.account_id);
+
+        const opportunityKind = quote.quote_type;
+        const { data: existingOpportunity } = await supabase.from("b2b_opportunities")
+          .select("id")
+          .eq("account_id", quote.account_id)
+          .eq("kind", opportunityKind)
+          .not("stage", "in", '("lost","won")')
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const opportunityPayload = {
+          account_id: quote.account_id,
+          contact_id: quote.contact_id,
+          kind: opportunityKind,
+          stage: "won",
+          estimated_value_inr: quote.total_inr,
+          probability_percent: 100,
+          next_step: "Payment received; move to fulfillment",
+          won_order_id: updatedOrder.id,
+        };
+        if (existingOpportunity?.id) {
+          await supabase.from("b2b_opportunities").update(opportunityPayload)
+            .eq("id", existingOpportunity.id);
+        } else {
+          await supabase.from("b2b_opportunities").insert(opportunityPayload);
+        }
+
+        if (quote.quote_type === "sample_kit") {
+          const merchandiseValue = toNumber(quote.subtotal_inr);
+          if (merchandiseValue > 0) {
+            await supabase.from("b2b_credits").upsert({
+              account_id: quote.account_id,
+              source_quote_id: quote.id,
+              amount_inr: merchandiseValue,
+              remaining_inr: merchandiseValue,
+              status: "active",
+              expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
+              notes: "Paid sample merchandise value; valid against a qualifying opening order.",
+            }, { onConflict: "source_quote_id" });
+          }
+        } else if (quote.quote_type === "opening_order") {
+          const creditId = String(quote.metadata?.credit_id || "");
+          if (creditId && toNumber(quote.credit_inr) > 0) {
+            await supabase.from("b2b_credits").update({
+              remaining_inr: 0,
+              status: "consumed",
+              consumed_quote_id: quote.id,
+              consumed_at: paidAt,
+            }).eq("id", creditId).eq("status", "active");
+          }
+        }
+
+        await supabase.from("b2b_outreach").update({ status: "cancelled" })
+          .eq("account_id", quote.account_id).in("status", ["draft", "approved"]);
+        await supabase.from("b2b_activities").insert({
+          account_id: quote.account_id,
+          contact_id: quote.contact_id,
+          activity_type: "payment",
+          title: quote.quote_type === "sample_kit" ? "Sample kit paid" : "Trade order paid",
+          details: quote.quote_number,
+          metadata: {
+            quote_id: quote.id,
+            order_id: updatedOrder.id,
+            razorpay_payment_id: razorpayPaymentId,
+          },
+        });
+      } catch (b2bError) {
+        inventoryWarning = [
+          inventoryWarning,
+          `B2B sales record update failed: ${b2bError instanceof Error ? b2bError.message : String(b2bError)}`,
+        ].filter(Boolean).join("; ");
+        console.error("❌ B2B post-payment update failed:", b2bError);
+      }
+    }
+
     const couponCode = String(updatedOrder.coupon_code || "").trim().toUpperCase();
     const couponAmountInr = toNumber(updatedOrder.coupon_amount_inr);
     const giftCardCode = String(updatedOrder.gift_card_code || "").trim().toUpperCase();
