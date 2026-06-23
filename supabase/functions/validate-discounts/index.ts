@@ -32,17 +32,12 @@ serve(async (req) => {
     const couponCode = normalizeCode(body?.couponCode);
     const giftCardCode = normalizeCode(body?.giftCardCode);
 
-    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          Authorization: req.headers.get("Authorization") || "",
-        },
-      },
-    });
+    const authClient = createClient(supabaseUrl, supabaseAnonKey);
+    const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "").trim() || "";
 
     const {
       data: { user },
-    } = await authClient.auth.getUser();
+    } = token ? await authClient.auth.getUser(token) : { data: { user: null } };
 
     const service = createClient(supabaseUrl, supabaseServiceKey);
 

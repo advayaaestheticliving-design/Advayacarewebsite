@@ -99,14 +99,14 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true, duplicate: true, message: "Your trade interest is already with our team." });
     }
 
-    const { data: matchedAccount } = await supabase
+    const { data: matchedAccounts } = await supabase
       .from("b2b_accounts")
       .select("id, business_name")
       .ilike("business_name", businessName)
       .ilike("city", city)
-      .maybeSingle();
+      .limit(1);
 
-    let account = matchedAccount;
+    let account = matchedAccounts?.[0] || null;
     if (!account) {
       const { data, error } = await supabase.from("b2b_accounts").insert({
         business_name: businessName,
@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
         next_action_at: new Date().toISOString(),
         metadata: { referral_source: normalizeText(body?.referralSource, 200) },
       }).select("id, business_name").single();
-      if (error || !data) return jsonResponse({ error: "Could not save the trade application." }, 500);
+      if (error || !data) return jsonResponse({ error: `Could not save the trade application. ${error?.message || ""}`.trim() }, 500);
       account = data;
     }
 

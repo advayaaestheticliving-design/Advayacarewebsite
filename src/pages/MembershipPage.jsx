@@ -3,7 +3,6 @@ import { Link, useSearchParams } from "react-router-dom";
 import {
   signUpWithEmailPassword,
   signInWithEmailPassword,
-  signInWithGoogle,
   signOutMembership,
 } from "../lib/membershipApi";
 import { ensureSignupCouponIssued } from "../lib/walletApi";
@@ -96,18 +95,6 @@ function MembershipPage() {
       }
     } catch (authError) {
       setError(authError.message || "Authentication failed.");
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    setError("");
-    setStatus("");
-
-    try {
-      await signInWithGoogle();
-      setStatus("Redirecting to Google sign-in...");
-    } catch (authError) {
-      setError(authError.message || "Could not start Google sign-in.");
     }
   };
 
@@ -223,14 +210,6 @@ function MembershipPage() {
                 {authMode === "sign-up" ? "Create Account" : "Sign In"}
               </button>
             </form>
-
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              className="rounded-full border border-neutral-500 px-4 py-2 text-sm font-medium text-white hover:border-neutral-300"
-            >
-              Continue with Google
-            </button>
           </div>
         )}
       </section>

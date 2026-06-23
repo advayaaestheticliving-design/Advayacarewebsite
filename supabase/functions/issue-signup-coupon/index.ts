@@ -28,18 +28,13 @@ serve(async (req) => {
       });
     }
 
-    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          Authorization: req.headers.get("Authorization") || "",
-        },
-      },
-    });
+    const authClient = createClient(supabaseUrl, supabaseAnonKey);
+    const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "").trim() || "";
 
     const {
       data: { user },
       error: userError,
-    } = await authClient.auth.getUser();
+    } = token ? await authClient.auth.getUser(token) : { data: { user: null }, error: new Error("Missing token") };
 
     if (userError || !user?.id) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
