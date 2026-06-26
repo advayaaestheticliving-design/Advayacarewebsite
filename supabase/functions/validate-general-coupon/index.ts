@@ -142,7 +142,7 @@ serve(async (req: Request) => {
         return new Response(
           JSON.stringify({
             valid: false,
-            message: You have already used this coupon (limit: \),
+            message: `You have already used this coupon (limit: ${coupon.per_member_usage_limit})`,
           }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
