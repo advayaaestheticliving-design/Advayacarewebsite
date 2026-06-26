@@ -86,7 +86,8 @@ export async function createAdminComment(payload = {}) {
   const body = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(body?.error || `Failed to create comment (${response.status})`);
+    const detail = body?.details ? ` — ${body.details}` : "";
+    throw new Error((body?.error || `Failed to create comment (${response.status})`) + detail);
   }
 
   return normalizeAdminComment(body?.comment || {});
