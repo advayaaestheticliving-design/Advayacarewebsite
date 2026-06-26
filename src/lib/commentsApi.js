@@ -85,9 +85,14 @@ async function getRequiredMemberSession() {
     throw new Error("Comments are unavailable until Supabase is configured.");
   }
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  let { data: { session } } = await supabase.auth.getSession();
+
+  // If getSession() returns nothing (e.g. after a Google OAuth redirect where
+  // the token hasn't fully persisted yet), attempt a refresh before giving up.
+  if (!session?.user?.id) {
+    const refreshResult = await supabase.auth.refreshSession().catch(() => ({ data: { session: null } }));
+    session = refreshResult?.data?.session ?? null;
+  }
 
   if (!session?.user?.id) {
     throw new Error("Please sign in with your member account to submit your comment.");
