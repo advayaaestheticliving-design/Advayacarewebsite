@@ -133,7 +133,7 @@ function AdminCommentsPage() {
           <AdminSidebar onSignOut={admin.logout} authLoading={admin.authLoading} />
 
           <section className="space-y-4">
-            <div className="grid gap-3 rounded-2xl border border-neutral-700 bg-black/50 p-4 sm:grid-cols-[160px_160px_1fr_auto_auto] sm:items-center">
+            <div className="grid gap-3 rounded-2xl border border-neutral-700 bg-black/50 p-4 sm:grid-cols-[160px_160px_1fr_auto_auto_auto] sm:items-center">
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value)}
