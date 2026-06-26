@@ -87,7 +87,7 @@ serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           valid: false,
-          message: Minimum order amount is ₹\,
+          message: `Minimum order amount is ₹${coupon.min_order_amount_inr}`,
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
