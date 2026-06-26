@@ -111,6 +111,7 @@ export async function uploadBlogImageFromUrl(imageUrl, title = "") {
   const body = await response.json().catch(() => null);
 
   if (!response.ok) {
+    console.error("Upload failed with body:", body);
     throw new Error(body?.error || `Image upload failed (${response.status})`);
   }
 
