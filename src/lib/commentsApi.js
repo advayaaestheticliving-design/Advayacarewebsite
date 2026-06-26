@@ -24,12 +24,19 @@ function normalizeText(value, maxLength = 0) {
 
 function formatErrorMessage(error, fallbackMessage) {
   const message = String(error?.message || "").trim();
+  const code = String(error?.code || "").trim();
+
+  // Log the real error so it's visible in DevTools — helps diagnose RLS vs session issues.
+  // eslint-disable-next-line no-console
+  console.error("[commentsApi] insert error:", { code, message, error });
+
   if (!message) {
     return fallbackMessage;
   }
 
-  if (message.toLowerCase().includes("row-level security")) {
-    return "Please sign in with your member account to submit your comment.";
+  // Don't mask RLS violations as a sign-in prompt — show a permission error instead.
+  if (message.toLowerCase().includes("row-level security") || code === "42501") {
+    return "Submission blocked by a database permission error. Please contact support if this keeps happening.";
   }
 
   return message;
@@ -80,18 +87,54 @@ function validatePayload(targetType, payload = {}) {
   };
 }
 
-async function getRequiredMemberSession() {
+/**
+ * Resolves a valid Supabase session.
+ *
+ * Accepts an optional `accessToken` that callers (e.g. React components that
+ * already hold a session via MemberSessionContext) can pass directly, avoiding
+ * a redundant and potentially-stale getSession() round-trip.
+ *
+ * Falls back to getSession() → refreshSession() for non-React callers.
+ */
+async function getRequiredMemberSession(accessToken = null) {
   if (!isSupabaseConfigured || !supabase) {
     throw new Error("Comments are unavailable until Supabase is configured.");
   }
 
-  let { data: { session } } = await supabase.auth.getSession();
+  // Fast path: caller passed an access token directly from context.
+  if (accessToken) {
+    // Decode user id from the JWT payload (no network call needed).
+    try {
+      const payloadBase64 = accessToken.split(".")[1];
+      const payloadJson = atob(payloadBase64.replace(/-/g, "+").replace(/_/g, "/"));
+      const payload = JSON.parse(payloadJson);
+      const userId = payload.sub;
+      if (userId) {
+        return { user: { id: userId }, access_token: accessToken };
+      }
+    } catch {
+      // Fall through to getSession() if JWT decode fails.
+    }
+  }
 
-  // If getSession() returns nothing (e.g. after a Google OAuth redirect where
-  // the token hasn't fully persisted yet), attempt a refresh before giving up.
+  // Slow path: resolve session from Supabase client's local storage.
+  let { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+  // eslint-disable-next-line no-console
+  console.log("[commentsApi] getSession result:", { userId: session?.user?.id ?? null, sessionError });
+
+  // If getSession() returns nothing, attempt a token refresh before giving up.
   if (!session?.user?.id) {
-    const refreshResult = await supabase.auth.refreshSession().catch(() => ({ data: { session: null } }));
+    // eslint-disable-next-line no-console
+    console.log("[commentsApi] no session from getSession, attempting refreshSession...");
+    const refreshResult = await supabase.auth.refreshSession().catch((err) => {
+      // eslint-disable-next-line no-console
+      console.warn("[commentsApi] refreshSession failed:", err);
+      return { data: { session: null } };
+    });
     session = refreshResult?.data?.session ?? null;
+    // eslint-disable-next-line no-console
+    console.log("[commentsApi] refreshSession result userId:", session?.user?.id ?? null);
   }
 
   if (!session?.user?.id) {
@@ -145,8 +188,12 @@ export async function listProductComments(productId, limit = 20) {
   return data.map((row) => normalizeComment(row));
 }
 
-export async function createHomeTestimonial(payload = {}) {
-  const session = await getRequiredMemberSession();
+/**
+ * @param {object} payload - comment fields
+ * @param {string} [accessToken] - JWT from MemberSessionContext (optional but recommended)
+ */
+export async function createHomeTestimonial(payload = {}, accessToken) {
+  const session = await getRequiredMemberSession(accessToken);
   const normalized = validatePayload("home", payload);
 
   const { data, error } = await supabase
@@ -166,13 +213,18 @@ export async function createHomeTestimonial(payload = {}) {
   return normalizeComment(data);
 }
 
-export async function createProductComment(productId, payload = {}) {
+/**
+ * @param {string} productId
+ * @param {object} payload - comment fields
+ * @param {string} [accessToken] - JWT from MemberSessionContext (optional but recommended)
+ */
+export async function createProductComment(productId, payload = {}, accessToken) {
   const normalizedProductId = normalizeText(productId, 120);
   if (!normalizedProductId) {
     throw new Error("This product comment could not be linked to a product.");
   }
 
-  const session = await getRequiredMemberSession();
+  const session = await getRequiredMemberSession(accessToken);
   const normalized = validatePayload("product", payload);
 
   const { data, error } = await supabase

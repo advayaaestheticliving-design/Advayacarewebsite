@@ -16,6 +16,7 @@ const MemberSessionContext = React.createContext({
   authReady: false,
   user: null,
   isAuthenticated: false,
+  accessToken: null,
   lastAuthEvent: "INITIAL_SESSION",
 });
 
@@ -24,6 +25,7 @@ export function MemberSessionProvider({ children }) {
     authReady: false,
     user: null,
     isAuthenticated: false,
+    accessToken: null,
     lastAuthEvent: "INITIAL_SESSION",
   });
 
@@ -36,6 +38,7 @@ export function MemberSessionProvider({ children }) {
       }
 
       const user = session?.user || null;
+      const accessToken = session?.access_token || null;
 
       setState((prev) => {
         const sameUser = prev.user?.id && user?.id && prev.user.id === user.id;
@@ -45,13 +48,15 @@ export function MemberSessionProvider({ children }) {
           (event === "TOKEN_REFRESHED" || event === "SIGNED_IN" || event === "INITIAL_SESSION");
 
         if (isRepeatedSameUserEvent) {
-          return prev;
+          // Still update accessToken in case it refreshed.
+          return prev.accessToken === accessToken ? prev : { ...prev, accessToken };
         }
 
         return {
           authReady: true,
           user,
           isAuthenticated: Boolean(user?.id),
+          accessToken,
           lastAuthEvent:
             event === "TOKEN_REFRESHED" && prev.lastAuthEvent
               ? prev.lastAuthEvent

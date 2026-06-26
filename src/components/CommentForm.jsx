@@ -25,7 +25,7 @@ function CommentForm({
   onSubmit,
   variant = "product",
 }) {
-  const { authReady, user, isAuthenticated } = useMemberSession();
+  const { authReady, user, isAuthenticated, accessToken } = useMemberSession();
   const [form, setForm] = React.useState(() => buildInitialForm(user));
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -52,7 +52,8 @@ function CommentForm({
     setStatus("");
 
     try {
-      await onSubmit(form);
+      // Pass accessToken directly so the API doesn't need to call getSession() independently.
+      await onSubmit(form, accessToken);
       setForm((current) => ({
         ...current,
         headline: "",

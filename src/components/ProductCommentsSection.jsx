@@ -64,7 +64,7 @@ function ProductCommentsSection({ productId, productName }) {
         description="Share texture, scent, consistency, or results after use. Your review will go live once approved."
         submitLabel="Submit Review"
         successMessage="Submitted for approval. Your review will appear after moderation."
-        onSubmit={(payload) => createProductComment(productId, payload)}
+        onSubmit={(payload, accessToken) => createProductComment(productId, payload, accessToken)}
         variant="product"
       />
     </section>
