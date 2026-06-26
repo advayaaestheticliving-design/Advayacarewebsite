@@ -1,7 +1,8 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
-import { getAdminComments, updateAdminCommentStatus } from "../lib/adminCommentsApi";
+import AdminAddCommentModal from "../components/AdminAddCommentModal";
+import { getAdminComments, updateAdminCommentStatus, createAdminComment } from "../lib/adminCommentsApi";
 import { useAdminAccess } from "../lib/useAdminAccess";
 
 const STATUS_OPTIONS = ["pending", "approved", "rejected", "spam"];
@@ -38,6 +39,7 @@ function AdminCommentsPage() {
   const [pendingStatusByComment, setPendingStatusByComment] = React.useState({});
   const [pendingNotesByComment, setPendingNotesByComment] = React.useState({});
   const [updatingCommentId, setUpdatingCommentId] = React.useState("");
+  const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
 
   const loadComments = React.useCallback(async () => {
     if (!admin.authorized) {
@@ -100,6 +102,17 @@ function AdminCommentsPage() {
   function handleSearchSubmit(event) {
     event.preventDefault();
     setSearchQuery(searchInput.trim());
+  }
+
+  async function handleAddComment(payload) {
+    setError("");
+    try {
+      await createAdminComment(payload);
+      setIsAddModalOpen(false);
+      await loadComments();
+    } catch (createError) {
+      setError(createError?.message || "Could not create comment.");
+    }
   }
 
   return (
@@ -168,6 +181,14 @@ function AdminCommentsPage() {
                 className="rounded-full border border-neutral-600 px-4 py-2 text-xs font-medium text-white hover:border-[#D4AF37]"
               >
                 Refresh
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(true)}
+                className="rounded-full bg-[#D4AF37] px-4 py-2 text-xs font-semibold text-black hover:bg-[#e3c458]"
+              >
+                Add Comment
               </button>
             </div>
 
@@ -270,6 +291,12 @@ function AdminCommentsPage() {
           </section>
         </div>
       )}
+
+      <AdminAddCommentModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSubmit={handleAddComment}
+      />
     </div>
   );
 }

@@ -178,6 +178,55 @@ serve(async (req) => {
 
   if (req.method === "POST") {
     const body = await req.json().catch(() => ({}));
+    const action = String(body?.action || "update").trim().toLowerCase();
+
+    if (action === "create") {
+      const targetType = String(body?.targetType || "home").trim().toLowerCase();
+      const displayName = String(body?.displayName || "").trim();
+      const city = String(body?.city || "").trim();
+      const headline = String(body?.headline || "").trim();
+      const textBody = String(body?.body || "").trim();
+      const rating = Number.isFinite(Number(body?.rating)) ? Number(body?.rating) : null;
+      const productId = String(body?.productId || "").trim();
+
+      if (!displayName || !textBody) {
+        return jsonResponse({ error: "Display name and body are required" }, 400);
+      }
+
+      const nowIso = new Date().toISOString();
+      const payload = {
+        target_type: targetType,
+        auth_user_id: null,
+        display_name: displayName,
+        city: city,
+        headline: headline,
+        body: textBody,
+        rating: targetType === "product" ? rating : null,
+        product_id: targetType === "product" && productId ? productId : null,
+        status: "approved",
+        moderated_by_email: requesterEmail,
+        moderated_at: nowIso,
+        created_at: nowIso,
+        updated_at: nowIso,
+      };
+
+      const { data, error } = await supabase
+        .from("member_comments")
+        .insert(payload)
+        .select(COMMENT_SELECT)
+        .single();
+
+      if (error || !data) {
+        return jsonResponse({ error: "Failed to create comment", details: error?.message }, 500);
+      }
+
+      return jsonResponse({
+        success: true,
+        comment: mapCommentRow(data as Record<string, unknown>),
+      });
+    }
+
+    // Default to update action
     const commentId = String(body?.commentId || "").trim();
     const status = String(body?.status || "").trim().toLowerCase();
     const moderationNotes = String(body?.moderationNotes || "").trim();

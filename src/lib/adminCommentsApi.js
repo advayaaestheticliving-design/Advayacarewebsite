@@ -70,3 +70,24 @@ export async function updateAdminCommentStatus(commentId, status, moderationNote
 
   return normalizeAdminComment(body?.comment || {});
 }
+
+export async function createAdminComment(payload = {}) {
+  const response = await authorizedAdminFetch(getAdminFunctionUrl("admin-comments"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      action: "create",
+      ...payload,
+    }),
+  });
+
+  const body = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(body?.error || `Failed to create comment (${response.status})`);
+  }
+
+  return normalizeAdminComment(body?.comment || {});
+}
