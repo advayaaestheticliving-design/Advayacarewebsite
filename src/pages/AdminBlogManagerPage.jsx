@@ -11,6 +11,7 @@ import {
   restorePublishedBlog,
   saveBlogDraft,
   updatePublishedBlog,
+  uploadBlogImageFromUrl,
 } from "../lib/blogAdminApi";
 import { useAdminAccess } from "../lib/useAdminAccess";
 
@@ -471,8 +472,17 @@ function AdminBlogManagerPage() {
     clearMessages();
 
     try {
-      if (form.entityType === "post") {
-        const updated = await updatePublishedBlog(buildPostPayload(form));
+      let formToSave = { ...form };
+
+      if (formToSave.imageUrl && !formToSave.imageUrl.includes("/storage/v1/object/public/")) {
+        const { publicUrl, storagePath } = await uploadBlogImageFromUrl(formToSave.imageUrl, formToSave.title);
+        formToSave.imageUrl = publicUrl;
+        formToSave.imageStoragePath = storagePath;
+        setForm((prev) => ({ ...prev, imageUrl: publicUrl, imageStoragePath: storagePath }));
+      }
+
+      if (formToSave.entityType === "post") {
+        const updated = await updatePublishedBlog(buildPostPayload(formToSave));
         if (!updated) {
           throw new Error("Post update returned no data.");
         }
@@ -483,13 +493,13 @@ function AdminBlogManagerPage() {
         setForm(nextForm);
         setSavedSnapshot(getFormSnapshot(nextForm));
       } else {
-        const draft = await saveBlogDraft(buildDraftPayload(form));
+        const draft = await saveBlogDraft(buildDraftPayload(formToSave));
         if (!draft) {
           throw new Error("Draft save returned no data.");
         }
 
         const nextForm = formatBlogForForm(draft, "draft");
-        setSuccess(form.id ? "Draft updated." : "Draft created.");
+        setSuccess(formToSave.id ? "Draft updated." : "Draft created.");
         setSelectedKey(`draft:${draft.id}`);
         setForm(nextForm);
         setSavedSnapshot(getFormSnapshot(nextForm));
@@ -505,7 +515,16 @@ function AdminBlogManagerPage() {
 
   async function handlePublish() {
     await runAction("publish", async () => {
-      const published = await publishBlog(buildDraftPayload(form));
+      let formToPublish = { ...form };
+
+      if (formToPublish.imageUrl && !formToPublish.imageUrl.includes("/storage/v1/object/public/")) {
+        const { publicUrl, storagePath } = await uploadBlogImageFromUrl(formToPublish.imageUrl, formToPublish.title);
+        formToPublish.imageUrl = publicUrl;
+        formToPublish.imageStoragePath = storagePath;
+        setForm((prev) => ({ ...prev, imageUrl: publicUrl, imageStoragePath: storagePath }));
+      }
+
+      const published = await publishBlog(buildDraftPayload(formToPublish));
       if (!published) {
         throw new Error("Publish returned no data.");
       }
