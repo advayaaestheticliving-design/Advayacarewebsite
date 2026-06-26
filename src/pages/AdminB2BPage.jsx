@@ -8,6 +8,7 @@ import {
   runB2BFollowupQueue,
   sendApprovedB2BEmail,
 } from "../lib/b2bApi";
+import B2BHelpModal from "../components/B2BHelpModal";
 
 const STAGES = [
   "new", "researched", "qualified", "approved_for_outreach", "contacted", "replied",
@@ -75,6 +76,7 @@ function AdminB2BPage() {
   });
   const [latestQuoteLink, setLatestQuoteLink] = React.useState("");
   const [csvText, setCsvText] = React.useState("");
+  const [helpOpen, setHelpOpen] = React.useState(false);
 
   const load = React.useCallback(async () => {
     if (!admin.authorized) return;
@@ -155,9 +157,17 @@ function AdminB2BPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 text-white sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <p className="text-xs uppercase tracking-[0.22em] text-white/50">Human-approved sales system</p>
-        <h1 className="mt-2 text-3xl font-semibold text-[#D4AF37]">B2B Sales</h1>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.22em] text-white/50">Human-approved sales system</p>
+          <h1 className="mt-2 text-3xl font-semibold text-[#D4AF37]">B2B Sales</h1>
+        </div>
+        <button
+          onClick={() => setHelpOpen(true)}
+          className="rounded-full border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
+        >
+          Guide & Help
+        </button>
       </div>
       <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
         <AdminSidebar onSignOut={admin.logout} authLoading={admin.authLoading} />
@@ -411,6 +421,7 @@ function AdminB2BPage() {
           ) : null}
         </main>
       </div>
+      {helpOpen ? <B2BHelpModal onClose={() => setHelpOpen(false)} /> : null}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import ScrollTriggerAIRecommendationsPopup, { POPUP_DISMISSED_KEY } from "../com
 import { fetchProducts } from "../lib/productsApi";
 import { useMemberSession } from "../context/MemberSessionContext";
 
-const SCROLL_TRIGGER_MS = 60000; // 1 minute
+const SCROLL_TRIGGER_MS = 10000; // 10 seconds
 
 function HomePage() {
 	const [featured, setFeatured] = React.useState([]);
