@@ -35,6 +35,7 @@ export function normalizeProduct(product = {}) {
     reserved_quantity: reservedQuantity,
     low_stock_threshold: lowStockThreshold,
     is_active: product.is_active !== false,
+    is_best_seller: product.is_best_seller === true,
   };
 }
 
@@ -78,6 +79,7 @@ const PRODUCT_SELECT_COLUMNS = [
   "reserved_quantity",
   "low_stock_threshold",
   "is_active",
+  "is_best_seller",
   "updated_at",
 ].join(",");
 

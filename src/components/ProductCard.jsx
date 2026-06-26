@@ -74,12 +74,17 @@ function ProductCard({ product, className = "" }) {
       className={`group flex flex-col rounded-2xl border border-black bg-[#D4AF37] shadow-sm/40 hover:shadow-md transition-shadow overflow-hidden ${className}`.trim()}
     >
       {imageSrc && (
-        <div className="aspect-[4/3] overflow-hidden bg-slate-100">
+        <div className="aspect-[4/3] overflow-hidden bg-slate-100 relative">
           <img
             src={imageSrc}
             alt={name}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
+          {normalizedProduct.is_best_seller && (
+            <div className="absolute top-3 right-3 bg-[#D4AF37] text-black text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-sm shadow-sm z-10">
+              Best Seller
+            </div>
+          )}
         </div>
       )}
       <div className="flex flex-1 flex-col p-4 sm:p-5 gap-3">

@@ -188,6 +188,24 @@ export async function signInWithGoogle() {
   return data;
 }
 
+export async function updateAuthUserPhone(phone) {
+  const normalizedPhone = normalizeIndianPhone(phone);
+  
+  if (!normalizedPhone) {
+    throw new Error("Please enter a valid 10-digit Indian mobile number");
+  }
+
+  const { data, error } = await supabase.auth.updateUser({
+    data: { phone: normalizedPhone }
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export async function signOutMembership() {
   const { error } = await supabase.auth.signOut();
   if (error) {

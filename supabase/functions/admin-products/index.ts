@@ -22,6 +22,7 @@ const PRODUCT_COLUMNS = [
   "reserved_quantity",
   "low_stock_threshold",
   "is_active",
+  "is_best_seller",
   "created_at",
   "updated_at",
 ].join(", ");
@@ -221,6 +222,7 @@ serve(async (req) => {
       stock_quantity: nextStockQuantity,
       low_stock_threshold: lowStockThreshold,
       is_active: nextActiveState,
+      is_best_seller: body.is_best_seller === true,
       updated_at: new Date().toISOString(),
     };
 

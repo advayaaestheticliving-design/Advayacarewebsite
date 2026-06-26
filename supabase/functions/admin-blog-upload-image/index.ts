@@ -135,12 +135,15 @@ serve(async (req) => {
 
     const sourceResponse = await fetch(imageUrl, {
       headers: {
-        "User-Agent": "advaya-blog-writer/1.0",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "image/webp,image/apng,image/avif,image/*,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9"
       },
     });
 
     if (!sourceResponse.ok) {
-      return jsonResponse({ error: `Could not fetch image URL (${sourceResponse.status})` }, 400);
+      const errorText = await sourceResponse.text().catch(() => "");
+      return jsonResponse({ error: `Could not fetch image URL (${sourceResponse.status}): ${errorText.substring(0, 100)}` }, 400);
     }
 
     const contentType = String(sourceResponse.headers.get("content-type") || "").toLowerCase();

@@ -17,6 +17,7 @@ const EMPTY_FORM = {
   stock_quantity: "0",
   low_stock_threshold: "5",
   is_active: true,
+  is_best_seller: false,
   filter_tags: "",
   images: "",
   one_line_summary: "",
@@ -44,6 +45,7 @@ function formatProductForForm(product) {
     stock_quantity: String(Number(product?.stock_quantity || 0)),
     low_stock_threshold: String(Number(product?.low_stock_threshold || 5)),
     is_active: product?.is_active !== false,
+    is_best_seller: product?.is_best_seller === true,
     filter_tags: toCommaList(product?.filter_tags),
     images: toLines(product?.images),
     one_line_summary: String(product?.one_line_summary || ""),
@@ -414,6 +416,14 @@ function AdminProductsPage() {
                     onChange={(event) => updateField("is_active", event.target.checked)}
                   />
                   Product is active on storefront
+                </label>
+                <label className="flex items-center gap-2 text-xs text-white/80 pt-6">
+                  <input
+                    type="checkbox"
+                    checked={form.is_best_seller}
+                    onChange={(event) => updateField("is_best_seller", event.target.checked)}
+                  />
+                  Best Seller badge
                 </label>
               </div>
 
