@@ -468,17 +468,23 @@ function AdminBlogManagerPage() {
   }
 
   async function handleSave() {
+    console.log("handleSave triggered!");
     setSaving(true);
     clearMessages();
 
     try {
       let formToSave = { ...form };
+      console.log("Current formToSave:", formToSave);
 
       if (formToSave.imageUrl && !formToSave.imageUrl.includes("/storage/v1/object/public/")) {
+        console.log("External image detected, uploading:", formToSave.imageUrl);
         const { publicUrl, storagePath } = await uploadBlogImageFromUrl(formToSave.imageUrl, formToSave.title);
+        console.log("Upload result:", { publicUrl, storagePath });
         formToSave.imageUrl = publicUrl;
         formToSave.imageStoragePath = storagePath;
         setForm((prev) => ({ ...prev, imageUrl: publicUrl, imageStoragePath: storagePath }));
+      } else {
+        console.log("No external image detected, skipping upload. URL:", formToSave.imageUrl);
       }
 
       if (formToSave.entityType === "post") {
