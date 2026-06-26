@@ -194,9 +194,8 @@ serve(async (req) => {
       }
 
       const nowIso = new Date().toISOString();
-      const payload = {
+      const payload: Record<string, unknown> = {
         target_type: targetType,
-        auth_user_id: null,
         display_name: displayName,
         city: city,
         headline: headline,
@@ -204,16 +203,22 @@ serve(async (req) => {
         rating: targetType === "product" ? rating : null,
         product_id: targetType === "product" && productId ? productId : null,
         status: "approved",
+        moderation_notes: "Manually added by admin",
         moderated_by_email: requesterEmail,
         moderated_at: nowIso,
-        created_at: nowIso,
-        updated_at: nowIso,
       };
+
+      // Use a flat SELECT (no relational join) to avoid issues when product_id is null
+      const FLAT_SELECT = [
+        "id", "target_type", "product_id", "display_name", "city",
+        "headline", "body", "rating", "status", "moderation_notes",
+        "moderated_by_email", "moderated_at", "created_at",
+      ].join(", ");
 
       const { data, error } = await supabase
         .from("member_comments")
         .insert(payload)
-        .select(COMMENT_SELECT)
+        .select(FLAT_SELECT)
         .single();
 
       if (error || !data) {
