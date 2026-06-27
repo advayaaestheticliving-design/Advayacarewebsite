@@ -82,3 +82,14 @@ export async function runB2BFollowupQueue() {
   if (!response.ok) throw new Error(body?.error || `Queue run failed (${response.status})`);
   return body;
 }
+
+export async function triggerB2BScraper(source, location, keyword) {
+  const response = await authorizedAdminFetch(getAdminFunctionUrl("admin-trigger-scraper"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ source, location, keyword }),
+  });
+  const body = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(body?.error || `Scraper trigger failed (${response.status})`);
+  return body;
+}

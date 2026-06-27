@@ -1,0 +1,15 @@
+{
+  "name": "advayacare-scrapers",
+  "version": "1.0.0",
+  "description": "B2B Lead Scrapers",
+  "main": "index.js",
+  "scripts": {
+    "scrape:maps": "node google-maps.js",
+    "scrape:directory": "node local-directories.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.42.0",
+    "playwright": "^1.42.0",
+    "cheerio": "^1.0.0-rc.12"
+  }
+}

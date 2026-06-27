@@ -1,0 +1,45 @@
+name: Scrape Google Maps
+
+on:
+  workflow_dispatch:
+    inputs:
+      location:
+        description: 'Location to scrape (e.g. Bangalore, Karnataka)'
+        required: true
+        default: 'Bangalore, Karnataka'
+      keyword:
+        description: 'Keyword to search (e.g. Spa, Salon)'
+        required: true
+        default: 'Spa'
+  schedule:
+    # Run every Monday at 2 AM UTC
+    - cron: '0 2 * * 1'
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: scripts/scrapers
+        run: npm install
+
+      - name: Install Playwright browsers
+        working-directory: scripts/scrapers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run Scraper
+        working-directory: scripts/scrapers
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          LOCATION: ${{ github.event.inputs.location || 'Bangalore, Karnataka' }}
+          KEYWORD: ${{ github.event.inputs.keyword || 'Spa' }}
+        run: npm run scrape:maps

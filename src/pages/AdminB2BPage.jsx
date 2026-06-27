@@ -7,6 +7,7 @@ import {
   runB2BAdminAction,
   runB2BFollowupQueue,
   sendApprovedB2BEmail,
+  triggerB2BScraper,
 } from "../lib/b2bApi";
 import B2BHelpModal from "../components/B2BHelpModal";
 
@@ -15,7 +16,7 @@ const STAGES = [
   "discovery_booked", "sample_paid", "sample_sent", "proposal_sent", "won", "lost",
   "nurture", "suppressed",
 ];
-const TABS = ["pipeline", "tasks", "outreach", "pricing", "quotes", "samples", "import"];
+const TABS = ["pipeline", "tasks", "outreach", "pricing", "quotes", "samples", "import", "scraper"];
 const inputClass = "w-full rounded-xl border border-neutral-700 bg-black px-3 py-2 text-sm text-white outline-none focus:border-[#D4AF37]";
 
 function label(value) {
@@ -76,6 +77,7 @@ function AdminB2BPage() {
   });
   const [latestQuoteLink, setLatestQuoteLink] = React.useState("");
   const [csvText, setCsvText] = React.useState("");
+  const [scrapeForm, setScrapeForm] = React.useState({ source: "google_maps", location: "Bangalore, Karnataka", keyword: "Spa" });
   const [helpOpen, setHelpOpen] = React.useState(false);
 
   const load = React.useCallback(async () => {
@@ -135,6 +137,20 @@ function AdminB2BPage() {
     if (result?.publicToken) {
       setLatestQuoteLink(`${window.location.origin}/trade/order/${result.publicToken}`);
       setQuoteForm((current) => ({ ...current, quantities: {} }));
+    }
+  }
+
+  async function runScraper() {
+    setLoading(true);
+    setError("");
+    setStatus("");
+    try {
+      await triggerB2BScraper(scrapeForm.source, scrapeForm.location, scrapeForm.keyword);
+      setStatus("Scraping job started successfully. Leads will appear in the pipeline.");
+    } catch (actionError) {
+      setError(actionError?.message || "Failed to start scraper.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -417,6 +433,34 @@ function AdminB2BPage() {
               <p className="mt-2 text-xs text-[#D4AF37]">Headers: businessName,businessType,contactName,email,phone,whatsappPhone,locality,city,state,websiteUrl,instagramHandle,sourceReference</p>
               <textarea className={`${inputClass} mt-4 min-h-72 font-mono text-xs`} value={csvText} onChange={(event) => setCsvText(event.target.value)} placeholder="Paste CSV including a header row" />
               <button onClick={() => act("import_accounts", { rows: parseCsv(csvText) }, "CSV import completed.")} className="mt-4 rounded-full bg-[#D4AF37] px-5 py-3 text-sm font-semibold text-black">Import verified accounts</button>
+            </section>
+          ) : null}
+
+          {tab === "scraper" ? (
+            <section className="rounded-2xl border border-neutral-700 bg-black/55 p-5">
+              <h2 className="text-xl font-semibold">Lead Generator (Scraper)</h2>
+              <p className="mt-2 text-sm text-white/55">Trigger background jobs to scrape new leads from free sources.</p>
+              
+              <div className="mt-4 max-w-lg space-y-4">
+                <label className="block">
+                  <span className="mb-1 block text-sm text-white/70">Source</span>
+                  <select className={inputClass} value={scrapeForm.source} onChange={(e) => setScrapeForm({ ...scrapeForm, source: e.target.value })}>
+                    <option value="google_maps">Google Maps</option>
+                    <option value="local_directory">Local Directories (e.g. JustDial)</option>
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-sm text-white/70">Location</span>
+                  <input className={inputClass} value={scrapeForm.location} onChange={(e) => setScrapeForm({ ...scrapeForm, location: e.target.value })} placeholder="e.g. Indiranagar, Bangalore" />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-sm text-white/70">Keyword</span>
+                  <input className={inputClass} value={scrapeForm.keyword} onChange={(e) => setScrapeForm({ ...scrapeForm, keyword: e.target.value })} placeholder="e.g. Spa, Salon" />
+                </label>
+                <button onClick={runScraper} disabled={loading} className="mt-2 rounded-full bg-[#D4AF37] px-5 py-3 text-sm font-semibold text-black disabled:opacity-50">
+                  {loading ? "Starting..." : "Start Scraping"}
+                </button>
+              </div>
             </section>
           ) : null}
         </main>
