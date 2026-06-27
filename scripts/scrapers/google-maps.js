@@ -27,30 +27,41 @@ async function run() {
 
     // Basic logic to extract visible places on the first page
     // Note: Google Maps DOM changes frequently. This is a basic robust selector pattern.
-    const places = await page.$$eval('.hfpxzc', (elements) => {
-      return elements.map(el => {
-        return {
-          name: el.getAttribute('aria-label') || 'Unknown',
-          url: el.getAttribute('href') || ''
-        };
-      });
-    });
-
-    console.log(`Found ${places.length} places. Extracting details...`);
+    const elements = await page.$$('.hfpxzc');
+    console.log(`Found ${elements.length} places. Extracting details...`);
 
     const leads = [];
-    for (const place of places.slice(0, 5)) { // Limit to 5 for now to avoid long runs in demo
-      if (!place.name || place.name === 'Unknown') continue;
+    for (let i = 0; i < Math.min(elements.length, 5); i++) { // Limit to 5 for now
+      const el = elements[i];
+      const name = await el.getAttribute('aria-label') || 'Unknown';
+      if (name === 'Unknown') continue;
       
-      console.log(`Extracting details for: ${place.name}`);
-      // In a real scenario, we would click each place and extract phone/address from the sidebar.
-      // For this implementation, we will push the basic lead info.
+      console.log(`Extracting details for: ${name}`);
+      
+      // Click to open sidebar
+      await el.click();
+      await page.waitForTimeout(2500); // Wait for details to populate
+
+      let phone = '';
+      try {
+        const phoneEl = await page.$('button[data-item-id^="phone:"]');
+        if (phoneEl) {
+           const phoneText = await phoneEl.getAttribute('aria-label');
+           if (phoneText) {
+             phone = phoneText.replace(/Phone:?/i, '').trim();
+           }
+        }
+      } catch (e) {
+        console.log(`Could not extract phone for ${name}`);
+      }
+
       leads.push({
-        business_name: place.name,
+        business_name: name,
         city: location,
         stage: 'new',
         source: 'google_maps',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        _phone: phone
       });
     }
 
@@ -59,6 +70,9 @@ async function run() {
       
       let insertedCount = 0;
       for (const lead of leads) {
+        const phone = lead._phone;
+        delete lead._phone; // Remove before inserting into b2b_accounts
+
         const { data: account, error } = await supabase.from('b2b_accounts').insert(lead).select().single();
         if (error) {
           if (error.code === '23505') {
@@ -67,11 +81,13 @@ async function run() {
              console.error(`Error inserting ${lead.business_name}:`, error);
           }
         } else if (account) {
-          // Insert dummy contact so the UI displays correctly
+          // Insert contact with scraped phone number
           await supabase.from('b2b_contacts').insert({
             account_id: account.id,
             full_name: 'Manager',
             job_title: 'Manager',
+            phone: phone || '',
+            whatsapp_phone: phone || '',
             is_primary: true
           });
           insertedCount++;

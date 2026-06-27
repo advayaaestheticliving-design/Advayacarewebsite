@@ -64,6 +64,9 @@ async function run() {
       
       let insertedCount = 0;
       for (const lead of leads) {
+        const phone = lead._phone;
+        delete lead._phone; // Remove before inserting into b2b_accounts
+
         const { data: account, error } = await supabase.from('b2b_accounts').insert(lead).select().single();
         if (error) {
           if (error.code === '23505') {
@@ -72,11 +75,13 @@ async function run() {
              console.error(`Error inserting ${lead.business_name}:`, error);
           }
         } else if (account) {
-          // Insert dummy contact so the UI displays correctly
+          // Insert contact with scraped phone number
           await supabase.from('b2b_contacts').insert({
             account_id: account.id,
             full_name: 'Manager',
             job_title: 'Manager',
+            phone: phone || '',
+            whatsapp_phone: phone || '',
             is_primary: true
           });
           insertedCount++;
