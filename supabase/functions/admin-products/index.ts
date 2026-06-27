@@ -236,6 +236,17 @@ serve(async (req) => {
       return jsonResponse({ error: "Failed to save product", details: saveError?.message }, 500);
     }
 
+    // Auto-sync the product with the B2B pricing table
+    const { error: tradeTermError } = await supabase.from("b2b_trade_terms")
+      .upsert({ 
+         product_id: savedProduct.id, 
+         retail_price_inr: savedProduct.price_inr 
+      }, { onConflict: "product_id" });
+      
+    if (tradeTermError) {
+      console.error("Failed to sync B2B trade term:", tradeTermError);
+    }
+
     const previousStock = Math.max(0, toInteger(existingProduct?.stock_quantity, nextStockQuantity));
     if (previousStock !== nextStockQuantity) {
       await supabase.from("product_stock_events").insert({
