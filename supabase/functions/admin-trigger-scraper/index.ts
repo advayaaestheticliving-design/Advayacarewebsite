@@ -94,14 +94,9 @@ serve(async (req) => {
       return jsonResponse({ error: authError || "Unauthorized" }, 401);
     }
 
-    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
-    const { data: adminCheck } = await supabaseClient
-      .from("admins")
-      .select("id")
-      .eq("id", user.id)
-      .single();
-
-    if (!adminCheck) {
+    const requesterEmail = String(user.email || "").trim().toLowerCase();
+    const ADMIN_EMAIL = "advaya.aestheticliving@gmail.com";
+    if (!requesterEmail || requesterEmail !== ADMIN_EMAIL) {
       return jsonResponse({ error: "Unauthorized - Admin only" }, 403);
     }
 
