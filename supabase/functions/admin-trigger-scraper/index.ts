@@ -7,8 +7,8 @@ const corsHeaders = {
 };
 
 const GITHUB_PAT = Deno.env.get("GITHUB_PAT");
-const GITHUB_OWNER = Deno.env.get("GITHUB_OWNER") || "your-github-username";
-const GITHUB_REPO = Deno.env.get("GITHUB_REPO") || "advayacarewebsite";
+const GITHUB_OWNER = "advayaaestheticliving-design";
+const GITHUB_REPO = "Advayacarewebsite";
 
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
