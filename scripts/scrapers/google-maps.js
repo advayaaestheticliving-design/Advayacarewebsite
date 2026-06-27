@@ -37,13 +37,48 @@ async function run() {
     await page.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(5000); // Wait for initial load
 
-    // Basic logic to extract visible places on the first page
-    // Note: Google Maps DOM changes frequently. This is a basic robust selector pattern.
-    const elements = await page.$$('.hfpxzc');
-    console.log(`Found ${elements.length} places. Extracting details...`);
+    let previousCount = 0;
+    let elements = await page.$$('.hfpxzc');
+    console.log(`Initial visible places: ${elements.length}`);
+    
+    // Scroll loop to load more results (max ~10 scrolls to avoid excessively long runs)
+    for (let i = 0; i < 10; i++) {
+        await page.evaluate(() => {
+            const feed = document.querySelector('div[role="feed"]');
+            if (feed) {
+                feed.scrollTo(0, feed.scrollHeight);
+            } else {
+                const containers = document.querySelectorAll('.m6QErb.DxyBCb.kA9KIf.dS8AEf');
+                if (containers.length > 1) {
+                   containers[1].scrollTo(0, containers[1].scrollHeight);
+                }
+            }
+        });
+        
+        await page.waitForTimeout(3000);
+        elements = await page.$$('.hfpxzc');
+        console.log(`Scroll ${i+1}: Found ${elements.length} places so far.`);
+        
+        if (elements.length >= 50) {
+            console.log("Reached ~50 leads target. Stopping scroll.");
+            break;
+        }
+        
+        if (elements.length === previousCount) {
+            console.log("No new elements loaded. End of list reached.");
+            break;
+        }
+        previousCount = elements.length;
+    }
+
+    // Limit elements to a max of 50 to prevent GitHub action timeout (each takes ~5s to extract)
+    if (elements.length > 50) {
+        elements = elements.slice(0, 50);
+    }
+    console.log(`Final count: ${elements.length} places. Extracting details...`);
 
     const leads = [];
-    for (let i = 0; i < Math.min(elements.length, 5); i++) { // Limit to 5 for now
+    for (let i = 0; i < elements.length; i++) {
       const el = elements[i];
       const name = await el.getAttribute('aria-label') || 'Unknown';
       if (name === 'Unknown') continue;
