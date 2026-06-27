@@ -46,16 +46,13 @@ async function run() {
       {
         business_name: `Directory Mock Spa 1 - ${location}`,
         city: location,
+        address: `123 Mock Street, ${location}`,
+        website_url: 'https://example-spa.com',
         stage: 'new',
         source: 'local_directory',
-        created_at: new Date().toISOString()
-      },
-      {
-        business_name: `Directory Mock Salon 2 - ${location}`,
-        city: location,
-        stage: 'new',
-        source: 'local_directory',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        _phone: '+919876543210',
+        _email: 'hello@example-spa.com'
       }
     ];
 
@@ -65,7 +62,9 @@ async function run() {
       let insertedCount = 0;
       for (const lead of leads) {
         const phone = lead._phone;
+        const email = lead._email;
         delete lead._phone; // Remove before inserting into b2b_accounts
+        delete lead._email;
 
         const { data: account, error } = await supabase.from('b2b_accounts').insert(lead).select().single();
         if (error) {
@@ -75,13 +74,14 @@ async function run() {
              console.error(`Error inserting ${lead.business_name}:`, error);
           }
         } else if (account) {
-          // Insert contact with scraped phone number
+          // Insert contact with scraped phone number and email
           await supabase.from('b2b_contacts').insert({
             account_id: account.id,
             full_name: 'Manager',
             job_title: 'Manager',
             phone: phone || '',
             whatsapp_phone: phone || '',
+            email: email || '',
             is_primary: true
           });
           insertedCount++;
