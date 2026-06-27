@@ -51,6 +51,9 @@ function AdminSidebar({ onSignOut, authLoading, onBeforeNavigate }) {
         <NavLink to="/admin/coupons" className={getNavClass} onClick={handleBeforeNavigate}>
           Coupons
         </NavLink>
+        <NavLink to="/admin/affiliates" className={getNavClass} onClick={handleBeforeNavigate}>
+          Affiliates
+        </NavLink>
         <NavLink to="/admin/blog-manager" className={getNavClass} onClick={handleBeforeNavigate}>
           Blog Manager
         </NavLink>

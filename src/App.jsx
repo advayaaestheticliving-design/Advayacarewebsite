@@ -25,6 +25,7 @@ import BlogWriterPage from "./pages/BlogWriterPage";
 import AdminProductsPage from "./pages/AdminProductsPage";
 import AdminCommentsPage from "./pages/AdminCommentsPage";
 import AdminCouponsPage from "./pages/AdminCouponsPage";
+import AdminAffiliatesPage from "./pages/AdminAffiliatesPage";
 import TradePage from "./pages/TradePage";
 import TradeOrderPage from "./pages/TradeOrderPage";
 import AdminB2BPage from "./pages/AdminB2BPage";
@@ -59,6 +60,7 @@ function App() {
                 <Route path="/admin/blogwriter" element={<BlogWriterPage />} />
                 <Route path="/admin/products" element={<AdminProductsPage />} />
                 <Route path="/admin/coupons" element={<AdminCouponsPage />} />
+                <Route path="/admin/affiliates" element={<AdminAffiliatesPage />} />
                 <Route path="/admin/b2b" element={<AdminB2BPage />} />
               </Routes>
             ) : (
