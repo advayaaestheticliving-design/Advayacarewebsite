@@ -59,14 +59,21 @@ async function run() {
       
       let insertedCount = 0;
       for (const lead of leads) {
-        const { error } = await supabase.from('b2b_accounts').insert(lead);
+        const { data: account, error } = await supabase.from('b2b_accounts').insert(lead).select().single();
         if (error) {
           if (error.code === '23505') {
              console.log(`Skipping duplicate lead: ${lead.business_name}`);
           } else {
              console.error(`Error inserting ${lead.business_name}:`, error);
           }
-        } else {
+        } else if (account) {
+          // Insert dummy contact so the UI displays correctly
+          await supabase.from('b2b_contacts').insert({
+            account_id: account.id,
+            full_name: 'Manager',
+            job_title: 'Manager',
+            is_primary: true
+          });
           insertedCount++;
         }
       }
