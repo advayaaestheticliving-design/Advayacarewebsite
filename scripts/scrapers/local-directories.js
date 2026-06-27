@@ -60,16 +60,22 @@ async function run() {
     ];
 
     if (leads.length > 0) {
-      console.log(`Upserting ${leads.length} leads to Supabase...`);
-      const { data, error } = await supabase
-        .from('b2b_accounts')
-        .upsert(leads, { onConflict: 'business_name, city' });
-
-      if (error) {
-        console.error("Error inserting into Supabase:", error);
-      } else {
-        console.log("Successfully inserted leads:", leads.length);
+      console.log(`Inserting ${leads.length} leads to Supabase...`);
+      
+      let insertedCount = 0;
+      for (const lead of leads) {
+        const { error } = await supabase.from('b2b_accounts').insert(lead);
+        if (error) {
+          if (error.code === '23505') {
+             console.log(`Skipping duplicate lead: ${lead.business_name}`);
+          } else {
+             console.error(`Error inserting ${lead.business_name}:`, error);
+          }
+        } else {
+          insertedCount++;
+        }
       }
+      console.log(`Successfully inserted new leads: ${insertedCount}`);
     } else {
       console.log("No leads found.");
     }
