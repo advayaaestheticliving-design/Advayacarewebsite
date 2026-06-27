@@ -17,12 +17,24 @@ const query = `${keyword} in ${location}`;
 
 async function run() {
   console.log(`Starting Google Maps scraper for: ${query}`);
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext();
+  const browser = await chromium.launch({ 
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled']
+  });
+  
+  const context = await browser.newContext({
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    viewport: { width: 1280, height: 720 },
+    locale: 'en-US',
+    extraHTTPHeaders: {
+      'accept-language': 'en-US,en;q=0.9',
+    }
+  });
+  
   const page = await context.newPage();
 
   try {
-    await page.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}`);
+    await page.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(5000); // Wait for initial load
 
     // Basic logic to extract visible places on the first page
@@ -40,7 +52,15 @@ async function run() {
       
       // Click to open sidebar
       await el.click();
-      await page.waitForTimeout(2500); // Wait for details to populate
+      
+      // Explicitly wait for the side panel header (which contains the business name as an h1)
+      try {
+        await page.waitForSelector('h1', { timeout: 10000 });
+      } catch (e) {
+        console.log(`Sidebar did not load within 10s for ${name}`);
+      }
+
+      await page.waitForTimeout(2000); // give it a little more time to render buttons
 
       let phone = '';
       let address = '';
@@ -48,25 +68,20 @@ async function run() {
       let email = '';
 
       try {
-        // Extract phone
-        const phoneEl = await page.$('button[data-item-id^="phone:"]');
-        if (phoneEl) {
-           const phoneText = await phoneEl.getAttribute('aria-label');
-           if (phoneText) phone = phoneText.replace(/Phone:?/i, '').trim();
+        // Extract using aria-labels which is much more robust against DOM structure changes
+        const buttons = await page.$$('button');
+        for (const btn of buttons) {
+            const aria = await btn.getAttribute('aria-label') || '';
+            if (aria.includes('Phone:')) phone = aria.replace('Phone:', '').trim();
+            if (aria.includes('Address:')) address = aria.replace('Address:', '').trim();
         }
-
-        // Extract address
-        const addressEl = await page.$('button[data-item-id="address"]');
-        if (addressEl) {
-           const addressText = await addressEl.getAttribute('aria-label');
-           if (addressText) address = addressText.replace(/Address:?/i, '').trim();
-        }
-
-        // Extract website
-        const websiteEl = await page.$('a[data-item-id="authority"]');
-        if (websiteEl) {
-           const url = await websiteEl.getAttribute('href');
-           if (url) website = url;
+        const links = await page.$$('a');
+        for (const link of links) {
+            const aria = await link.getAttribute('aria-label') || '';
+            if (aria.includes('Website:')) {
+               const url = await link.getAttribute('href');
+               if (url) website = url;
+            }
         }
       } catch (e) {
         console.log(`Could not extract basic details for ${name}`);
