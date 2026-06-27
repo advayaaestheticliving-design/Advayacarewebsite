@@ -267,6 +267,13 @@ function AdminB2BPage() {
                       <div className="rounded-xl bg-white/5 p-3"><p className="text-xs text-white/50">Locations</p><p className="text-xl">{selected.location_count}</p></div>
                       <div className="rounded-xl bg-white/5 p-3"><p className="text-xs text-white/50">Source</p><p className="text-sm">{label(selected.source)}</p></div>
                     </div>
+                    {(selected.address || selected.website_url || selected.instagram_handle) ? (
+                      <div className="rounded-xl bg-white/5 p-4 text-sm text-white/80">
+                        {selected.address ? <p className="mb-1"><strong className="font-medium text-white/50">Address:</strong> {selected.address}</p> : null}
+                        {selected.website_url ? <p className="mb-1"><strong className="font-medium text-white/50">Website:</strong> <a href={selected.website_url} target="_blank" rel="noreferrer" className="text-[#D4AF37] underline">{selected.website_url}</a></p> : null}
+                        {selected.instagram_handle ? <p><strong className="font-medium text-white/50">Instagram:</strong> {selected.instagram_handle}</p> : null}
+                      </div>
+                    ) : null}
                     <div>
                       <h3 className="font-semibold text-[#D4AF37]">Primary contact</h3>
                       {selected.contacts?.length ? selected.contacts.map((contact) => (
