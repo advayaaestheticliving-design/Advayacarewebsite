@@ -131,8 +131,25 @@ Deno.serve(async (req) => {
       account = data;
     }
 
-    const { data: contact, error: contactError } = await supabase.from("b2b_contacts").insert({
-      account_id: account.id,
+    const cleanPhone = phone.replace(/\D/g, "");
+    // Look for any existing contact with this phone (matching the last 8 digits to handle country codes safely)
+    const phoneSuffix = cleanPhone.length > 8 ? cleanPhone.slice(-8) : cleanPhone;
+    const { data: phoneContact } = await supabase.from("b2b_contacts")
+      .select("id, account_id")
+      .or(`phone.ilike.%${phoneSuffix}%,whatsapp_phone.ilike.%${phoneSuffix}%`)
+      .limit(1)
+      .maybeSingle();
+
+    let contactIdToUpdate = null;
+    let contactAccountId = account.id;
+
+    if (phoneContact) {
+      contactIdToUpdate = phoneContact.id;
+      contactAccountId = phoneContact.account_id;
+    }
+
+    const contactPayload = {
+      account_id: contactAccountId,
       full_name: contactName,
       job_title: normalizeText(body?.jobTitle, 120),
       email,
@@ -144,8 +161,25 @@ Deno.serve(async (req) => {
       consent_source: "trade_application",
       consent_recorded_at: new Date().toISOString(),
       metadata: { privacy_accepted: true },
-    }).select("id").single();
-    if (contactError || !contact) return jsonResponse({ error: "Could not save contact details." }, 500);
+    };
+
+    let contact;
+    let contactError;
+
+    if (contactIdToUpdate) {
+      const res = await supabase.from("b2b_contacts").update(contactPayload).eq("id", contactIdToUpdate).select("id").single();
+      contact = res.data;
+      contactError = res.error;
+    } else {
+      const res = await supabase.from("b2b_contacts").insert(contactPayload).select("id").single();
+      contact = res.data;
+      contactError = res.error;
+    }
+
+    if (contactError || !contact) {
+      console.error("Contact insert/update error:", contactError);
+      return jsonResponse({ error: `Could not save contact details. ${contactError?.message || ''}` }, 500);
+    }
 
     await supabase.from("b2b_activities").insert([
       {
