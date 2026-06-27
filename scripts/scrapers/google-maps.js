@@ -137,24 +137,52 @@ async function run() {
         delete lead._phone; // Remove before inserting into b2b_accounts
         delete lead._email;
 
-        const { data: account, error } = await supabase.from('b2b_accounts').insert(lead).select().single();
+        let account = null;
+        const { data: insertedAccount, error } = await supabase.from('b2b_accounts').insert(lead).select().single();
         if (error) {
           if (error.code === '23505') {
-             console.log(`Skipping duplicate lead: ${lead.business_name}`);
+             console.log(`Updating existing lead: ${lead.business_name}`);
+             const { data: updatedAccount, error: updateError } = await supabase.from('b2b_accounts')
+                .update({ address: lead.address, website_url: lead.website_url })
+                .ilike('business_name', lead.business_name)
+                .ilike('city', lead.city)
+                .select().single();
+             if (updateError) {
+                console.error(`Error updating ${lead.business_name}:`, updateError);
+             } else {
+                account = updatedAccount;
+             }
           } else {
              console.error(`Error inserting ${lead.business_name}:`, error);
           }
-        } else if (account) {
-          // Insert contact with scraped phone number and email
-          await supabase.from('b2b_contacts').insert({
-            account_id: account.id,
-            full_name: 'Manager',
-            job_title: 'Manager',
-            phone: phone || '',
-            whatsapp_phone: phone || '',
-            email: email || '',
-            is_primary: true
-          });
+        } else {
+          account = insertedAccount;
+        }
+        
+        if (account) {
+          // Insert or update contact
+          const { data: existingContact } = await supabase.from('b2b_contacts')
+            .select('id')
+            .eq('account_id', account.id)
+            .limit(1).maybeSingle();
+            
+          if (existingContact) {
+            await supabase.from('b2b_contacts').update({
+              phone: phone || null,
+              whatsapp_phone: phone || null,
+              email: email || null
+            }).eq('id', existingContact.id);
+          } else {
+            await supabase.from('b2b_contacts').insert({
+              account_id: account.id,
+              full_name: 'Manager',
+              job_title: 'Manager',
+              phone: phone || null,
+              whatsapp_phone: phone || null,
+              email: email || null,
+              is_primary: true
+            });
+          }
           insertedCount++;
         }
       }
