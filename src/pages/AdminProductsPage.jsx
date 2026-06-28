@@ -429,24 +429,22 @@ function AdminProductsPage() {
                   />
                   Product is active on storefront
                 </label>
-                <div className="flex flex-col gap-2 pt-6">
-                  <label className="flex items-center gap-2 text-xs text-white/80">
-                    <input
-                      type="checkbox"
-                      checked={form.is_best_seller}
-                      onChange={(event) => updateField("is_best_seller", event.target.checked)}
-                    />
-                    Best Seller badge
-                  </label>
-                  <label className="flex items-center gap-2 text-xs text-white/80">
-                    <input
-                      type="checkbox"
-                      checked={form.is_new_arrival}
-                      onChange={(event) => updateField("is_new_arrival", event.target.checked)}
-                    />
-                    New Arrival badge
-                  </label>
-                </div>
+                <label className="flex items-center gap-2 text-xs text-white/80 pt-6">
+                  <input
+                    type="checkbox"
+                    checked={form.is_best_seller}
+                    onChange={(event) => updateField("is_best_seller", event.target.checked)}
+                  />
+                  Best Seller badge
+                </label>
+                <label className="flex items-center gap-2 text-xs text-white/80 pt-6">
+                  <input
+                    type="checkbox"
+                    checked={form.is_new_arrival}
+                    onChange={(event) => updateField("is_new_arrival", event.target.checked)}
+                  />
+                  New Arrival Badge
+                </label>
               </div>
 
               <label className="space-y-1 text-xs text-white/80 block">
