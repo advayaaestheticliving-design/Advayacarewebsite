@@ -21,6 +21,9 @@ function ProductCard({ product, className = "" }) {
     low_stock_threshold,
   } = normalizedProduct;
 
+  const isNewArrival = filterTags.some(tag => String(tag).trim().toLowerCase() === "new arrival");
+  const displayTags = filterTags.filter(tag => String(tag).trim().toLowerCase() !== "new arrival");
+
   const availableStock = getAvailableStock(normalizedProduct);
   const canPurchase = isProductPurchasable(normalizedProduct);
   const lowStockThreshold = Number(low_stock_threshold || 5);
@@ -80,6 +83,11 @@ function ProductCard({ product, className = "" }) {
             alt={name}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
+          {isNewArrival && (
+            <div className="absolute top-3 left-3 bg-white text-black text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-sm shadow-sm z-10 border border-black/10">
+              New Arrival
+            </div>
+          )}
           {normalizedProduct.is_best_seller && (
             <div className="absolute top-3 right-3 bg-[#D4AF37] text-black text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-sm shadow-sm z-10">
               Best Seller
@@ -106,9 +114,9 @@ function ProductCard({ product, className = "" }) {
             {stockText}
           </span>
         </div>
-        {filterTags.length > 0 && (
+        {displayTags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {filterTags.map((tag) => (
+            {displayTags.map((tag) => (
               <span
                 key={tag}
                 className="inline-flex items-center rounded-full border border-black/20 bg-black/5 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-900"

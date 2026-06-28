@@ -25,6 +25,7 @@ const EMPTY_FORM = {
   benefits_brief: "",
   benefits_detail: "",
   use_cases: "",
+  is_new_arrival: false,
 };
 
 function toLines(value) {
@@ -38,6 +39,10 @@ function toCommaList(value) {
 }
 
 function formatProductForForm(product) {
+  const allTags = Array.isArray(product?.filter_tags) ? product.filter_tags : [];
+  const isNewArrival = allTags.some(tag => String(tag).trim().toLowerCase() === "new arrival");
+  const otherTags = allTags.filter(tag => String(tag).trim().toLowerCase() !== "new arrival");
+
   return {
     id: String(product?.id || ""),
     name: String(product?.name || ""),
@@ -46,13 +51,14 @@ function formatProductForForm(product) {
     low_stock_threshold: String(Number(product?.low_stock_threshold || 5)),
     is_active: product?.is_active !== false,
     is_best_seller: product?.is_best_seller === true,
-    filter_tags: toCommaList(product?.filter_tags),
+    filter_tags: toCommaList(otherTags),
     images: toLines(product?.images),
     one_line_summary: String(product?.one_line_summary || ""),
     ingredients: String(product?.ingredients || ""),
     benefits_brief: String(product?.benefits_brief || ""),
     benefits_detail: String(product?.benefits_detail || ""),
     use_cases: String(product?.use_cases || ""),
+    is_new_arrival: isNewArrival,
   };
 }
 
@@ -144,12 +150,18 @@ function AdminProductsPage() {
     setSuccess("");
 
     try {
+      const parsedTags = parseCommaList(form.filter_tags);
+      const tagSet = new Set(parsedTags);
+      if (form.is_new_arrival) {
+        tagSet.add("New Arrival");
+      }
+
       const payload = {
         ...form,
         price_inr: Number(form.price_inr || 0),
         stock_quantity: Number(form.stock_quantity || 0),
         low_stock_threshold: Number(form.low_stock_threshold || 5),
-        filter_tags: parseCommaList(form.filter_tags),
+        filter_tags: Array.from(tagSet),
         images: parseLines(form.images),
       };
 
@@ -417,14 +429,24 @@ function AdminProductsPage() {
                   />
                   Product is active on storefront
                 </label>
-                <label className="flex items-center gap-2 text-xs text-white/80 pt-6">
-                  <input
-                    type="checkbox"
-                    checked={form.is_best_seller}
-                    onChange={(event) => updateField("is_best_seller", event.target.checked)}
-                  />
-                  Best Seller badge
-                </label>
+                <div className="flex flex-col gap-2 pt-6">
+                  <label className="flex items-center gap-2 text-xs text-white/80">
+                    <input
+                      type="checkbox"
+                      checked={form.is_best_seller}
+                      onChange={(event) => updateField("is_best_seller", event.target.checked)}
+                    />
+                    Best Seller badge
+                  </label>
+                  <label className="flex items-center gap-2 text-xs text-white/80">
+                    <input
+                      type="checkbox"
+                      checked={form.is_new_arrival}
+                      onChange={(event) => updateField("is_new_arrival", event.target.checked)}
+                    />
+                    New Arrival badge
+                  </label>
+                </div>
               </div>
 
               <label className="space-y-1 text-xs text-white/80 block">
