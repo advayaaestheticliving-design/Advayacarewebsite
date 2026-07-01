@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useMemberSession } from "../context/MemberSessionContext";
 import { signOutMembership } from "../lib/membershipApi";
+import { useCart } from "../context/CartContext";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,7 +16,10 @@ const Header = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const adminEmail = "advaya.aestheticliving@gmail.com";
   const { user } = useMemberSession();
+  const { items } = useCart();
   const isMemberAuthenticated = Boolean(user?.id);
+
+  const cartItemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   React.useEffect(() => {
     const applyUser = (user) => {
@@ -109,19 +113,26 @@ const Header = () => {
     `${navLinkBase} ${isActive ? "border-l-2 border-amber-700 pl-2" : ""}`;
 
   const cartIcon = (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h2l1.2 10.2a2 2 0 001.98 1.8h8.64a2 2 0 001.97-1.66L20 8H7" />
-      <circle cx="10" cy="19" r="1.5" />
-      <circle cx="17" cy="19" r="1.5" />
-    </svg>
+    <div className="relative inline-flex items-center justify-center">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        className="h-4 w-4"
+        aria-hidden="true"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h2l1.2 10.2a2 2 0 001.98 1.8h8.64a2 2 0 001.97-1.66L20 8H7" />
+        <circle cx="10" cy="19" r="1.5" />
+        <circle cx="17" cy="19" r="1.5" />
+      </svg>
+      {cartItemCount > 0 && (
+        <span className="absolute -top-2 -right-2.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#b58b2f] px-1 text-[9px] font-bold text-black">
+          {cartItemCount > 99 ? '99+' : cartItemCount}
+        </span>
+      )}
+    </div>
   );
 
   return (
