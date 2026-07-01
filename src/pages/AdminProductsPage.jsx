@@ -14,6 +14,7 @@ const EMPTY_FORM = {
   id: "",
   name: "",
   price_inr: "0",
+  compare_at_price: "0",
   stock_quantity: "0",
   low_stock_threshold: "5",
   is_active: true,
@@ -47,6 +48,7 @@ function formatProductForForm(product) {
     id: String(product?.id || ""),
     name: String(product?.name || ""),
     price_inr: String(Number(product?.price_inr || 0)),
+    compare_at_price: String(Number(product?.compare_at_price || 0)),
     stock_quantity: String(Number(product?.stock_quantity || 0)),
     low_stock_threshold: String(Number(product?.low_stock_threshold || 5)),
     is_active: product?.is_active !== false,
@@ -159,6 +161,7 @@ function AdminProductsPage() {
       const payload = {
         ...form,
         price_inr: Number(form.price_inr || 0),
+        compare_at_price: Number(form.compare_at_price || 0),
         stock_quantity: Number(form.stock_quantity || 0),
         low_stock_threshold: Number(form.low_stock_threshold || 5),
         filter_tags: Array.from(tagSet),
@@ -398,6 +401,16 @@ function AdminProductsPage() {
                     min={0}
                     value={form.price_inr}
                     onChange={(event) => updateField("price_inr", event.target.value)}
+                    className="w-full rounded-xl border border-neutral-600 bg-black/60 px-3 py-2 text-sm text-white"
+                  />
+                </label>
+                <label className="space-y-1 text-xs text-white/80">
+                  <span>Compare at Price (INR)</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.compare_at_price}
+                    onChange={(event) => updateField("compare_at_price", event.target.value)}
                     className="w-full rounded-xl border border-neutral-600 bg-black/60 px-3 py-2 text-sm text-white"
                   />
                 </label>
