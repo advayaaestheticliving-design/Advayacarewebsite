@@ -26,7 +26,7 @@ function ShopPage() {
   const [promoSecondsLeft, setPromoSecondsLeft] = React.useState(SHOP_MEMBER_PROMO_DURATION_SECONDS);
   const [promoVariant, setPromoVariant] = React.useState("A");
 
-  const categories = ["All", "Face", "Body", "Hair", "Pet Care"];
+  const categories = ["All", "Face", "Body", "Hair", "Pet Care", "Offers"];
   const sortOptions = ["Featured", "Highest Price", "Lowest Price", "Discount"];
 
   React.useEffect(() => {
@@ -165,6 +165,8 @@ function ShopPage() {
   const filteredProducts =
     selectedFilter === "All"
       ? products
+      : selectedFilter === "Offers"
+      ? products.filter((product) => product.compare_at_price && product.compare_at_price > product.price_inr)
       : products.filter((product) => {
           const tags = product.filter_tags || product.filterTags || [];
           return tags.includes(selectedFilter);
