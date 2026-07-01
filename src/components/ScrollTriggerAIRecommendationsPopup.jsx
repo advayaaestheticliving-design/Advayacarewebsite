@@ -6,7 +6,6 @@ import {
   saveMembershipProfile,
   initialMembershipProfileForm,
 } from "../lib/membershipApi";
-import { ensureSignupCouponIssued } from "../lib/walletApi";
 
 const POPUP_DISMISSED_KEY = "ai_popup_dismissed_session";
 
@@ -123,12 +122,6 @@ function ScrollTriggerAIRecommendationsPopup({ isOpen, onClose }) {
     try {
       // Pass the user ID from signup to avoid session timing issues
       await saveMembershipProfile(profile, { userId: createdUser?.id });
-      
-      try {
-        await ensureSignupCouponIssued();
-      } catch {
-        // Silent: coupon issuance should not block completion
-      }
 
       // Mark popup as dismissed for this session
       sessionStorage.setItem(POPUP_DISMISSED_KEY, "true");

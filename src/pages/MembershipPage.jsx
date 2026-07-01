@@ -7,7 +7,6 @@ import {
   signInWithGoogle,
   updateAuthUserPhone,
 } from "../lib/membershipApi";
-import { ensureSignupCouponIssued } from "../lib/walletApi";
 import { useMemberSession } from "../context/MemberSessionContext";
 
 function isValidIndianPhone(phone) {
@@ -46,25 +45,12 @@ function MembershipPage() {
   }, [authReady, memberEmail]);
 
   React.useEffect(() => {
-    if (!authReady || !user?.id || lastAuthEvent !== "SIGNED_IN") {
+    if (!authReady) {
       return;
     }
 
-    const createdAtMs = new Date(user.created_at || 0).getTime();
-    const isRecentlyCreated = Number.isFinite(createdAtMs) && Date.now() - createdAtMs < 10 * 60 * 1000;
-
-    if (!isRecentlyCreated) {
-      return;
-    }
-
-    ensureSignupCouponIssued()
-      .then((couponResult) => {
-        if (couponResult?.issued) {
-          setStatus("Welcome! Your ₹100 member coupon is now active.");
-        }
-      })
-      .catch(() => undefined);
-  }, [authReady, lastAuthEvent, user]);
+    setError("");
+  }, [authReady, memberEmail]);
 
   const handleEmailAuth = async (event) => {
     event.preventDefault();
@@ -79,12 +65,6 @@ function MembershipPage() {
         }
 
         const data = await signUpWithEmailPassword(authEmail, authPassword, authPhone);
-
-        try {
-          await ensureSignupCouponIssued();
-        } catch {
-          // silent: coupon issuance should not block auth completion
-        }
 
         const isConfirmed = Boolean(data?.session || data?.user?.email_confirmed_at);
 

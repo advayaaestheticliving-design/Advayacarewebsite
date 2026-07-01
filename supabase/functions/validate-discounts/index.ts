@@ -51,10 +51,9 @@ serve(async (req) => {
     };
 
     if (couponCode) {
-      if (!user?.id) {
-        coupon.status = "signin_required";
-        coupon.message = "Sign in to use member coupons.";
-      } else {
+      let foundMemberCoupon = false;
+
+      if (user?.id) {
         const { data: couponRow, error: couponError } = await service
           .from("member_coupons")
           .select("id, auth_user_id, amount_inr, status, expires_at")
@@ -68,23 +67,100 @@ serve(async (req) => {
           });
         }
 
-        if (!couponRow) {
+        if (couponRow) {
+          foundMemberCoupon = true;
+          if (couponRow.auth_user_id !== user.id) {
+            coupon.status = "invalid_owner";
+            coupon.message = "This coupon belongs to another account.";
+          } else if (couponRow.status !== "active") {
+            coupon.status = "inactive";
+            coupon.message = "This coupon is no longer active.";
+          } else if (couponRow.expires_at && new Date(couponRow.expires_at).getTime() < Date.now()) {
+            coupon.status = "expired";
+            coupon.message = "This coupon has expired.";
+          } else {
+            const amount = Math.min(remaining, Number(couponRow.amount_inr || 0));
+            remaining = Math.max(0, remaining - amount);
+            coupon.amountInr = amount;
+            coupon.status = "applied";
+          }
+        }
+      }
+
+      if (!foundMemberCoupon) {
+        // Fallback to checking general_coupons
+        const { data: generalRow, error: generalError } = await service
+          .from("general_coupons")
+          .select("*")
+          .eq("code", couponCode)
+          .maybeSingle();
+
+        if (generalError) {
+          return new Response(JSON.stringify({ error: generalError.message }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (!generalRow) {
           coupon.status = "invalid";
           coupon.message = "Coupon code not found.";
-        } else if (couponRow.auth_user_id !== user.id) {
-          coupon.status = "invalid_owner";
-          coupon.message = "This coupon belongs to another account.";
-        } else if (couponRow.status !== "active") {
+        } else if (!generalRow.is_active) {
           coupon.status = "inactive";
           coupon.message = "This coupon is no longer active.";
-        } else if (couponRow.expires_at && new Date(couponRow.expires_at).getTime() < Date.now()) {
+        } else if (generalRow.require_membership && !user?.id) {
+          coupon.status = "signin_required";
+          coupon.message = "Sign in to use this coupon.";
+        } else if (generalRow.expires_at && new Date(generalRow.expires_at).getTime() < Date.now()) {
           coupon.status = "expired";
           coupon.message = "This coupon has expired.";
+        } else if (generalRow.min_order_amount_inr && subtotal < Number(generalRow.min_order_amount_inr)) {
+          coupon.status = "invalid_subtotal";
+          coupon.message = `Minimum order amount of ₹${generalRow.min_order_amount_inr} is required.`;
+        } else if (generalRow.global_usage_limit && generalRow.global_usage_count >= generalRow.global_usage_limit) {
+          coupon.status = "limit_reached";
+          coupon.message = "This coupon has reached its maximum global usage limit.";
         } else {
-          const amount = Math.min(remaining, Number(couponRow.amount_inr || 0));
-          remaining = Math.max(0, remaining - amount);
-          coupon.amountInr = amount;
-          coupon.status = "applied";
+          let limitReached = false;
+          if (generalRow.per_member_usage_limit && user?.id) {
+            const { count, error: countError } = await service
+              .from("general_coupon_usages")
+              .select("id", { count: 'exact', head: true })
+              .eq("coupon_id", generalRow.id)
+              .eq("auth_user_id", user.id);
+
+            if (!countError && count != null && count >= generalRow.per_member_usage_limit) {
+              coupon.status = "limit_reached";
+              coupon.message = "You have reached your maximum usage limit for this coupon.";
+              limitReached = true;
+            }
+          }
+
+          if (!limitReached) {
+            let amount = 0;
+            if (generalRow.discount_type === 'percentage') {
+              amount = (remaining * Number(generalRow.percentage_discount || 0)) / 100;
+            } else if (generalRow.discount_type === 'fixed') {
+              amount = Number(generalRow.fixed_amount_inr || 0);
+            } else if (generalRow.discount_type === 'both') {
+              amount = (remaining * Number(generalRow.percentage_discount || 0)) / 100 + Number(generalRow.fixed_amount_inr || 0);
+            }
+
+            if (generalRow.max_discount_inr && amount > Number(generalRow.max_discount_inr)) {
+              amount = Number(generalRow.max_discount_inr);
+            }
+
+            amount = Math.min(remaining, amount);
+
+            if (amount > 0) {
+              remaining = Math.max(0, remaining - amount);
+              coupon.amountInr = amount;
+              coupon.status = "applied";
+            } else {
+              coupon.status = "invalid";
+              coupon.message = "Coupon did not provide any discount.";
+            }
+          }
         }
       }
     }

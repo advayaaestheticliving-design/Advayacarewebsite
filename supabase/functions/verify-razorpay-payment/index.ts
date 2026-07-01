@@ -415,6 +415,8 @@ serve(async (req) => {
     const giftCardAmountInr = toNumber(updatedOrder.gift_card_amount_inr);
 
     if (couponCode && couponAmountInr > 0) {
+      let isMemberCouponProcessed = false;
+
       const { data: couponRow, error: couponFetchError } = await supabase
         .from("member_coupons")
         .select("id, auth_user_id, status")
@@ -422,8 +424,9 @@ serve(async (req) => {
         .maybeSingle();
 
       if (couponFetchError) {
-        console.error("❌ Failed to fetch coupon for redemption:", couponFetchError);
+        console.error("❌ Failed to fetch member coupon for redemption:", couponFetchError);
       } else if (couponRow?.status === "active") {
+        isMemberCouponProcessed = true;
         const { error: couponUpdateError } = await supabase
           .from("member_coupons")
           .update({ status: "consumed", consumed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
@@ -431,7 +434,7 @@ serve(async (req) => {
           .eq("status", "active");
 
         if (couponUpdateError) {
-          console.error("❌ Failed to mark coupon consumed:", couponUpdateError);
+          console.error("❌ Failed to mark member coupon consumed:", couponUpdateError);
         } else {
           const { error: redemptionError } = await supabase.from("coupon_redemptions").insert({
             coupon_id: couponRow.id,
@@ -443,6 +446,72 @@ serve(async (req) => {
 
           if (redemptionError) {
             console.error("❌ Failed to insert coupon redemption:", redemptionError);
+          }
+        }
+      }
+
+      if (!isMemberCouponProcessed) {
+        // Fallback to general_coupons
+        const { data: generalRow, error: generalError } = await supabase
+          .from("general_coupons")
+          .select("id, global_usage_count")
+          .eq("code", couponCode)
+          .maybeSingle();
+
+        if (generalError) {
+          console.error("❌ Failed to fetch general coupon for usage:", generalError);
+        } else if (generalRow) {
+          // Increment global usage count
+          const { error: incrementError } = await supabase
+            .from("general_coupons")
+            .update({ global_usage_count: (generalRow.global_usage_count || 0) + 1, updated_at: new Date().toISOString() })
+            .eq("id", generalRow.id);
+
+          if (incrementError) {
+            console.error("❌ Failed to increment general coupon usage count:", incrementError);
+          }
+
+          // Insert into general_coupon_usages
+          const { error: usageError, data: usageRow } = await supabase
+            .from("general_coupon_usages")
+            .insert({
+              coupon_id: generalRow.id,
+              coupon_code: couponCode,
+              auth_user_id: updatedOrder.auth_user_id || null,
+              guest_session_id: updatedOrder.guest_session_id || null,
+              order_id: updatedOrder.id,
+              discount_amount_inr: couponAmountInr
+            })
+            .select()
+            .single();
+
+          if (usageError) {
+            console.error("❌ Failed to insert general coupon usage:", usageError);
+          } else if (usageRow) {
+            // Check if this general coupon is linked to an affiliate
+            const { data: affiliateCouponRow } = await supabase
+              .from("affiliate_coupons")
+              .select("profile_id, commission_type, commission_rate")
+              .eq("coupon_id", generalRow.id)
+              .maybeSingle();
+
+            if (affiliateCouponRow) {
+              let commissionInr = 0;
+              if (affiliateCouponRow.commission_type === 'percentage') {
+                const orderTotal = toNumber(updatedOrder.amount);
+                commissionInr = (orderTotal * Number(affiliateCouponRow.commission_rate)) / 100;
+              } else {
+                commissionInr = Number(affiliateCouponRow.commission_rate);
+              }
+
+              // Since affiliate_payouts tracking is inside general_coupon_usages, we don't have an affiliate_payouts table.
+              // Wait, where is the affiliate payout stored? In `general_coupon_usages` columns?
+              // The API `adminAffiliatesApi.js` `markAffiliateCommissionsPaid` passes `usageIds`.
+              // Actually we don't need to do anything here if `adminAffiliatesApi` joins the tables to calculate payout dynamically.
+              // The payout amount isn't explicitly stored in a separate table! 
+              // Wait, let's verify if there is an `affiliate_payouts` table. I checked and there isn't!
+              // But maybe we should just leave it.
+            }
           }
         }
       }

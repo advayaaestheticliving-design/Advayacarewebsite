@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { useMemberSession } from "../context/MemberSessionContext";
+import { getMyCoupons, getMyGiftCards } from "../lib/walletApi";
 import RazorpayCheckout from "../components/RazorpayCheckout";
 
 function CartPage() {
@@ -45,6 +47,21 @@ function CartPage() {
     address: "",
     pinCode: "",
   });
+
+  const { user } = useMemberSession();
+  const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [availableGiftCards, setAvailableGiftCards] = useState([]);
+
+  useEffect(() => {
+    if (user) {
+      getMyCoupons().then(res => {
+         if (res && !res.error) setAvailableCoupons(res.filter(c => c.status === 'active'));
+      }).catch(console.error);
+      getMyGiftCards().then(res => {
+         if (res && !res.error) setAvailableGiftCards(res.filter(g => g.status === 'active' && g.balance_amount_inr > 0));
+      }).catch(console.error);
+    }
+  }, [user]);
 
   const formattedSubtotal = subtotal.toLocaleString("en-IN", {
     style: "currency",
@@ -264,6 +281,57 @@ function CartPage() {
                   />
                 </div>
               </div>
+
+              {/* Available Coupons & Gift Cards */}
+              {(availableCoupons.length > 0 || availableGiftCards.length > 0) && (
+                <div className="space-y-3 bg-white bg-opacity-50 rounded-lg p-4 border border-slate-200">
+                  <h3 className="text-xs font-semibold text-slate-900 uppercase">
+                    Available For You
+                  </h3>
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                    {availableCoupons.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setLocalCoupon(c.code);
+                          setCouponCode(c.code);
+                        }}
+                        className={`w-full text-left rounded-md px-3 py-2 text-xs font-medium border transition-colors ${
+                          couponCode === c.code 
+                            ? "border-[#b58b2f] bg-[#FFD700] bg-opacity-20 text-[#b58b2f]"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-[#b58b2f]"
+                        }`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <span>{c.code}</span>
+                          <span className="font-semibold text-[#b58b2f]">₹{c.amount_inr} Off</span>
+                        </div>
+                      </button>
+                    ))}
+                    {availableGiftCards.map((g) => (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onClick={() => {
+                          setLocalGiftCard(g.code);
+                          setGiftCardCode(g.code);
+                        }}
+                        className={`w-full text-left rounded-md px-3 py-2 text-xs font-medium border transition-colors ${
+                          giftCardCode === g.code 
+                            ? "border-[#b58b2f] bg-[#FFD700] bg-opacity-20 text-[#b58b2f]"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-[#b58b2f]"
+                        }`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <span>Gift Card: {g.code.substring(0, 4)}...</span>
+                          <span className="font-semibold text-[#b58b2f]">Balance: ₹{g.balance_amount_inr}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Coupon Code */}
               <div className="space-y-2">
