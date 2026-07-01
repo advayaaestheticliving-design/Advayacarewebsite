@@ -383,6 +383,7 @@ export default function AdminAffiliatesPage() {
                       <thead>
                         <tr className="border-b border-neutral-800 text-white/50 uppercase tracking-wider text-xs">
                           <th className="px-6 py-4 font-medium">Affiliate</th>
+                          <th className="px-6 py-4 font-medium">Email</th>
                           <th className="px-6 py-4 font-medium">Coupon</th>
                           <th className="px-6 py-4 font-medium text-right">Uses</th>
                           <th className="px-6 py-4 font-medium text-right">Gross Rev</th>
@@ -398,6 +399,9 @@ export default function AdminAffiliatesPage() {
                               <div className="text-xs text-white/40 mt-1">
                                 {aff.commission_type === 'percentage' ? `${aff.commission_rate}% of Net` : `${formatCurrency(aff.commission_rate)} fixed`}
                               </div>
+                            </td>
+                            <td className="px-6 py-4 text-white/70">
+                              {aff.email ? <a href={`mailto:${aff.email}`} className="hover:text-[#D4AF37] hover:underline" onClick={(e) => e.stopPropagation()}>{aff.email}</a> : <span className="text-white/30">N/A</span>}
                             </td>
                             <td className="px-6 py-4">
                               <div className="text-white font-mono bg-white/10 px-2 py-0.5 rounded inline-block">
