@@ -29,13 +29,17 @@ async function sendEmail(to: string, subject: string, html: string) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Advaya Affiliate <affiliates@advayacare.com>",
+        from: Deno.env.get("B2B_FROM_EMAIL") || "Advaya Affiliate <trade@advayacare.com>",
         to: [to],
         subject,
         html,
         reply_to: "support@advayacare.com",
       }),
     });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Resend API Error:", errorText);
+    }
     return response.ok;
   } catch (err) {
     console.error("Failed to send email", err);
