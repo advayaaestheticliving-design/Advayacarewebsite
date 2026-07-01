@@ -228,6 +228,12 @@ const Header = () => {
                     >
                       My Profile
                     </Link>
+                    <Link
+                      to="/affiliate/dashboard"
+                      className="block px-3 py-2 text-left text-white transition hover:text-[#b58b2f]"
+                    >
+                      Affiliate Dashboard
+                    </Link>
                     <button
                       type="button"
                       onClick={handleSignOut}
@@ -349,6 +355,9 @@ const Header = () => {
                 <div className="mt-1 space-y-1 border-l border-neutral-700 pl-3">
                   <NavLink to="/account" className={getMobileNavLinkClass}>
                     My Profile
+                  </NavLink>
+                  <NavLink to="/affiliate/dashboard" className={getMobileNavLinkClass}>
+                    Affiliate Dashboard
                   </NavLink>
                   <button
                     type="button"

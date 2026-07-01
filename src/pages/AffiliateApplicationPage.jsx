@@ -108,6 +108,9 @@ export default function AffiliateApplicationPage() {
         <p className="text-lg text-white/80 leading-relaxed max-w-2xl mx-auto">
           Join the Advaya family and earn commissions by sharing our premium aesthetic living products with your audience. Fill out the form below to apply.
         </p>
+        <p className="mt-4 text-sm text-white/60">
+          Already an affiliate? <Link to="/affiliate/dashboard" className="text-[#D4AF37] hover:underline">Log in to your Dashboard</Link>
+        </p>
       </div>
 
       <div className="bg-black/40 border border-neutral-800 rounded-2xl p-8 sm:p-12 backdrop-blur-sm shadow-2xl">
