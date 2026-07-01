@@ -246,18 +246,43 @@ serve(async (req) => {
         return jsonResponse({ error: "Failed to create coupon", details: couponError.message }, 500);
       }
 
-      // Create affiliate record
+      // Check for existing affiliate profile or create one
+      let profileId;
+      const { data: existingProfile } = await supabase
+        .from("affiliate_profiles")
+        .select("id")
+        .eq("email", appData.email)
+        .maybeSingle();
+
+      if (existingProfile) {
+        profileId = existingProfile.id;
+      } else {
+        const { data: newProfile, error: profileCreateError } = await supabase
+          .from("affiliate_profiles")
+          .insert({
+            name: appData.name,
+            email: appData.email,
+            phone: appData.phone || null,
+            social_links: appData.social_links || null,
+            reason: appData.reason || null
+          })
+          .select("id")
+          .single();
+          
+        if (profileCreateError) {
+          return jsonResponse({ error: "Failed to create affiliate profile", details: profileCreateError.message }, 500);
+        }
+        profileId = newProfile.id;
+      }
+
+      // Create affiliate coupon record
       const { data: affiliateData, error: affiliateError } = await supabase
         .from("affiliate_coupons")
         .insert({
+          profile_id: profileId,
           coupon_id: couponData.id,
-          affiliate_name: appData.name,
           commission_type: "percentage",
-          commission_rate: rate,
-          email: appData.email,
-          phone: appData.phone || null,
-          social_links: appData.social_links || null,
-          reason: appData.reason || null
+          commission_rate: rate
         })
         .select()
         .single();

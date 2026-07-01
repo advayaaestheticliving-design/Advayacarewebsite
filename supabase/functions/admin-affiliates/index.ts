@@ -100,7 +100,7 @@ serve(async (req) => {
   if (req.method === "GET") {
     const url = new URL(req.url);
     const period = url.searchParams.get("period") || "all";
-    const singleId = url.searchParams.get("id");
+    const singleId = url.searchParams.get("id"); // this is now profile_id
     
     let dateFilter = null;
     const now = new Date();
@@ -119,38 +119,55 @@ serve(async (req) => {
       dateFilter = now.toISOString();
     }
 
-    // Fetch affiliate coupons
-    let query = supabase
+    // Fetch affiliate profiles
+    let profilesQuery = supabase
+      .from("affiliate_profiles")
+      .select(`*`);
+      
+    if (singleId) {
+      profilesQuery = profilesQuery.eq("id", singleId);
+    }
+    
+    const { data: profiles, error: profilesError } = await profilesQuery;
+      
+    if (profilesError) {
+      return jsonResponse({ error: "Failed to fetch affiliates", details: profilesError.message }, 500);
+    }
+    
+    if (!profiles || profiles.length === 0) {
+      return jsonResponse({ affiliates: [] });
+    }
+
+    const profileIds = profiles.map((p: any) => p.id);
+
+    // Fetch coupons for these profiles
+    const { data: affiliateCoupons, error: acError } = await supabase
       .from("affiliate_coupons")
       .select(`
-        id, affiliate_name, commission_type, commission_rate, created_at,
-        email, phone, social_links, reason,
+        id, profile_id, coupon_id, commission_type, commission_rate, created_at,
         general_coupons (
           id, code, discount_type, fixed_amount_inr, percentage_discount, is_active
         )
-      `);
-      
-    if (singleId) {
-      query = query.eq("id", singleId);
+      `)
+      .in("profile_id", profileIds);
+
+    if (acError) {
+      return jsonResponse({ error: "Failed to fetch affiliate coupons", details: acError.message }, 500);
     }
-    
-    const { data: affiliates, error: affiliatesError } = await query;
-      
-    if (affiliatesError) {
-      return jsonResponse({ error: "Failed to fetch affiliates", details: affiliatesError.message }, 500);
-    }
-    
-    if (!affiliates || affiliates.length === 0) {
-      return jsonResponse({ affiliates: [] });
-    }
-    
-    const couponIds = affiliates.map((a: any) => a.general_coupons.id);
-    
+
+    const allCouponIds = affiliateCoupons?.map((ac: any) => {
+      let gId = ac.coupon_id;
+      if (!gId && ac.general_coupons) {
+        gId = Array.isArray(ac.general_coupons) ? ac.general_coupons[0]?.id : ac.general_coupons.id;
+      }
+      return gId;
+    }).filter(Boolean) || [];
+
     // Fetch usages for these coupons
     let usagesQuery = supabase
       .from("general_coupon_usages")
       .select("id, coupon_id, discount_amount_inr, used_at, order_id, is_affiliate_paid, affiliate_paid_at")
-      .in("coupon_id", couponIds);
+      .in("coupon_id", allCouponIds);
       
     if (dateFilter) {
       usagesQuery = usagesQuery.gte("used_at", dateFilter);
@@ -175,89 +192,108 @@ serve(async (req) => {
       }
     }
     
-    const metricsMap: Record<string, any> = {};
-    for (const aff of affiliates) {
-      metricsMap[aff.general_coupons.id] = {
+    const ordersMap = new Map(orders.map(o => [o.id, Number(o.amount) || 0]));
+
+    // We will aggregate metrics per profile
+    const responseData = profiles.map((profile: any) => {
+      // Find all affiliate_coupons for this profile
+      const myCoupons = affiliateCoupons?.filter((ac: any) => ac.profile_id === profile.id) || [];
+      
+      const profileMetrics = {
         uses: 0,
         gross_revenue: 0,
         net_revenue: 0,
         commission: 0,
         unpaid_commission: 0,
         paid_commission: 0,
-        transactions: []
+        transactions: [] as any[]
       };
-    }
-    
-    const ordersMap = new Map(orders.map(o => [o.id, Number(o.amount) || 0]));
-    
-    if (usages) {
-      for (const usage of usages) {
-        const cId = usage.coupon_id;
-        const metrics = metricsMap[cId];
-        if (!metrics) continue;
+
+      const myCouponsProcessed = myCoupons.map((ac: any) => {
+        let cId = ac.coupon_id;
+        if (!cId && ac.general_coupons) {
+            cId = Array.isArray(ac.general_coupons) ? ac.general_coupons[0]?.id : ac.general_coupons.id;
+        }
+
+        const myUsages = usages?.filter((u: any) => u.coupon_id === cId) || [];
         
-        metrics.uses += 1;
-        
-        const netRev = ordersMap.get(usage.order_id) || 0;
-        const discountAmt = Number(usage.discount_amount_inr) || 0;
-        const grossRev = netRev + discountAmt;
-        
-        metrics.net_revenue += netRev;
-        metrics.gross_revenue += grossRev;
-        
-        metrics.transactions.push({
-          id: usage.id,
-          order_id: usage.order_id,
-          used_at: usage.used_at,
-          net_revenue: netRev,
-          is_paid: usage.is_affiliate_paid || false,
-          paid_at: usage.affiliate_paid_at
-        });
-      }
-    }
-    
-    // Calculate commission
-    const responseData = affiliates.map((aff: any) => {
-      const cId = aff.general_coupons.id;
-      const metrics = metricsMap[cId];
-      
-      let commission = 0;
-      if (aff.commission_type === "fixed") {
-        commission = metrics.uses * Number(aff.commission_rate);
-        
-        metrics.transactions.forEach((t: any) => {
-          t.commission = Number(aff.commission_rate);
-          if (t.is_paid) metrics.paid_commission += t.commission;
-          else metrics.unpaid_commission += t.commission;
-        });
-      } else if (aff.commission_type === "percentage") {
-        commission = metrics.net_revenue * (Number(aff.commission_rate) / 100);
-        
-        metrics.transactions.forEach((t: any) => {
-          t.commission = t.net_revenue * (Number(aff.commission_rate) / 100);
-          if (t.is_paid) metrics.paid_commission += t.commission;
-          else metrics.unpaid_commission += t.commission;
-        });
-      }
-      
+        const couponMetrics = {
+          uses: 0,
+          gross_revenue: 0,
+          net_revenue: 0,
+          commission: 0
+        };
+
+        for (const usage of myUsages) {
+          couponMetrics.uses += 1;
+          profileMetrics.uses += 1;
+          
+          const netRev = ordersMap.get(usage.order_id) || 0;
+          const discountAmt = Number(usage.discount_amount_inr) || 0;
+          const grossRev = netRev + discountAmt;
+          
+          couponMetrics.net_revenue += netRev;
+          couponMetrics.gross_revenue += grossRev;
+          profileMetrics.net_revenue += netRev;
+          profileMetrics.gross_revenue += grossRev;
+          
+          let comm = 0;
+          if (ac.commission_type === "fixed") {
+            comm = Number(ac.commission_rate);
+          } else {
+            comm = netRev * (Number(ac.commission_rate) / 100);
+          }
+
+          couponMetrics.commission += comm;
+          profileMetrics.commission += comm;
+
+          if (usage.is_affiliate_paid) {
+            profileMetrics.paid_commission += comm;
+          } else {
+            profileMetrics.unpaid_commission += comm;
+          }
+          
+          profileMetrics.transactions.push({
+            id: usage.id,
+            order_id: usage.order_id,
+            used_at: usage.used_at,
+            net_revenue: netRev,
+            commission: comm,
+            is_paid: usage.is_affiliate_paid || false,
+            paid_at: usage.affiliate_paid_at,
+            coupon_code: ac.general_coupons.code
+          });
+        }
+
+        const gCoupons = Array.isArray(ac.general_coupons) ? ac.general_coupons[0] : ac.general_coupons;
+
+        return {
+          id: ac.id,
+          coupon_id: cId,
+          commission_type: ac.commission_type,
+          commission_rate: ac.commission_rate,
+          coupon_code: gCoupons?.code,
+          discount_type: gCoupons?.discount_type,
+          is_active: gCoupons?.is_active,
+          metrics: couponMetrics,
+          created_at: ac.created_at
+        };
+      });
+
+      // Sort transactions descending
+      profileMetrics.transactions.sort((a, b) => new Date(b.used_at).getTime() - new Date(a.used_at).getTime());
+
       return {
-        id: aff.id,
-        coupon_id: cId,
-        affiliate_name: aff.affiliate_name,
-        commission_type: aff.commission_type,
-        commission_rate: aff.commission_rate,
-        coupon_code: aff.general_coupons.code,
-        discount_type: aff.general_coupons.discount_type,
-        is_active: aff.general_coupons.is_active,
-        email: aff.email,
-        phone: aff.phone,
-        social_links: aff.social_links,
-        reason: aff.reason,
-        metrics: {
-          ...metrics,
-          commission
-        },
-        created_at: aff.created_at
+        id: profile.id, // profile id
+        name: profile.name,
+        email: profile.email,
+        phone: profile.phone,
+        social_links: profile.social_links,
+        reason: profile.reason,
+        status: profile.status,
+        created_at: profile.created_at,
+        metrics: profileMetrics,
+        coupons: myCouponsProcessed
       };
     });
 
@@ -299,63 +335,69 @@ serve(async (req) => {
       return jsonResponse({ success: true, updated: data?.length || 0 });
     }
 
-    const {
-      affiliate_name,
-      commission_type,
-      commission_rate,
-      code,
-      description,
-      discount_type,
-      fixed_amount_inr,
-      percentage_discount,
-      min_order_amount_inr,
-      max_discount_inr
-    } = body;
-
-    if (!affiliate_name || !commission_type || !commission_rate || !code || !discount_type) {
-      return jsonResponse({ error: "Missing required fields" }, 400);
-    }
-
-    // 1. Create general coupon
-    const { data: couponData, error: couponError } = await supabase
-      .from("general_coupons")
-      .insert({
-        code: code.trim().toUpperCase(),
-        description: description || `Affiliate coupon for ${affiliate_name}`,
-        discount_type,
-        fixed_amount_inr: discount_type !== 'percentage' ? fixed_amount_inr : null,
-        percentage_discount: discount_type !== 'fixed' ? percentage_discount : null,
-        min_order_amount_inr,
-        max_discount_inr,
-        is_active: true,
-        all_orders: true, // Affiliate coupons usually apply to all orders
-        require_membership: false
-      })
-      .select()
-      .single();
-
-    if (couponError) {
-      return jsonResponse({ error: "Failed to create base coupon", details: couponError.message }, 500);
-    }
-
-    // 2. Create affiliate tracking record
-    const { data: affiliateData, error: affiliateError } = await supabase
-      .from("affiliate_coupons")
-      .insert({
-        coupon_id: couponData.id,
-        affiliate_name: affiliate_name.trim(),
+    if (req.url.includes("/issue-coupon")) {
+      const {
+        profile_id,
         commission_type,
-        commission_rate
-      })
-      .select()
-      .single();
+        commission_rate,
+        code,
+        description,
+        discount_type,
+        percentage_discount
+      } = body;
 
-    if (affiliateError) {
-      // rollback coupon if possible, but edge function doesn't easily support transactions here.
-      return jsonResponse({ error: "Failed to create affiliate record", details: affiliateError.message }, 500);
+      if (!profile_id || !commission_type || !commission_rate || !code || !discount_type) {
+        return jsonResponse({ error: "Missing required fields" }, 400);
+      }
+
+      // 1. Fetch profile to get name for description
+      const { data: profileData } = await supabase
+        .from("affiliate_profiles")
+        .select("name")
+        .eq("id", profile_id)
+        .single();
+
+      if (!profileData) {
+        return jsonResponse({ error: "Profile not found" }, 404);
+      }
+
+      // 2. Create general coupon
+      const { data: couponData, error: couponError } = await supabase
+        .from("general_coupons")
+        .insert({
+          code: code.trim().toUpperCase(),
+          description: description || `Affiliate coupon for ${profileData.name}`,
+          discount_type,
+          percentage_discount: discount_type === 'percentage' ? percentage_discount : null,
+          is_active: true,
+          all_orders: true,
+          require_membership: false
+        })
+        .select()
+        .single();
+
+      if (couponError) {
+        return jsonResponse({ error: "Failed to create base coupon", details: couponError.message }, 500);
+      }
+
+      // 3. Create affiliate tracking record linked to profile
+      const { data: affiliateData, error: affiliateError } = await supabase
+        .from("affiliate_coupons")
+        .insert({
+          profile_id,
+          coupon_id: couponData.id,
+          commission_type,
+          commission_rate
+        })
+        .select()
+        .single();
+
+      if (affiliateError) {
+        return jsonResponse({ error: "Failed to create affiliate link", details: affiliateError.message }, 500);
+      }
+
+      return jsonResponse({ success: true, affiliate: affiliateData, coupon: couponData });
     }
-
-    return jsonResponse({ affiliate: affiliateData, coupon: couponData });
   }
 
   return jsonResponse({ error: "Method not allowed" }, 405);

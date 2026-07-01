@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
-import { getAdminAffiliateProfile, markAffiliateCommissionsPaid } from "../lib/adminAffiliatesApi";
+import { getAdminAffiliateProfile, markAffiliateCommissionsPaid, issueAdminAffiliateCoupon } from "../lib/adminAffiliatesApi";
 import { updateGeneralCoupon, deleteGeneralCoupon } from "../lib/adminCouponsApi";
 
 function formatCurrency(v) {
@@ -18,6 +18,30 @@ function formatDate(isoString) {
   return d.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
 }
 
+function FieldLabel({ children }) {
+  return <label className="block text-xs font-semibold uppercase tracking-wide text-white/60 mb-1">{children}</label>;
+}
+
+function Input({ className = "", ...props }) {
+  return (
+    <input
+      className={`w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-[#D4AF37] focus:outline-none transition ${className}`}
+      {...props}
+    />
+  );
+}
+
+function Select({ children, className = "", ...props }) {
+  return (
+    <select
+      className={`w-full rounded-lg border border-neutral-700 bg-black/60 px-3 py-2 text-sm text-white focus:border-[#D4AF37] focus:outline-none transition ${className}`}
+      {...props}
+    >
+      {children}
+    </select>
+  );
+}
+
 export default function AdminAffiliateProfilePage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -27,6 +51,17 @@ export default function AdminAffiliateProfilePage() {
   
   const [selectedTransactions, setSelectedTransactions] = useState([]);
   const [updating, setUpdating] = useState(false);
+
+  // New Coupon Form state
+  const [showIssueForm, setShowIssueForm] = useState(false);
+  const [submittingCoupon, setSubmittingCoupon] = useState(false);
+  const [couponForm, setCouponForm] = useState({
+    code: "",
+    discount_type: "percentage",
+    percentage_discount: 10,
+    commission_type: "percentage",
+    commission_rate: 10,
+  });
 
   useEffect(() => {
     loadProfile();
@@ -93,11 +128,14 @@ export default function AdminAffiliateProfilePage() {
     }
   };
 
-  const handleToggleCoupon = async () => {
-    if (!profile) return;
+  const handleToggleCoupon = async (couponId, currentStatus) => {
+    if (!couponId) {
+      alert("Error: couponId is missing!");
+      return;
+    }
     try {
       setUpdating(true);
-      await updateGeneralCoupon(profile.coupon_id, { is_active: !profile.is_active });
+      await updateGeneralCoupon(couponId, { is_active: !currentStatus });
       await loadProfile();
     } catch (err) {
       alert(err.message || "Failed to update affiliate coupon.");
@@ -106,16 +144,40 @@ export default function AdminAffiliateProfilePage() {
     }
   };
 
-  const handleDeleteProfile = async () => {
-    if (!profile) return;
-    if (!window.confirm(`Are you sure you want to delete the affiliate profile and coupon for ${profile.affiliate_name}?`)) return;
+  const handleDeleteCoupon = async (couponId, couponCode) => {
+    if (!window.confirm(`Are you sure you want to delete coupon ${couponCode}?`)) return;
     try {
       setUpdating(true);
-      await deleteGeneralCoupon(profile.coupon_id);
-      navigate("/admin/affiliates");
+      await deleteGeneralCoupon(couponId);
+      await loadProfile();
     } catch (err) {
-      alert(err.message || "Failed to delete affiliate.");
+      alert(err.message || "Failed to delete coupon.");
+    } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleIssueCouponSubmit = async (e) => {
+    e.preventDefault();
+    setSubmittingCoupon(true);
+    try {
+      await issueAdminAffiliateCoupon({
+        profile_id: id,
+        ...couponForm
+      });
+      setShowIssueForm(false);
+      setCouponForm({
+        code: "",
+        discount_type: "percentage",
+        percentage_discount: 10,
+        commission_type: "percentage",
+        commission_rate: 10,
+      });
+      await loadProfile();
+    } catch (err) {
+      alert(err.message || "Failed to issue new coupon: " + err.message);
+    } finally {
+      setSubmittingCoupon(false);
     }
   };
 
@@ -131,24 +193,6 @@ export default function AdminAffiliateProfilePage() {
             </Link>
             <h1 className="text-3xl font-serif text-[#D4AF37]">Affiliate Profile</h1>
           </div>
-          {profile && (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleToggleCoupon}
-                disabled={updating}
-                className="px-4 py-2 border border-neutral-700 hover:border-[#D4AF37] hover:text-[#D4AF37] rounded-lg text-sm font-medium transition disabled:opacity-50"
-              >
-                {profile.is_active ? "Disable Profile" : "Enable Profile"}
-              </button>
-              <button
-                onClick={handleDeleteProfile}
-                disabled={updating}
-                className="px-4 py-2 bg-red-900/20 border border-red-900/50 hover:bg-red-900/50 text-red-400 rounded-lg text-sm font-medium transition disabled:opacity-50"
-              >
-                Delete Profile
-              </button>
-            </div>
-          )}
         </div>
 
         {error && (
@@ -165,16 +209,12 @@ export default function AdminAffiliateProfilePage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="md:col-span-4 bg-neutral-900 border border-neutral-800 rounded-2xl p-6 flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-semibold mb-1">{profile.affiliate_name}</h2>
+                  <h2 className="text-2xl font-semibold mb-1">{profile.name}</h2>
                   <div className="flex gap-4 text-sm text-white/50">
-                    <p>Code: <strong className="text-white">{profile.coupon_code}</strong></p>
-                    <p>Rate: <strong className="text-white">{profile.commission_type === 'percentage' ? `${profile.commission_rate}%` : formatCurrency(profile.commission_rate)}</strong></p>
+                    <p>Status: <strong className="text-white capitalize">{profile.status}</strong></p>
                     <p>Joined: {formatDate(profile.created_at)}</p>
                   </div>
                 </div>
-                {!profile.is_active && (
-                  <span className="bg-red-900/50 text-red-300 px-3 py-1 rounded text-sm font-medium">Inactive Code</span>
-                )}
               </div>
 
               <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6">
@@ -195,31 +235,108 @@ export default function AdminAffiliateProfilePage() {
               </div>
             </div>
 
-            {/* Contact Details */}
-            <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
-              <h3 className="text-xl font-medium mb-4">Profile Details</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-white/50 text-sm uppercase tracking-wide font-semibold mb-1">Email</p>
-                  <p className="text-white">{profile.email ? <a href={`mailto:${profile.email}`} className="text-[#D4AF37] hover:underline">{profile.email}</a> : "N/A"}</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Contact Details */}
+              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 md:col-span-1">
+                <h3 className="text-xl font-medium mb-4">Profile Details</h3>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-white/50 text-sm uppercase tracking-wide font-semibold mb-1">Email</p>
+                    <p className="text-white">{profile.email ? <a href={`mailto:${profile.email}`} className="text-[#D4AF37] hover:underline">{profile.email}</a> : "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-white/50 text-sm uppercase tracking-wide font-semibold mb-1">Phone</p>
+                    <p className="text-white">{profile.phone ? <a href={`tel:${profile.phone}`} className="text-[#D4AF37] hover:underline">{profile.phone}</a> : "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-white/50 text-sm uppercase tracking-wide font-semibold mb-1">Social/Website</p>
+                    <p className="text-white">{profile.social_links || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-white/50 text-sm uppercase tracking-wide font-semibold mb-1">Reason for joining</p>
+                    <p className="text-white">{profile.reason || "N/A"}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-white/50 text-sm uppercase tracking-wide font-semibold mb-1">Phone</p>
-                  <p className="text-white">{profile.phone ? <a href={`tel:${profile.phone}`} className="text-[#D4AF37] hover:underline">{profile.phone}</a> : "N/A"}</p>
+              </div>
+
+              {/* Coupons Section */}
+              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 md:col-span-2">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-medium">Affiliate Coupons</h3>
+                  <button 
+                    onClick={() => setShowIssueForm(!showIssueForm)}
+                    className="bg-[#D4AF37] hover:bg-[#c4a130] text-black px-3 py-1.5 rounded-lg text-sm font-medium transition"
+                  >
+                    {showIssueForm ? "Cancel" : "Issue New Coupon"}
+                  </button>
                 </div>
-                <div>
-                  <p className="text-white/50 text-sm uppercase tracking-wide font-semibold mb-1">Social/Website</p>
-                  <p className="text-white">{profile.social_links || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-white/50 text-sm uppercase tracking-wide font-semibold mb-1">Reason for joining</p>
-                  <p className="text-white">{profile.reason || "N/A"}</p>
+
+                {showIssueForm && (
+                  <div className="mb-6 p-4 bg-neutral-950 border border-neutral-800 rounded-xl">
+                    <form onSubmit={handleIssueCouponSubmit} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <FieldLabel>Coupon Code</FieldLabel>
+                          <Input required value={couponForm.code} onChange={e => setCouponForm({...couponForm, code: e.target.value.toUpperCase()})} placeholder="e.g. SUMMER10" />
+                        </div>
+                        <div>
+                          <FieldLabel>Discount Type</FieldLabel>
+                          <Select value={couponForm.discount_type} onChange={e => setCouponForm({...couponForm, discount_type: e.target.value})}>
+                            <option value="percentage">Percentage</option>
+                          </Select>
+                        </div>
+                        <div>
+                          <FieldLabel>Discount %</FieldLabel>
+                          <Input required type="number" min="1" max="100" value={couponForm.percentage_discount} onChange={e => setCouponForm({...couponForm, percentage_discount: e.target.value})} />
+                        </div>
+                        <div>
+                          <FieldLabel>Commission Rate (%)</FieldLabel>
+                          <Input required type="number" min="0" max="100" step="0.01" value={couponForm.commission_rate} onChange={e => setCouponForm({...couponForm, commission_rate: e.target.value})} />
+                        </div>
+                      </div>
+                      <div className="flex justify-end pt-2">
+                        <button type="submit" disabled={submittingCoupon} className="bg-white hover:bg-neutral-200 text-black px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50">
+                          {submittingCoupon ? "Issuing..." : "Create Coupon"}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  {profile.coupons?.map(c => (
+                    <div key={c.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-neutral-950 border border-neutral-800 rounded-lg gap-4">
+                      <div>
+                        <div className="flex items-center gap-3 mb-1">
+                          <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-white font-medium tracking-wider">{c.coupon_code}</span>
+                          {!c.is_active && <span className="text-xs text-red-400 bg-red-900/30 px-1.5 py-0.5 rounded border border-red-800/50">Inactive</span>}
+                        </div>
+                        <div className="text-xs text-white/50 flex gap-4">
+                          <span>Disc: {c.discount_type === 'percentage' ? `${c.metrics.uses ? '?' : c.percentage_discount || 10}%` : 'Fixed'}</span>
+                          <span>Comm: {c.commission_type === 'percentage' ? `${c.commission_rate}%` : `₹${c.commission_rate}`}</span>
+                          <span>Uses: {c.metrics?.uses || 0}</span>
+                        </div>
+                        <div className="text-xs text-red-500 break-all max-w-sm mt-2 font-mono">DEBUG: {JSON.stringify(c)}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleToggleCoupon(c.coupon_id, c.is_active)} disabled={updating} className="px-3 py-1.5 text-xs font-medium border border-neutral-700 hover:border-[#D4AF37] hover:text-[#D4AF37] rounded-lg transition disabled:opacity-50">
+                          {c.is_active ? "Disable" : "Enable"}
+                        </button>
+                        <button onClick={() => handleDeleteCoupon(c.coupon_id, c.coupon_code)} disabled={updating} className="px-3 py-1.5 text-xs font-medium text-red-400 border border-red-900/50 hover:bg-red-900/30 rounded-lg transition disabled:opacity-50">
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {(!profile.coupons || profile.coupons.length === 0) && (
+                    <p className="text-white/50 text-sm">No coupons issued yet.</p>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Transaction History / Payouts */}
-            <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden mt-8">
               <div className="p-6 border-b border-neutral-800 flex justify-between items-center">
                 <h3 className="text-xl font-medium">Transaction History</h3>
                 <div className="space-x-3">
@@ -255,6 +372,7 @@ export default function AdminAffiliateProfilePage() {
                         />
                       </th>
                       <th className="p-4 font-medium">Order Date</th>
+                      <th className="p-4 font-medium">Coupon</th>
                       <th className="p-4 font-medium">Net Revenue</th>
                       <th className="p-4 font-medium">Commission</th>
                       <th className="p-4 font-medium">Status</th>
@@ -273,6 +391,7 @@ export default function AdminAffiliateProfilePage() {
                           />
                         </td>
                         <td className="p-4 text-white">{formatDate(t.used_at)}</td>
+                        <td className="p-4 font-mono text-xs">{t.coupon_code}</td>
                         <td className="p-4 text-white/70">{formatCurrency(t.net_revenue)}</td>
                         <td className="p-4 text-[#D4AF37] font-medium">{formatCurrency(t.commission)}</td>
                         <td className="p-4">

@@ -92,39 +92,39 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   if (req.method === "GET") {
-    // 1. Find the approved application for this email
-    const { data: appData, error: appError } = await supabase
-      .from("affiliate_applications")
-      .select("name")
+    // 1. Find the affiliate profile for this email
+    const { data: profile, error: profileError } = await supabase
+      .from("affiliate_profiles")
+      .select("id, name")
       .eq("email", requesterEmail)
-      .eq("status", "approved")
-      .order("created_at", { ascending: false })
+      .eq("status", "active")
       .limit(1)
       .single();
 
-    if (appError || !appData) {
-      return jsonResponse({ error: "No approved affiliate application found for this email" }, 404);
+    if (profileError || !profile) {
+      return jsonResponse({ error: "No active affiliate profile found for this email" }, 404);
     }
 
-    const affiliateName = appData.name;
+    const profileId = profile.id;
+    const affiliateName = profile.name;
 
-    // 2. Fetch all affiliate coupons for this name
+    // 2. Fetch all affiliate coupons for this profile
     const { data: affiliates, error: affiliatesError } = await supabase
       .from("affiliate_coupons")
       .select(`
-        id, affiliate_name, commission_type, commission_rate, created_at,
+        id, profile_id, commission_type, commission_rate, created_at,
         general_coupons (
           id, code, discount_type, fixed_amount_inr, percentage_discount, is_active
         )
       `)
-      .eq("affiliate_name", affiliateName);
+      .eq("profile_id", profileId);
       
     if (affiliatesError) {
       return jsonResponse({ error: "Failed to fetch affiliate details", details: affiliatesError.message }, 500);
     }
     
     if (!affiliates || affiliates.length === 0) {
-      return jsonResponse({ metrics: null }); // Approved but no coupon yet?
+      return jsonResponse({ metrics: null }); // Profile exists but no coupon yet?
     }
 
     // Usually they only have 1 active coupon, but let's take the first one or sum them up. We will return a list.
@@ -198,7 +198,7 @@ serve(async (req) => {
       return {
         id: aff.id,
         coupon_id: cId,
-        affiliate_name: aff.affiliate_name,
+        affiliate_name: affiliateName,
         commission_type: aff.commission_type,
         commission_rate: aff.commission_rate,
         coupon_code: aff.general_coupons.code,

@@ -15,8 +15,9 @@ export async function getAdminAffiliates(period = "all") {
   return Array.isArray(body?.affiliates) ? body.affiliates : [];
 }
 
-export async function createAdminAffiliateCoupon(payload) {
-  const response = await authorizedAdminFetch(getAdminFunctionUrl("admin-affiliates"), {
+export async function issueAdminAffiliateCoupon(payload) {
+  const url = `${getAdminFunctionUrl("admin-affiliates")}/issue-coupon`;
+  const response = await authorizedAdminFetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -27,7 +28,7 @@ export async function createAdminAffiliateCoupon(payload) {
   const body = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(body?.error || `Failed to create affiliate coupon (${response.status})`);
+    throw new Error(body?.error || `Failed to issue affiliate coupon (${response.status})`);
   }
 
   return body;
