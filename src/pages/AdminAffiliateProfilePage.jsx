@@ -182,7 +182,7 @@ export default function AdminAffiliateProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="text-white">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-10 md:py-16">
         <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
           <AdminSidebar />
