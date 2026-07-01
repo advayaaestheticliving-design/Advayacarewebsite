@@ -14,6 +14,7 @@ function ProductCard({ product, className = "" }) {
     id,
     name,
     price_inr,
+    compare_at_price,
     benefits_brief,
     one_line_summary,
     images = [],
@@ -52,11 +53,23 @@ function ProductCard({ product, className = "" }) {
   };
 
   const imageSrc = images.length ? resolveImage(images[0]) : undefined;
+  
+  const hasDiscount = compare_at_price && compare_at_price > price_inr;
+  const discountPercentage = hasDiscount 
+    ? Math.round(((compare_at_price - price_inr) / compare_at_price) * 100) 
+    : 0;
+
   const formattedPrice = Number(price_inr || 0).toLocaleString("en-IN", {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 0,
   });
+
+  const formattedComparePrice = hasDiscount ? Number(compare_at_price).toLocaleString("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }) : null;
 
   const handleAddToCart = (e) => {
     e.preventDefault();
@@ -93,6 +106,11 @@ function ProductCard({ product, className = "" }) {
               Best Seller
             </div>
           )}
+          {hasDiscount && (
+            <div className="absolute bottom-3 left-3 bg-red-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-sm shadow-sm z-10">
+              {discountPercentage}% OFF
+            </div>
+          )}
         </div>
       )}
       <div className="flex flex-1 flex-col p-4 sm:p-5 gap-3">
@@ -107,9 +125,12 @@ function ProductCard({ product, className = "" }) {
           )}
         </div>
         <div className="mt-auto flex items-center justify-between gap-2">
-          <span className="text-sm sm:text-base font-semibold text-slate-900">
-            {formattedPrice}
-          </span>
+          <div className="flex flex-col">
+             {hasDiscount && <span className="text-xs text-slate-500 line-through">{formattedComparePrice}</span>}
+             <span className="text-sm sm:text-base font-semibold text-slate-900">
+               {formattedPrice}
+             </span>
+          </div>
           <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${stockClasses}`}>
             {stockText}
           </span>

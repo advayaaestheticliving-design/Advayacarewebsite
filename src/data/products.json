@@ -3,6 +3,7 @@
     "name": "24K Gold Glowing Gel",
     "id": "24k-gold-glowing-gel",
     "price_inr": 999,
+    "compare_at_price": 1299,
     "filterTags": [
       "Face"
     ],
@@ -21,6 +22,7 @@
     "name": "24K Gold Elixir Face Oil Serum",
     "id": "24k-gold-elixir-face-oil-serum",
     "price_inr": 1950,
+    "compare_at_price": 2500,
     "filterTags": [
       "Face"
     ],
@@ -149,6 +151,21 @@
     "benefits_brief": "Stimulates Hair Growth:\n•Rosemary extract and caffeine work synergistically to improve microcirculation in the scalp, ensuring better nutrient delivery to follicles.\n•Regular use helps awaken dormant follicles and extend the hair’s growth phase (anagen phase).\n\nStrengthens Hair Shaft:\n•Panthenol (Pro-Vitamin B5) deeply nourishes and coats hair strands, preventing breakage and split ends.\n•Biotin supports keratin formation, enhancing hair density and texture over time.\n\nReduces Hair Fall & Dandruff:\n• Niacinamide and green tea extract reduce scalp inflammation, balance sebum production, and control dandruff-causing microbes.\n• Aloe vera soothes irritation, restoring a healthy scalp environment.\n\nNon-Sticky, Lightweight Finish:\n•Water-based formula absorbs instantly without weighing hair down or leaving any residue.\n•Perfect for hot and humid climates (like India).\n\nNatural Aroma Therapy:\n•Gentle rosemary and mint fragrance provides a refreshing, uplifting feel, leaving hair smelling clean and naturally herbal.",
     "benefits_detail": "Stimulates Hair Growth:\n•Rosemary extract and caffeine work synergistically to improve microcirculation in the scalp, ensuring better nutrient delivery to follicles.\n•Regular use helps awaken dormant follicles and extend the hair’s growth phase (anagen phase).\n\nStrengthens Hair Shaft:\n•Panthenol (Pro-Vitamin B5) deeply nourishes and coats hair strands, preventing breakage and split ends.\n•Biotin supports keratin formation, enhancing hair density and texture over time.\n\nReduces Hair Fall & Dandruff:\n• Niacinamide and green tea extract reduce scalp inflammation, balance sebum production, and control dandruff-causing microbes.\n• Aloe vera soothes irritation, restoring a healthy scalp environment.\n\nNon-Sticky, Lightweight Finish:\n•Water-based formula absorbs instantly without weighing hair down or leaving any residue.\n•Perfect for hot and humid climates (like India).\n\nNatural Aroma Therapy:\n•Gentle rosemary and mint fragrance provides a refreshing, uplifting feel, leaving hair smelling clean and naturally herbal.",
     "use_cases": "💧 Use Case:\nA daily scalp and hair-strengthening mist that stimulates follicles, controls hair fall, and encourages new growth. Ideal for all hair types, including oily and thin hair.\n\n🪶 How to Use:\n\nShake well before use.\nSpray directly onto scalp and hair roots.\nGently massage for 1–2 minutes.\nUse twice daily — morning and night — for best results.\nLeave on; no rinse required.",
+    "is_best_seller": false
+  },
+  {
+    "name": "Coat Freshening & Deodorizing Mist",
+    "id": "coat-freshening-deodorizing-mist",
+    "price_inr": 850,
+    "filterTags": [
+      "Pet Care"
+    ],
+    "images": [],
+    "one_line_summary": "Neutralizes pet odors instantly while conditioning the coat.",
+    "ingredients": "Water, Aloe Barbadensis, Chamomile Extract, Natural Odor Neutralizer, Mild Fragrance",
+    "benefits_brief": "Instantly eliminates odors. Conditions the coat. Safe for daily use.",
+    "benefits_detail": "Formulated specifically for pets to neutralize tough odors without harsh chemicals. Chamomile and Aloe help soothe the skin and soften the coat.",
+    "use_cases": "Spray directly onto pet's coat avoiding eyes. Can be used on pet bedding as well.",
     "is_best_seller": false
   }
 ]
