@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
 import { getAdminAffiliateProfile, markAffiliateCommissionsPaid } from "../lib/adminAffiliatesApi";
+import { updateGeneralCoupon, deleteGeneralCoupon } from "../lib/adminCouponsApi";
 
 function formatCurrency(v) {
   return Number(v || 0).toLocaleString("en-IN", {
@@ -19,6 +20,7 @@ function formatDate(isoString) {
 
 export default function AdminAffiliateProfilePage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -91,6 +93,32 @@ export default function AdminAffiliateProfilePage() {
     }
   };
 
+  const handleToggleCoupon = async () => {
+    if (!profile) return;
+    try {
+      setUpdating(true);
+      await updateGeneralCoupon(profile.coupon_id, { is_active: !profile.is_active });
+      await loadProfile();
+    } catch (err) {
+      alert(err.message || "Failed to update affiliate coupon.");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDeleteProfile = async () => {
+    if (!profile) return;
+    if (!window.confirm(`Are you sure you want to delete the affiliate profile and coupon for ${profile.affiliate_name}?`)) return;
+    try {
+      setUpdating(true);
+      await deleteGeneralCoupon(profile.coupon_id);
+      navigate("/admin/affiliates");
+    } catch (err) {
+      alert(err.message || "Failed to delete affiliate.");
+      setUpdating(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-white flex">
       <AdminSidebar />
@@ -103,6 +131,24 @@ export default function AdminAffiliateProfilePage() {
             </Link>
             <h1 className="text-3xl font-serif text-[#D4AF37]">Affiliate Profile</h1>
           </div>
+          {profile && (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleToggleCoupon}
+                disabled={updating}
+                className="px-4 py-2 border border-neutral-700 hover:border-[#D4AF37] hover:text-[#D4AF37] rounded-lg text-sm font-medium transition disabled:opacity-50"
+              >
+                {profile.is_active ? "Disable Profile" : "Enable Profile"}
+              </button>
+              <button
+                onClick={handleDeleteProfile}
+                disabled={updating}
+                className="px-4 py-2 bg-red-900/20 border border-red-900/50 hover:bg-red-900/50 text-red-400 rounded-lg text-sm font-medium transition disabled:opacity-50"
+              >
+                Delete Profile
+              </button>
+            </div>
+          )}
         </div>
 
         {error && (
