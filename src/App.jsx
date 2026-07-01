@@ -62,7 +62,7 @@ function App() {
                 <Route path="/admin/b2b" element={<AdminB2BPage />} />
               </Routes>
             ) : (
-              <div className={location.pathname === '/shop' ? "w-full" : "max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16"}>
+              <div className={location.pathname.startsWith('/shop') ? "w-full" : "max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16"}>
                 <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/shop" element={<ShopPage />} />
