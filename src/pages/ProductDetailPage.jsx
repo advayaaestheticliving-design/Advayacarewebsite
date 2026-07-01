@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import ProductCommentsSection from "../components/ProductCommentsSection";
 import { useCart } from "../context/CartContext";
 import { fetchProductById, getAvailableStock, isProductPurchasable, normalizeProduct } from "../lib/productsApi";
@@ -179,6 +179,30 @@ function ProductDetailPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <nav aria-label="Breadcrumb" className="mb-6 md:mb-8">
+        <ol className="flex items-center space-x-2 text-sm text-[#FFD700]">
+          <li>
+            <Link to="/" className="hover:underline transition-all">Home</Link>
+          </li>
+          <li>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-60">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </li>
+          <li>
+            <Link to="/shop" className="hover:underline transition-all">Shop</Link>
+          </li>
+          <li>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-60">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </li>
+          <li className="flex-1 truncate opacity-80" aria-current="page">
+            {name}
+          </li>
+        </ol>
+      </nav>
+
       <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
         <div className="space-y-3">
           {images.length > 0 && (
