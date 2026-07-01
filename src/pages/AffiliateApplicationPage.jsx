@@ -52,18 +52,16 @@ export default function AffiliateApplicationPage() {
       }
 
       // Submit application to Edge Function
-      const response = await fetch("https://bnzcrhzzbtdsmnntewco.supabase.co/functions/v1/admin-affiliate-applications/submit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(form)
+      const { data, error: functionError } = await supabase.functions.invoke("admin-affiliate-applications/submit", {
+        body: form
       });
 
-      const data = await response.json().catch(() => null);
+      if (functionError) {
+        throw new Error(functionError.message || "Failed to submit application");
+      }
 
-      if (!response.ok) {
-        throw new Error(data?.error || "Failed to submit application");
+      if (data?.error) {
+        throw new Error(data.error || "Failed to submit application");
       }
 
       setSuccess(true);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
 import { useAdminAccess } from "../lib/useAdminAccess";
 import { 
@@ -65,6 +65,7 @@ const defaultForm = {
 
 export default function AdminAffiliatesPage() {
   const admin = useAdminAccess();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("approved"); // 'approved' or 'pending'
 
   // Approved Affiliates state
@@ -370,7 +371,7 @@ export default function AdminAffiliatesPage() {
                       </thead>
                       <tbody className="divide-y divide-neutral-800">
                         {affiliates.map((aff) => (
-                          <tr key={aff.id} className="hover:bg-white/[0.02] transition">
+                          <tr key={aff.id} onClick={() => navigate(`/admin/affiliates/${aff.id}`)} className="hover:bg-white/[0.05] transition cursor-pointer">
                             <td className="px-6 py-4">
                               <div className="font-medium text-white">{aff.affiliate_name}</div>
                               <div className="text-xs text-white/40 mt-1">

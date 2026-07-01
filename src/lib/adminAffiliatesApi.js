@@ -83,3 +83,37 @@ export async function rejectAdminAffiliateApplication(id) {
 
   return body;
 }
+
+export async function getAdminAffiliateProfile(id) {
+  const url = `${getAdminFunctionUrl("admin-affiliates")}?id=${encodeURIComponent(id)}`;
+  const response = await authorizedAdminFetch(url, {
+    method: "GET",
+  });
+
+  const body = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(body?.error || `Failed to fetch affiliate profile (${response.status})`);
+  }
+
+  return Array.isArray(body?.affiliates) && body.affiliates.length > 0 ? body.affiliates[0] : null;
+}
+
+export async function markAffiliateCommissionsPaid(usageIds, isPaid) {
+  const url = `${getAdminFunctionUrl("admin-affiliates")}/payout`;
+  const response = await authorizedAdminFetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ usage_ids: usageIds, is_paid: isPaid }),
+  });
+
+  const body = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(body?.error || `Failed to update payouts (${response.status})`);
+  }
+
+  return body;
+}

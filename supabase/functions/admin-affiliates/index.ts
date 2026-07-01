@@ -100,6 +100,7 @@ serve(async (req) => {
   if (req.method === "GET") {
     const url = new URL(req.url);
     const period = url.searchParams.get("period") || "all";
+    const singleId = url.searchParams.get("id");
     
     let dateFilter = null;
     const now = new Date();
@@ -118,8 +119,8 @@ serve(async (req) => {
       dateFilter = now.toISOString();
     }
 
-    // Fetch all affiliate coupons
-    const { data: affiliates, error: affiliatesError } = await supabase
+    // Fetch affiliate coupons
+    let query = supabase
       .from("affiliate_coupons")
       .select(`
         id, affiliate_name, commission_type, commission_rate, created_at,
@@ -127,6 +128,12 @@ serve(async (req) => {
           id, code, discount_type, fixed_amount_inr, percentage_discount, is_active
         )
       `);
+      
+    if (singleId) {
+      query = query.eq("id", singleId);
+    }
+    
+    const { data: affiliates, error: affiliatesError } = await query;
       
     if (affiliatesError) {
       return jsonResponse({ error: "Failed to fetch affiliates", details: affiliatesError.message }, 500);
@@ -141,7 +148,7 @@ serve(async (req) => {
     // Fetch usages for these coupons
     let usagesQuery = supabase
       .from("general_coupon_usages")
-      .select("coupon_id, discount_amount_inr, used_at, order_id")
+      .select("id, coupon_id, discount_amount_inr, used_at, order_id, is_affiliate_paid, affiliate_paid_at")
       .in("coupon_id", couponIds);
       
     if (dateFilter) {
@@ -173,7 +180,10 @@ serve(async (req) => {
         uses: 0,
         gross_revenue: 0,
         net_revenue: 0,
-        commission: 0
+        commission: 0,
+        unpaid_commission: 0,
+        paid_commission: 0,
+        transactions: []
       };
     }
     
@@ -193,6 +203,15 @@ serve(async (req) => {
         
         metrics.net_revenue += netRev;
         metrics.gross_revenue += grossRev;
+        
+        metrics.transactions.push({
+          id: usage.id,
+          order_id: usage.order_id,
+          used_at: usage.used_at,
+          net_revenue: netRev,
+          is_paid: usage.is_affiliate_paid || false,
+          paid_at: usage.affiliate_paid_at
+        });
       }
     }
     
@@ -204,8 +223,20 @@ serve(async (req) => {
       let commission = 0;
       if (aff.commission_type === "fixed") {
         commission = metrics.uses * Number(aff.commission_rate);
+        
+        metrics.transactions.forEach((t: any) => {
+          t.commission = Number(aff.commission_rate);
+          if (t.is_paid) metrics.paid_commission += t.commission;
+          else metrics.unpaid_commission += t.commission;
+        });
       } else if (aff.commission_type === "percentage") {
         commission = metrics.net_revenue * (Number(aff.commission_rate) / 100);
+        
+        metrics.transactions.forEach((t: any) => {
+          t.commission = t.net_revenue * (Number(aff.commission_rate) / 100);
+          if (t.is_paid) metrics.paid_commission += t.commission;
+          else metrics.unpaid_commission += t.commission;
+        });
       }
       
       return {
@@ -235,6 +266,32 @@ serve(async (req) => {
       body = JSON.parse(bodyText);
     } catch {
       return jsonResponse({ error: "Invalid JSON" }, 400);
+    }
+
+    if (req.url.includes("/payout")) {
+      const { usage_ids, is_paid } = body;
+      if (!usage_ids || !Array.isArray(usage_ids)) {
+        return jsonResponse({ error: "Missing or invalid usage_ids" }, 400);
+      }
+
+      const updateData: any = { is_affiliate_paid: is_paid };
+      if (is_paid) {
+        updateData.affiliate_paid_at = new Date().toISOString();
+      } else {
+        updateData.affiliate_paid_at = null;
+      }
+
+      const { data, error } = await supabase
+        .from("general_coupon_usages")
+        .update(updateData)
+        .in("id", usage_ids)
+        .select();
+
+      if (error) {
+        return jsonResponse({ error: "Failed to update payouts", details: error.message }, 500);
+      }
+
+      return jsonResponse({ success: true, updated: data?.length || 0 });
     }
 
     const {
