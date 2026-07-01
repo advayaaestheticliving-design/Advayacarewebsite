@@ -12,6 +12,8 @@ const PRODUCT_COLUMNS = [
   "name",
   "price_inr",
   "compare_at_price",
+  "discount_percentage",
+  "discount_amount",
   "filter_tags",
   "images",
   "one_line_summary",
@@ -197,6 +199,8 @@ serve(async (req) => {
     const productId = slugify(String(body.id || rawName));
     const priceInr = Math.max(0, toNumber(body.price_inr, 0));
     const compareAtPrice = Math.max(0, toNumber(body.compare_at_price, 0));
+    const discountPercentage = Math.max(0, toNumber(body.discount_percentage, 0));
+    const discountAmount = Math.max(0, toNumber(body.discount_amount, 0));
     const stockQuantity = Math.max(0, toInteger(body.stock_quantity, 0));
     const lowStockThreshold = Math.max(0, toInteger(body.low_stock_threshold, 5));
     const nextActiveState = body.is_active !== false;
@@ -215,6 +219,8 @@ serve(async (req) => {
       name: rawName,
       price_inr: priceInr,
       compare_at_price: compareAtPrice,
+      discount_percentage: discountPercentage,
+      discount_amount: discountAmount,
       filter_tags: parseStringArray(body.filter_tags),
       images: parseStringArray(body.images),
       one_line_summary: String(body.one_line_summary || ""),

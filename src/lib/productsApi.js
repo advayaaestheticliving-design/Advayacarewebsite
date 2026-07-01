@@ -18,12 +18,27 @@ export function normalizeProduct(product = {}) {
   const reservedQuantity = Math.max(0, Math.floor(toFiniteNumber(product.reserved_quantity, 0)));
   const lowStockThreshold = Math.max(0, Math.floor(toFiniteNumber(product.low_stock_threshold, 5)));
 
+  let finalPrice = toFiniteNumber(product.price_inr, 0);
+  const discountPercentage = toFiniteNumber(product.discount_percentage, 0);
+  const discountAmount = toFiniteNumber(product.discount_amount, 0);
+  let compareAtPrice = product.compare_at_price ? toFiniteNumber(product.compare_at_price, 0) : undefined;
+
+  if (discountPercentage > 0) {
+    compareAtPrice = finalPrice;
+    finalPrice = finalPrice - (finalPrice * (discountPercentage / 100));
+  } else if (discountAmount > 0) {
+    compareAtPrice = finalPrice;
+    finalPrice = Math.max(0, finalPrice - discountAmount);
+  }
+
   return {
     ...product,
     id: String(product.id || "").trim(),
     name: String(product.name || "").trim(),
-    price_inr: toFiniteNumber(product.price_inr, 0),
-    compare_at_price: product.compare_at_price ? toFiniteNumber(product.compare_at_price, 0) : undefined,
+    price_inr: Math.round(finalPrice),
+    compare_at_price: compareAtPrice ? Math.round(compareAtPrice) : undefined,
+    discount_percentage: discountPercentage,
+    discount_amount: discountAmount,
     filter_tags: filterTags,
     filterTags,
     images,
@@ -70,6 +85,8 @@ const PRODUCT_SELECT_COLUMNS = [
   "name",
   "price_inr",
   "compare_at_price",
+  "discount_percentage",
+  "discount_amount",
   "filter_tags",
   "images",
   "one_line_summary",
