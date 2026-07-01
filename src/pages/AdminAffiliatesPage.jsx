@@ -428,15 +428,18 @@ export default function AdminAffiliatesPage() {
                           <div className="flex justify-between items-start">
                             <div>
                               <h3 className="text-lg font-medium text-white">{app.name}</h3>
-                              <a href={`mailto:${app.email}`} className="text-sm text-amber-500 hover:underline">{app.email}</a>
+                              <div className="flex flex-col text-sm mt-1">
+                                <a href={`mailto:${app.email}`} className="text-[#D4AF37] hover:underline">{app.email}</a>
+                                {app.phone && <a href={`tel:${app.phone}`} className="text-[#D4AF37] hover:underline">{app.phone}</a>}
+                              </div>
                             </div>
                             <span className="text-xs text-white/40">{formatDate(app.created_at)}</span>
                           </div>
                           {app.social_links && (
-                            <p className="text-sm text-white/80"><span className="text-white/50 font-semibold uppercase text-xs">Social:</span> {app.social_links}</p>
+                            <p className="text-sm text-white/80 mt-3"><span className="text-white/50 font-semibold uppercase text-xs block mb-1">Social/Website:</span> {app.social_links}</p>
                           )}
                           {app.reason && (
-                            <p className="text-sm text-white/80"><span className="text-white/50 font-semibold uppercase text-xs">Reason:</span> {app.reason}</p>
+                            <p className="text-sm text-white/80"><span className="text-white/50 font-semibold uppercase text-xs block mb-1">Reason for joining:</span> {app.reason}</p>
                           )}
                         </div>
                         <div className="flex flex-row md:flex-col gap-3 shrink-0 pt-2">

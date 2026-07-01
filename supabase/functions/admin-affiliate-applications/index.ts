@@ -123,14 +123,14 @@ serve(async (req) => {
       return jsonResponse({ error: "Invalid JSON" }, 400);
     }
 
-    const { name, email, social_links, reason } = body;
-    if (!name || !email) {
-      return jsonResponse({ error: "Name and email are required" }, 400);
+    const { name, email, phone, social_links, reason } = body;
+    if (!name || !email || !phone) {
+      return jsonResponse({ error: "Name, email, and phone are required" }, 400);
     }
 
     const { data, error } = await supabase
       .from("affiliate_applications")
-      .insert({ name, email, social_links, reason, status: 'pending' })
+      .insert({ name, email, phone, social_links, reason, status: 'pending' })
       .select()
       .single();
 

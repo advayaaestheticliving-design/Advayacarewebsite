@@ -6,6 +6,7 @@ export default function AffiliateApplicationPage() {
   const [form, setForm] = useState({
     name: "",
     email: "",
+    phone: "",
     password: "",
     social_links: "",
     reason: ""
@@ -65,7 +66,7 @@ export default function AffiliateApplicationPage() {
       }
 
       setSuccess(true);
-      setForm({ name: "", email: "", password: "", social_links: "", reason: "" });
+      setForm({ name: "", email: "", phone: "", password: "", social_links: "", reason: "" });
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -83,9 +84,13 @@ export default function AffiliateApplicationPage() {
             </svg>
           </div>
           <h1 className="text-3xl font-serif text-[#D4AF37] mb-4">Application Submitted!</h1>
-          <p className="text-lg text-white/80 mb-8">
+          <p className="text-lg text-white/80 mb-4">
             Thank you for applying to the Advaya Affiliate Program. We have received your details and our team will review your application shortly.
           </p>
+          <div className="bg-[#D4AF37]/20 border border-[#D4AF37]/50 rounded-xl p-4 mb-8">
+            <p className="text-[#D4AF37] font-medium">Please check your email to confirm your account.</p>
+            <p className="text-sm text-white/60 mt-1">If you don't see it, be sure to check your spam folder.</p>
+          </div>
           <Link to="/" className="inline-block bg-white text-black font-semibold px-8 py-3 rounded-full hover:bg-neutral-200 transition shadow-[0_0_20px_rgba(255,255,255,0.2)]">
             Return Home
           </Link>
@@ -147,6 +152,22 @@ export default function AffiliateApplicationPage() {
                 onChange={e => setForm({...form, email: e.target.value})}
                 className="w-full bg-black/60 border border-neutral-700 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#D4AF37] transition"
                 placeholder="jane@example.com"
+              />
+            </div>
+            
+            <div className="space-y-2 sm:col-span-2">
+              <label htmlFor="phone" className="block text-sm font-medium text-white/80">
+                Phone Number <span className="text-[#D4AF37]">*</span>
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                required
+                disabled={loading}
+                value={form.phone}
+                onChange={e => setForm({...form, phone: e.target.value})}
+                className="w-full bg-black/60 border border-neutral-700 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#D4AF37] transition"
+                placeholder="+1 234 567 8900"
               />
             </div>
           </div>
