@@ -268,7 +268,7 @@ function AdminProductsPage() {
 
   if (admin.checkingAccess) {
     return (
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-10 md:py-16">
         <p className="text-sm text-white/80">Checking admin access...</p>
       </div>
     );
@@ -279,15 +279,15 @@ function AdminProductsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-6">
-      <div>
+    <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+      <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#D4AF37]">Admin Products</h1>
         <p className="text-sm text-white/80 mt-1">
           Add new items, edit product content, upload images, and manage stock levels.
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
+      <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
         <AdminSidebar onSignOut={admin.logout} authLoading={admin.authLoading} />
 
         <section className="space-y-4">

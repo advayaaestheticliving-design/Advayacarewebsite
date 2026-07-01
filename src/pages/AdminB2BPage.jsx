@@ -172,8 +172,8 @@ function AdminB2BPage() {
   if (!admin.authorized) return <Navigate to="/admin" replace />;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 text-white sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-10 md:py-16 text-white">
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.22em] text-white/50">Human-approved sales system</p>
           <h1 className="mt-2 text-3xl font-semibold text-[#D4AF37]">B2B Sales</h1>
@@ -185,7 +185,7 @@ function AdminB2BPage() {
           Guide & Help
         </button>
       </div>
-      <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
         <AdminSidebar onSignOut={admin.logout} authLoading={admin.authLoading} />
         <main className="min-w-0 space-y-6">
           <div className="flex flex-wrap gap-2">

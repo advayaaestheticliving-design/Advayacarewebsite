@@ -106,8 +106,8 @@ function AdminOrdersPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-6">
-      <div>
+    <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+      <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#D4AF37]">Admin Orders</h1>
         <p className="text-sm text-white/80 mt-1">
           Track sales and update order fulfillment statuses from one place.
@@ -119,7 +119,7 @@ function AdminOrdersPage() {
       ) : !admin.authorized ? (
         <Navigate to="/admin" replace />
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
+        <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
           <AdminSidebar onSignOut={admin.logout} authLoading={admin.authLoading} />
 
           <section className="space-y-4">

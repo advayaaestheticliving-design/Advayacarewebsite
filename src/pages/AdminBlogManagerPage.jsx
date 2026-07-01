@@ -666,15 +666,15 @@ function AdminBlogManagerPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-6">
-      <div>
+    <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+      <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#D4AF37]">Blog Manager</h1>
         <p className="mt-1 text-sm text-white/80">
           Review drafts, edit live posts, archive articles, and permanently delete content when needed.
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
+      <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
         <AdminSidebar
           onSignOut={admin.logout}
           authLoading={admin.authLoading}

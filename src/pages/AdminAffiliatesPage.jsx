@@ -170,15 +170,15 @@ export default function AdminAffiliatesPage() {
 
   return (
     <div className="min-h-screen bg-black">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
-        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#D4AF37] mb-8">Admin Affiliates</h1>
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+        <div className="mb-8">
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#D4AF37]">Admin Affiliates</h1>
+        </div>
 
-        <div className="flex flex-col md:flex-row gap-8">
-          <div className="w-full md:w-64 shrink-0">
-            <AdminSidebar onSignOut={admin.logout} authLoading={admin.authLoading} />
-          </div>
+        <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <AdminSidebar onSignOut={admin.logout} authLoading={admin.authLoading} />
 
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0">
             <div className="flex gap-4 mb-8 border-b border-neutral-800">
               <button
                 onClick={() => setActiveTab("approved")}
