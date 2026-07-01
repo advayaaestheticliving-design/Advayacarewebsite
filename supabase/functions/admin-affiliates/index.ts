@@ -124,6 +124,7 @@ serve(async (req) => {
       .from("affiliate_coupons")
       .select(`
         id, affiliate_name, commission_type, commission_rate, created_at,
+        email, phone, social_links, reason,
         general_coupons (
           id, code, discount_type, fixed_amount_inr, percentage_discount, is_active
         )
@@ -248,6 +249,10 @@ serve(async (req) => {
         coupon_code: aff.general_coupons.code,
         discount_type: aff.general_coupons.discount_type,
         is_active: aff.general_coupons.is_active,
+        email: aff.email,
+        phone: aff.phone,
+        social_links: aff.social_links,
+        reason: aff.reason,
         metrics: {
           ...metrics,
           commission

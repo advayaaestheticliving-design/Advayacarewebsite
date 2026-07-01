@@ -195,6 +195,29 @@ export default function AdminAffiliateProfilePage() {
               </div>
             </div>
 
+            {/* Contact Details */}
+            <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+              <h3 className="text-xl font-medium mb-4">Profile Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <p className="text-white/50 text-sm uppercase tracking-wide font-semibold mb-1">Email</p>
+                  <p className="text-white">{profile.email ? <a href={`mailto:${profile.email}`} className="text-[#D4AF37] hover:underline">{profile.email}</a> : "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-white/50 text-sm uppercase tracking-wide font-semibold mb-1">Phone</p>
+                  <p className="text-white">{profile.phone ? <a href={`tel:${profile.phone}`} className="text-[#D4AF37] hover:underline">{profile.phone}</a> : "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-white/50 text-sm uppercase tracking-wide font-semibold mb-1">Social/Website</p>
+                  <p className="text-white">{profile.social_links || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-white/50 text-sm uppercase tracking-wide font-semibold mb-1">Reason for joining</p>
+                  <p className="text-white">{profile.reason || "N/A"}</p>
+                </div>
+              </div>
+            </div>
+
             {/* Transaction History / Payouts */}
             <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden">
               <div className="p-6 border-b border-neutral-800 flex justify-between items-center">

@@ -253,7 +253,11 @@ serve(async (req) => {
           coupon_id: couponData.id,
           affiliate_name: appData.name,
           commission_type: "percentage",
-          commission_rate: rate
+          commission_rate: rate,
+          email: appData.email,
+          phone: appData.phone || null,
+          social_links: appData.social_links || null,
+          reason: appData.reason || null
         })
         .select()
         .single();
