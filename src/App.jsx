@@ -25,9 +25,12 @@ import BlogWriterPage from "./pages/BlogWriterPage";
 import AdminProductsPage from "./pages/AdminProductsPage";
 import AdminCommentsPage from "./pages/AdminCommentsPage";
 import AdminCouponsPage from "./pages/AdminCouponsPage";
+import AdminAffiliatesPage from "./pages/AdminAffiliatesPage";
 import TradePage from "./pages/TradePage";
 import TradeOrderPage from "./pages/TradeOrderPage";
 import AdminB2BPage from "./pages/AdminB2BPage";
+import AffiliateApplicationPage from "./pages/AffiliateApplicationPage";
+import AffiliateDashboardPage from "./pages/AffiliateDashboardPage";
 import { clearLegacyGuestAuthState } from "./lib/authSession";
 import { useMemberSession } from "./context/MemberSessionContext";
 
@@ -59,6 +62,7 @@ function App() {
                 <Route path="/admin/blogwriter" element={<BlogWriterPage />} />
                 <Route path="/admin/products" element={<AdminProductsPage />} />
                 <Route path="/admin/coupons" element={<AdminCouponsPage />} />
+                <Route path="/admin/affiliates" element={<AdminAffiliatesPage />} />
                 <Route path="/admin/b2b" element={<AdminB2BPage />} />
               </Routes>
             ) : (
@@ -76,6 +80,8 @@ function App() {
                   <Route path="/gift-card" element={<GiftCardPage />} />
                   <Route path="/membership" element={<MembershipPage />} />
                   <Route path="/account" element={<AccountPage />} />
+                  <Route path="/affiliate" element={<AffiliateApplicationPage />} />
+                  <Route path="/affiliate/dashboard" element={<AffiliateDashboardPage />} />
                   <Route path="/trade" element={<TradePage />} />
                   <Route path="/trade/order/:token" element={<TradeOrderPage />} />
                 </Routes>

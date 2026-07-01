@@ -11,7 +11,6 @@ import {
   listMemberCoupons,
   updateMemberCoupon,
 } from "../lib/adminCouponsApi";
-import AdminAffiliatesTab from "./AdminAffiliatesTab";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -955,7 +954,6 @@ const TABS = [
   { id: "promo", label: "🎯 Promo Codes", description: "Shareable codes · once per account" },
   { id: "general", label: "🌐 General Coupons", description: "Full-featured campaign coupons" },
   { id: "member", label: "🎁 Member Coupons", description: "Issue directly to an email" },
-  { id: "affiliates", label: "🤝 Affiliate Tracking", description: "Track affiliate coupon metrics" },
 ];
 
 export default function AdminCouponsPage() {
@@ -1005,7 +1003,6 @@ export default function AdminCouponsPage() {
               {activeTab === "promo" && <PromoTab />}
               {activeTab === "general" && <GeneralTab />}
               {activeTab === "member" && <MemberTab />}
-              {activeTab === "affiliates" && <AdminAffiliatesTab authorized={admin.authorized} />}
             </div>
           </section>
         </div>

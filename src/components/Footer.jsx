@@ -11,6 +11,7 @@ const navItems = [
   { label: "Gift Card", to: "/gift-card" },
   { label: "Membership", to: "/membership" },
   { label: "Salon & Spa Trade", to: "/trade" },
+  { label: "Become an Affiliate", to: "/affiliate" },
   { label: "Cart", to: "/cart" },
 ];
 

@@ -94,7 +94,7 @@ const Header = () => {
     }
   };
 
-  const isMoreActive = ["/contact", "/terms", "/gift-card", "/privacy", "/trade"].some(
+  const isMoreActive = ["/contact", "/terms", "/gift-card", "/privacy", "/trade", "/affiliate"].some(
     (path) => location.pathname === path || location.pathname.startsWith(`${path}/`)
   );
 
@@ -178,6 +178,9 @@ const Header = () => {
                 </NavLink>
                 <NavLink to="/trade" className="block px-3 py-1 text-white hover:text-[#b58b2f] transition">
                   Salon &amp; Spa Trade
+                </NavLink>
+                <NavLink to="/affiliate" className="block px-3 py-1 text-white hover:text-[#b58b2f] transition">
+                  Become an Affiliate
                 </NavLink>
                 <NavLink to="/terms" className="block px-3 py-1 text-white hover:text-[#b58b2f] transition">
                   Terms and Conditions
@@ -323,6 +326,9 @@ const Header = () => {
                 </NavLink>
                 <NavLink to="/trade" className={getMobileNavLinkClass}>
                   Salon &amp; Spa Trade
+                </NavLink>
+                <NavLink to="/affiliate" className={getMobileNavLinkClass}>
+                  Become an Affiliate
                 </NavLink>
                 <NavLink to="/terms" className={getMobileNavLinkClass}>
                   Terms and Conditions
