@@ -199,7 +199,7 @@ function ShopPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       {/* Header */}
       <div className="max-w-2xl mb-8">
         <h1 className="mt-2 text-2xl sm:text-3xl font-semibold tracking-tight text-[#D4AF37]">
