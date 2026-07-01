@@ -6,6 +6,7 @@ import { useAdminAccess } from "../lib/useAdminAccess";
 import {
   createGeneralCoupon,
   updateGeneralCoupon,
+  deleteGeneralCoupon,
   listAllGeneralCoupons,
   issueMemberCouponByEmail,
   listMemberCoupons,
@@ -287,6 +288,16 @@ function PromoTab() {
     }
   };
 
+  const handleDelete = async (coupon) => {
+    if (!window.confirm(`Are you sure you want to delete promo code ${coupon.code}?`)) return;
+    try {
+      await deleteGeneralCoupon(coupon.id);
+      await loadCoupons();
+    } catch (err) {
+      setError(err.message || "Failed to delete coupon.");
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Sub-nav */}
@@ -520,12 +531,18 @@ function PromoTab() {
                             {c.is_active ? "Active" : "Disabled"}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 flex items-center gap-2">
                           <button
                             onClick={() => handleToggle(c)}
                             className="rounded-full border border-neutral-700 px-3 py-1 text-xs text-white/60 hover:border-[#D4AF37] hover:text-[#D4AF37] transition"
                           >
                             {c.is_active ? "Disable" : "Enable"}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(c)}
+                            className="rounded-full border border-neutral-700 px-3 py-1 text-xs text-white/60 hover:border-red-500 hover:text-red-500 transition"
+                          >
+                            Delete
                           </button>
                         </td>
                       </tr>
@@ -596,6 +613,16 @@ function GeneralTab() {
       await loadCoupons();
     } catch (err) {
       setError(err.message || "Failed to update.");
+    }
+  };
+
+  const handleDelete = async (coupon) => {
+    if (!window.confirm(`Are you sure you want to delete coupon ${coupon.code}?`)) return;
+    try {
+      await deleteGeneralCoupon(coupon.id);
+      await loadCoupons();
+    } catch (err) {
+      setError(err.message || "Failed to delete coupon.");
     }
   };
 
@@ -739,12 +766,18 @@ function GeneralTab() {
                           {c.is_active ? "Active" : "Disabled"}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 flex items-center gap-2">
                         <button
                           onClick={() => handleToggle(c)}
                           className="rounded-full border border-neutral-700 px-3 py-1 text-xs text-white/60 hover:border-[#D4AF37] hover:text-[#D4AF37] transition"
                         >
                           {c.is_active ? "Disable" : "Enable"}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(c)}
+                          className="rounded-full border border-neutral-700 px-3 py-1 text-xs text-white/60 hover:border-red-500 hover:text-red-500 transition"
+                        >
+                          Delete
                         </button>
                       </td>
                     </tr>

@@ -9,6 +9,7 @@ import {
   approveAdminAffiliateApplication, 
   rejectAdminAffiliateApplication 
 } from "../lib/adminAffiliatesApi";
+import { updateGeneralCoupon, deleteGeneralCoupon } from "../lib/adminCouponsApi";
 
 function formatCurrency(v) {
   return Number(v || 0).toLocaleString("en-IN", {
@@ -138,6 +139,26 @@ export default function AdminAffiliatesPage() {
       setError(err.message || "Failed to create affiliate");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleToggleCoupon(couponId, currentIsActive) {
+    try {
+      await updateGeneralCoupon(couponId, { is_active: !currentIsActive });
+      await loadAffiliates();
+    } catch (err) {
+      setError(err.message || "Failed to update affiliate coupon.");
+    }
+  }
+
+  async function handleDeleteAffiliate(affiliate) {
+    if (!window.confirm(`Are you sure you want to delete the affiliate profile and coupon for ${affiliate.affiliate_name}?`)) return;
+    try {
+      // Deleting the general coupon will cascade and delete the affiliate_coupons record
+      await deleteGeneralCoupon(affiliate.coupon_id);
+      await loadAffiliates();
+    } catch (err) {
+      setError(err.message || "Failed to delete affiliate.");
     }
   }
 
@@ -385,6 +406,20 @@ export default function AdminAffiliatesPage() {
                               {!aff.is_active && (
                                 <span className="ml-2 text-xs text-red-400 bg-red-900/30 px-1.5 py-0.5 rounded">Inactive</span>
                               )}
+                              <div className="mt-2 flex items-center gap-2">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleToggleCoupon(aff.coupon_id, aff.is_active); }}
+                                  className="rounded-full border border-neutral-700 px-2 py-0.5 text-xs text-white/60 hover:border-[#D4AF37] hover:text-[#D4AF37] transition"
+                                >
+                                  {aff.is_active ? "Disable" : "Enable"}
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteAffiliate(aff); }}
+                                  className="rounded-full border border-neutral-700 px-2 py-0.5 text-xs text-white/60 hover:border-red-500 hover:text-red-500 transition"
+                                >
+                                  Delete
+                                </button>
+                              </div>
                             </td>
                             <td className="px-6 py-4 text-right tabular-nums">
                               {aff.metrics.uses}

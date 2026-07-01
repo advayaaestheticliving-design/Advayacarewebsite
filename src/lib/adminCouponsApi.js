@@ -60,6 +60,34 @@ export async function updateGeneralCoupon(couponId, updates) {
   return body;
 }
 
+// Admin: Delete general coupon
+export async function deleteGeneralCoupon(couponId) {
+  if (!adminSupabase) throw new Error("Supabase is not configured.");
+
+  const { data: { session } } = await adminSupabase.auth.getSession();
+  if (!session?.access_token) throw new Error("Admin authentication required.");
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-manage-general-coupons`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({
+      action: "delete",
+      couponId,
+    }),
+  });
+
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(body?.error || "Failed to delete coupon");
+  }
+
+  return body;
+}
+
 // Admin: List all general coupons
 export async function listAllGeneralCoupons({ limit = 50, offset = 0 } = {}) {
   if (!adminSupabase) throw new Error("Supabase is not configured.");

@@ -133,6 +133,36 @@ serve(async (req: Request) => {
       );
     }
 
+    if (action === "delete") {
+      if (!couponId) {
+        return new Response(
+          JSON.stringify({ error: "Missing couponId" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { error: deleteError } = await supabase
+        .from("general_coupons")
+        .delete()
+        .eq("id", couponId);
+
+      if (deleteError) {
+        console.error("Delete error:", deleteError);
+        return new Response(
+          JSON.stringify({ error: "Failed to delete coupon (it might have usages)" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Coupon deleted",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (action === "issue-member-coupon") {
       if (!email || !amountInr) {
         return new Response(
