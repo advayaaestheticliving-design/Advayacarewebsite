@@ -98,3 +98,27 @@ export async function recordGeneralCouponUsage({ couponCode, discountAmount, ord
   return body;
 }
 
+export async function getMyGeneralCouponUsages(guestSessionId) {
+  if (!isSupabaseConfigured || !supabase) {
+    return [];
+  }
+
+  const { data: { session } } = await supabase.auth.getSession();
+  let query = supabase.from("general_coupon_usages").select("coupon_id, coupon_code");
+
+  if (session?.user?.id) {
+    query = query.eq("auth_user_id", session.user.id);
+  } else if (guestSessionId) {
+    query = query.eq("guest_session_id", guestSessionId);
+  } else {
+    return [];
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("Failed to fetch general coupon usages:", error);
+    return [];
+  }
+
+  return data || [];
+}

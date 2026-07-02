@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useMemberSession } from "../context/MemberSessionContext";
 import { getMyCoupons, getMyGiftCards } from "../lib/walletApi";
+import { getActiveGeneralCoupons, getMyGeneralCouponUsages } from "../lib/generalCouponsApi";
+import { getOrCreateSessionId } from "../lib/cartApi";
 import RazorpayCheckout from "../components/RazorpayCheckout";
 
 function CartPage() {
@@ -53,15 +55,62 @@ function CartPage() {
   const [availableGiftCards, setAvailableGiftCards] = useState([]);
 
   useEffect(() => {
-    if (user) {
-      getMyCoupons().then(res => {
-         if (res && !res.error) setAvailableCoupons(res.filter(c => c.status === 'active'));
-      }).catch(console.error);
-      getMyGiftCards().then(res => {
-         if (res && !res.error) setAvailableGiftCards(res.filter(g => g.status === 'active' && g.balance_amount_inr > 0));
-      }).catch(console.error);
+    async function fetchCoupons() {
+      try {
+        let memberCoupons = [];
+        if (user) {
+          const res = await getMyCoupons();
+          if (res && !res.error) {
+            memberCoupons = res.filter(c => c.status === 'active');
+          }
+          
+          getMyGiftCards().then(res => {
+            if (res && !res.error) setAvailableGiftCards(res.filter(g => g.status === 'active' && g.balance_amount_inr > 0));
+          }).catch(console.error);
+        }
+
+        const guestSessionId = user ? null : getOrCreateSessionId();
+        const [activeGeneral, myUsages] = await Promise.all([
+          getActiveGeneralCoupons().catch(() => []),
+          getMyGeneralCouponUsages(guestSessionId).catch(() => [])
+        ]);
+
+        const usageMap = {};
+        myUsages.forEach(u => {
+          usageMap[u.coupon_id] = (usageMap[u.coupon_id] || 0) + 1;
+        });
+
+        const generalCoupons = activeGeneral.filter(c => {
+          if (c.min_order_amount_inr && subtotal < c.min_order_amount_inr) return false;
+          if (c.global_usage_limit && c.global_usage_count >= c.global_usage_limit) return false;
+          if (!user && !c.all_orders) return false; // Guest can't use member-only
+          
+          const myUsageCount = usageMap[c.id] || 0;
+          if (c.per_member_usage_limit && myUsageCount >= c.per_member_usage_limit) return false;
+          
+          return true;
+        }).map(c => {
+          let amountLabel = "";
+          if (c.discount_type === "fixed") amountLabel = `₹${c.fixed_amount_inr} Off`;
+          else if (c.discount_type === "percentage") amountLabel = `${c.percentage_discount}% Off`;
+          else amountLabel = `₹${c.fixed_amount_inr} + ${c.percentage_discount}% Off`;
+
+          return {
+            id: c.id,
+            code: c.code,
+            discountLabel: amountLabel,
+            is_general: true
+          };
+        });
+
+        setAvailableCoupons([...memberCoupons, ...generalCoupons]);
+      } catch (err) {
+        console.error("Failed to load coupons", err);
+      }
     }
-  }, [user]);
+
+    fetchCoupons();
+  }, [user, subtotal]);
 
   const formattedSubtotal = subtotal.toLocaleString("en-IN", {
     style: "currency",
@@ -305,7 +354,9 @@ function CartPage() {
                       >
                         <div className="flex justify-between items-center">
                           <span>{c.code}</span>
-                          <span className="font-semibold text-[#b58b2f]">₹{c.amount_inr} Off</span>
+                          <span className="font-semibold text-[#b58b2f]">
+                            {c.discountLabel ? c.discountLabel : `₹${c.amount_inr} Off`}
+                          </span>
                         </div>
                       </button>
                     ))}
