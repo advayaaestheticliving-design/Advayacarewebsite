@@ -135,11 +135,34 @@ const Header = () => {
     </div>
   );
 
+  const mobileCartIcon = (
+    <div className="relative inline-flex items-center justify-center">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        className="h-5 w-5"
+        aria-hidden="true"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h2l1.2 10.2a2 2 0 001.98 1.8h8.64a2 2 0 001.97-1.66L20 8H7" />
+        <circle cx="10" cy="19" r="1.5" />
+        <circle cx="17" cy="19" r="1.5" />
+      </svg>
+      {cartItemCount > 0 && (
+        <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#b58b2f] px-1 text-[9px] font-bold text-black">
+          {cartItemCount > 99 ? '99+' : cartItemCount}
+        </span>
+      )}
+    </div>
+  );
+
   return (
     <header className="sticky top-0 z-20 bg-black border-b border-neutral-800">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-20 items-center gap-6">
-          <Link to="/" className="flex items-center select-none shrink-0">
+        <div className="grid grid-cols-3 md:flex h-20 items-center md:gap-6">
+          <Link to="/" className="flex items-center select-none shrink-0 justify-self-start">
             <img
               src={`${import.meta.env.BASE_URL}images/logo.png`}
               alt="Advayacare logo"
@@ -149,6 +172,51 @@ const Header = () => {
               draggable="false"
             />
           </Link>
+
+          {/* Hamburger (mobile only) */}
+          <div className="md:hidden flex justify-center">
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded-full border border-neutral-600 bg-black/60 p-2 text-white shadow-sm hover:bg-black focus:outline-none focus:ring-2 focus:ring-[#b58b2f] focus:ring-offset-2 focus:ring-offset-black"
+              aria-label="Open navigation"
+              onClick={() => setIsOpen((prev) => !prev)}
+            >
+              <span className="sr-only">Toggle navigation</span>
+              <svg
+                className="h-5 w-5"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+              >
+                {isOpen ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"
+                  />
+                )}
+              </svg>
+            </button>
+          </div>
+
+          {/* Cart (mobile only) */}
+          <div className="md:hidden flex justify-end">
+            <Link
+              to="/cart"
+              className="inline-flex items-center justify-center rounded-full border border-neutral-600 bg-black/60 p-2 text-white shadow-sm hover:bg-black focus:outline-none focus:ring-2 focus:ring-[#b58b2f] focus:ring-offset-2 focus:ring-offset-black"
+              aria-label="Cart"
+            >
+              {mobileCartIcon}
+            </Link>
+          </div>
 
           {/* Nav (desktop only) */}
           <nav className="hidden md:flex flex-1 items-center gap-6 ml-2 text-[11px] font-medium tracking-wide uppercase">
@@ -272,37 +340,6 @@ const Header = () => {
             </NavLink>
           </div>
 
-          {/* Hamburger (mobile only) */}
-          <button
-            type="button"
-            className="md:hidden inline-flex items-center justify-center rounded-full border border-neutral-600 bg-black/60 p-2 text-white shadow-sm hover:bg-black focus:outline-none focus:ring-2 focus:ring-[#b58b2f] focus:ring-offset-2 focus:ring-offset-black"
-            aria-label="Open navigation"
-            onClick={() => setIsOpen((prev) => !prev)}
-          >
-            <span className="sr-only">Toggle navigation</span>
-            <svg
-              className="h-5 w-5"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              {isOpen ? (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              ) : (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"
-                />
-              )}
-            </svg>
-          </button>
         </div>
 
         {/* Mobile menu */}
@@ -390,10 +427,6 @@ const Header = () => {
                 Admin
               </NavLink>
             ) : null}
-            <NavLink to="/cart" className={`${getMobileNavLinkClass({ isActive: location.pathname === "/cart" })} inline-flex items-center gap-2`}>
-              {cartIcon}
-              <span>Cart</span>
-            </NavLink>
           </div>
         )}
       </div>
