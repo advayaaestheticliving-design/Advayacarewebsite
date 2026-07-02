@@ -176,6 +176,12 @@ function AdminOrdersPage() {
                         <p className="sm:col-span-2">
                           <span className="text-white/70">Email:</span> {order.customer_email || "—"}
                         </p>
+                        <p className="sm:col-span-2 lg:col-span-1">
+                          <span className="text-white/70">Phone:</span> {order.customer_phone || "—"}
+                        </p>
+                        <p className="sm:col-span-2 lg:col-span-3">
+                          <span className="text-white/70">Address:</span> {order.customer_address || "—"} {order.customer_pin_code ? `(${order.customer_pin_code})` : ""}
+                        </p>
                       </div>
 
                       <div className="grid gap-3 lg:grid-cols-[220px_1fr_auto]">
