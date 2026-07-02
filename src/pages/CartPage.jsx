@@ -47,6 +47,7 @@ function CartPage() {
     email: "",
     phone: "",
     address: "",
+    addressLine2: "",
     pinCode: "",
   });
 
@@ -142,7 +143,16 @@ function CartPage() {
 
     setIsCheckingOut(true);
     try {
-      const order = await checkout(customerDetails);
+      const finalAddress = customerDetails.addressLine2 
+        ? `${customerDetails.address}, ${customerDetails.addressLine2}`
+        : customerDetails.address;
+        
+      const checkoutPayload = {
+        ...customerDetails,
+        address: finalAddress
+      };
+
+      const order = await checkout(checkoutPayload);
       if (order) {
         setCurrentOrder(order);
         setShowPaymentModal(true);
@@ -165,7 +175,7 @@ function CartPage() {
     );
     setPaymentError("");
     // Clear form
-    setCustomerDetails({ name: "", email: "", phone: "", address: "", pinCode: "" });
+    setCustomerDetails({ name: "", email: "", phone: "", address: "", addressLine2: "", pinCode: "" });
     // Clear cart after successful payment
     clearCart();
     // Redirect to home after 2 seconds
@@ -314,7 +324,19 @@ function CartPage() {
                       })
                     }
                     className="w-full rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-[#b58b2f] focus:outline-none focus:ring-0"
-                    placeholder="Full Address *"
+                    placeholder="Address Line 1 *"
+                  />
+                  <input
+                    type="text"
+                    value={customerDetails.addressLine2 || ""}
+                    onChange={(e) =>
+                      setCustomerDetails({
+                        ...customerDetails,
+                        addressLine2: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-[#b58b2f] focus:outline-none focus:ring-0"
+                    placeholder="Address Line 2 (Optional)"
                   />
                   <input
                     type="text"

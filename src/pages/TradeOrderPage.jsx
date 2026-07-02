@@ -23,7 +23,7 @@ function TradeOrderPage() {
   const [paymentOpen, setPaymentOpen] = React.useState(false);
   const [paid, setPaid] = React.useState(false);
   const [customer, setCustomer] = React.useState({
-    name: "", email: "", phone: "", address: "", city: "", state: "", pinCode: "",
+    name: "", email: "", phone: "", address: "", addressLine2: "", city: "", state: "", pinCode: "",
   });
 
   const loadQuote = React.useCallback(async () => {
@@ -64,7 +64,11 @@ function TradeOrderPage() {
     setCreating(true);
     setError("");
     try {
-      const result = await createTradeOrder(token, customer);
+      const payload = {
+        ...customer,
+        address: customer.addressLine2 ? `${customer.address}, ${customer.addressLine2}` : customer.address
+      };
+      const result = await createTradeOrder(token, payload);
       setOrder(result.order);
       setPaymentOpen(true);
     } catch (createError) {
@@ -132,7 +136,8 @@ function TradeOrderPage() {
             <input className={inputClass} name="name" value={customer.name} onChange={update} placeholder="Contact name" required />
             <input className={inputClass} name="email" type="email" value={customer.email} onChange={update} placeholder="Email" required />
             <input className={inputClass} name="phone" value={customer.phone} onChange={update} placeholder="Phone" required />
-            <textarea className={`${inputClass} min-h-24 resize-y`} name="address" value={customer.address} onChange={update} placeholder="Delivery address" required />
+            <textarea className={`${inputClass} min-h-24 resize-y`} name="address" value={customer.address} onChange={update} placeholder="Delivery address Line 1" required />
+            <input className={inputClass} name="addressLine2" value={customer.addressLine2} onChange={update} placeholder="Delivery address Line 2 (Optional)" />
             <div className="grid grid-cols-2 gap-3">
               <input className={inputClass} name="city" value={customer.city} onChange={update} placeholder="City" />
               <input className={inputClass} name="state" value={customer.state} onChange={update} placeholder="State" />
@@ -157,7 +162,7 @@ function TradeOrderPage() {
           customerEmail={customer.email}
           customerName={customer.name}
           customerPhone={customer.phone}
-          customerAddress={[customer.address, customer.city, customer.state].filter(Boolean).join(", ")}
+          customerAddress={[customer.address, customer.addressLine2, customer.city, customer.state].filter(Boolean).join(", ")}
           customerPinCode={customer.pinCode}
           isOpen={paymentOpen}
           onCancel={() => setPaymentOpen(false)}
