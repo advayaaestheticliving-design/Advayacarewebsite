@@ -329,6 +329,24 @@ function AdminOrdersPage() {
                                             </div>
                                           );
                                         })}
+                                        {/* Discounts */}
+                                        {(order.coupon_code || order.gift_card_code) && (
+                                          <div className="pt-2 pb-1 border-t border-neutral-800/50 space-y-1">
+                                            {order.coupon_code && (
+                                              <div className="flex justify-between items-center text-sm px-1">
+                                                <span className="text-white/60">Coupon ({order.coupon_code})</span>
+                                                <span className="text-emerald-400">-{formatCurrency(order.coupon_amount_inr)}</span>
+                                              </div>
+                                            )}
+                                            {order.gift_card_code && (
+                                              <div className="flex justify-between items-center text-sm px-1">
+                                                <span className="text-white/60">Gift Card ({order.gift_card_code})</span>
+                                                <span className="text-emerald-400">-{formatCurrency(order.gift_card_amount_inr)}</span>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+
                                         <div className="flex justify-between items-center pt-3 border-t border-neutral-800 px-1">
                                           <span className="text-sm text-white/50">Total Amount</span>
                                           <span className="font-semibold text-[#D4AF37]">{formatCurrency(order.amount)}</span>
